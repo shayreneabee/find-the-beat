@@ -4,19 +4,14 @@
 # Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# Virtual environment
+# Virtual environments
 venv/
 .venv/
 
-# Environment variables / secrets
+# Secrets
 .env
 
-# Local database
+# Local databases
 *.db
-
-# Flask
-instance/
 

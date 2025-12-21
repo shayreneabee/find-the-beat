@@ -1,83 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Find the Beat</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <header class="top">
-<div class="profile-actions">
-  <a class="back" href="{{ url_for('inbox') }}">📥 Inbox</a>
-</div>
-    <div class="brand">
-      <div class="logo">FTB</div>
-      <div>
-        <h1>Find the Beat</h1>
-        <p class="sub">Search artists, producers, and collaborators</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Find the Beat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Find the Beat 🎵</h1>
+      <p>Discover artists. Build your network.</p>
+
+      <div class="card">
+        <label for="q">Search</label>
+        <input id="q" placeholder="Try: R&B, producer, New Orleans..." />
+        <button>Search</button>
       </div>
+
+      <p class="muted">Step 4 complete: Flask is running locally.</p>
     </div>
-
-    <form class="searchbar" method="GET" action="/">
-      <input
-        name="q"
-        value="{{ q }}"
-        type="text"
-        placeholder="Search by name, role, genre, or location..."
-        autocomplete="off"
-      />
-      <button type="submit">Search</button>
-
-      {% if q %}
-        <a class="clear" href="/">Clear</a>
-      {% endif %}
-    </form>
-  </header>
-
-  <main class="wrap">
-    <div class="meta">
-      {% if q %}
-        <span>Results for: <strong>{{ q }}</strong></span>
-      {% else %}
-        <span>Browse featured profiles</span>
-      {% endif %}
-      <span class="count">{{ artists|length }} found</span>
-    </div>
-
-    <section class="grid">
-      {% for a in artists %}
-        <article class="card">
-          <img class="avatar-img"
-               src="{{ url_for('static', filename=a.photo) }}"
-               alt="{{ a.name }} avatar" />
-
-          <div class="info">
-            <h2 class="name">{{ a.name }}</h2>
-
-            <div class="tags">
-              <span class="tag">{{ a.role }}</span>
-              <span class="tag">{{ a.genre }}</span>
-            </div>
-
-            <p class="loc">{{ a.location }}</p>
-          </div>
-
-          <div class="card-actions">
-            <a class="cta linkbtn" href="{{ url_for('profile', slug=a.slug) }}">View</a>
-            <a class="cta linkbtn ghost" href="{{ url_for('message', slug=a.slug) }}">Message</a>
-          </div>
-        </article>
-      {% endfor %}
-    </section>
-
-    {% if artists|length == 0 %}
-      <div class="empty">
-        <h3>No matches.</h3>
-        <p>Try a different keyword like “New Orleans” or “Producer”.</p>
-      </div>
-    {% endif %}
-  </main>
-</body>
+  </body>
 </html>
 

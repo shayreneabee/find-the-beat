@@ -1,0 +1,40 @@
+body {
+  font-family: system-ui, -apple-system, Arial, sans-serif;
+  background: #0b0f1a;
+  color: #f2f5ff;
+  margin: 0;
+}
+.wrap {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 0 16px;
+}
+.card {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+}
+label { display:block; margin-bottom: 8px; color: rgba(255,255,255,0.75); }
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: #f2f5ff;
+  outline: none;
+}
+button {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(124,92,255,0.7);
+  background: rgba(124,92,255,0.22);
+  color: #f2f5ff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.muted { margin-top: 14px; color: rgba(255,255,255,0.65); }
+
