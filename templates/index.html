@@ -6,18 +6,76 @@
     <title>Find the Beat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
+
   <body>
     <div class="wrap">
-      <h1>Find the Beat 🎵</h1>
-      <p>Discover artists. Build your network.</p>
+      <header class="header">
+        <h1>Find the Beat 🎵</h1>
+        <p class="sub">Discover artists. Build your network.</p>
+      </header>
 
-      <div class="card">
-        <label for="q">Search</label>
-        <input id="q" placeholder="Try: R&B, producer, New Orleans..." />
-        <button>Search</button>
-      </div>
+      <section class="card">
+        <h2 class="h2">{{ title }}</h2>
 
-      <p class="muted">Step 4 complete: Flask is running locally.</p>
+        <form class="searchRow" method="GET" action="/">
+          <input
+            name="q"
+            value="{{ q }}"
+            placeholder="Search name, genre, city, role, tags..."
+            aria-label="Search artists"
+          />
+          <button type="submit">Search</button>
+        </form>
+
+        <div class="chips">
+          <a class="chip" href="/?q=R%26B">R&B</a>
+          <a class="chip" href="/?q=Hip-Hop">Hip-Hop</a>
+          <a class="chip" href="/?q=Gospel">Gospel</a>
+          <a class="chip" href="/?q=Producer">Producer</a>
+          <a class="chip" href="/?q=New%20Orleans">New Orleans</a>
+          {% if q %}
+            <a class="chip clear" href="/">Clear</a>
+          {% endif %}
+        </div>
+
+        <p class="count">
+          {{ artists|length }} result{{ "" if artists|length == 1 else "s" }}
+        </p>
+      </section>
+
+      <section class="grid">
+        {% for a in artists %}
+          <article class="artistCard">
+            <div class="top">
+              <div>
+                <p class="name">{{ a.name }}</p>
+                <p class="meta">{{ a.role }} • {{ a.genre }} • {{ a.city }}</p>
+              </div>
+              <span class="badge">Available</span>
+            </div>
+
+            <p class="bio">{{ a.bio }}</p>
+
+            <div class="tags">
+              {% for t in a.tags %}
+                <span class="tag">{{ t }}</span>
+              {% endfor %}
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" type="button">Save</button>
+              <button class="btn" type="button">View</button>
+            </div>
+          </article>
+        {% endfor %}
+
+        {% if artists|length == 0 %}
+          <div class="empty">
+            <p class="name">No matches found.</p>
+            <p class="meta">Try a different genre, city, or role.</p>
+          </div>
+        {% endif %}
+      </section>
     </div>
   </body>
 </html>
