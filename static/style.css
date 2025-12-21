@@ -1,0 +1,288 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: #0b0b10;
+  color: #f4f4f7;
+}
+
+/* ---------- Header ---------- */
+.top {
+  padding: 28px 18px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.brand {
+  max-width: 1000px;
+  margin: 0 auto 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  background: rgba(255,255,255,0.14);
+}
+
+.sub {
+  margin: 4px 0 0;
+  color: rgba(244,244,247,0.72);
+  font-size: 14px;
+}
+
+/* ---------- Search ---------- */
+.searchbar {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  gap: 10px;
+}
+
+.searchbar input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.searchbar button {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ---------- Layout ---------- */
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: rgba(244,244,247,0.75);
+  margin-bottom: 12px;
+}
+
+/* ---------- GRID (THIS FIXES STACKING) ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* ---------- Cards ---------- */
+.card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-size: 16px;
+}
+
+.tags {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.tag {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+
+.loc {
+  font-size: 13px;
+  color: rgba(244,244,247,0.70);
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+  flex-shrink: 0;
+}
+x
+/* ---------- Buttons ---------- */
+.cta {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  text-decoration: none;
+}
+
+.cta:hover {
+  background: rgba(255,255,255,0.16);
+}
+
+.ghost {
+  background: rgba(255,255,255,0.04);
+}
+
+/* ---------- Profile ---------- */
+.profile-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.profile-hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.big-avatar-img {
+  width: 78px;
+  height: 78px;
+  border-radius: 22px;
+  object-fit: cover;
+}
+
+.profile-cta-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* Inbox */
+.inbox {
+  display: grid;
+  gap: 12px;
+}
+
+.msg {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.msg-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.msg-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.msg-sub {
+  margin: 6px 0 0;
+  color: rgba(244,244,247,0.75);
+  font-size: 13px;
+}
+
+.msg-body {
+  margin: 12px 0 0;
+  color: rgba(244,244,247,0.85);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ---------- Landing Page ---------- */
+
+body.landing {
+  background: radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,0.25), transparent),
+              radial-gradient(900px 500px at 90% 10%, rgba(6,182,212,0.25), transparent),
+              #0b0b10;
+}
+
+.landing-header {
+  padding: 28px;
+  display: flex;
+  justify-content: center;
+}
+
+.landing-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.hero h2 {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  font-size: 18px;
+  color: rgba(244,244,247,0.8);
+  max-width: 600px;
+  margin: 0 auto 28px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.primary {
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border: none;
+  font-weight: 600;
+}
+
+.features {
+  margin-top: 60px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.feature {
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.feature h3 {
+  margin-top: 0;
+}
+

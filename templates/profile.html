@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ artist.name }} • Find the Beat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">FTB</div>
+      <div>
+        <h1>{{ artist.name }}</h1>
+        <p class="sub">{{ artist.role }} • {{ artist.genre }} • {{ artist.location }}</p>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <a class="back" href="{{ url_for('home') }}">← Back to Search</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="profile-card">
+      <div class="profile-hero">
+        <img class="big-avatar-img"
+             src="{{ url_for('static', filename=artist.photo) }}"
+             alt="{{ artist.name }} avatar" />
+
+        <div class="profile-main">
+          <div class="tags">
+            <span class="tag">{{ artist.role }}</span>
+            <span class="tag">{{ artist.genre }}</span>
+            <span class="tag">{{ artist.location }}</span>
+          </div>
+
+          <p class="bio">{{ artist.bio }}</p>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        <div class="panel">
+          <h3>Contact</h3>
+          <p><strong>Instagram:</strong> {{ artist.links.instagram }}</p>
+          <p><strong>Email:</strong> {{ artist.links.email }}</p>
+        </div>
+
+        <div class="panel">
+          <h3>Availability</h3>
+          <p>• Studio sessions</p>
+          <p>• Features & collabs</p>
+          <p>• Live gigs</p>
+        </div>
+      </div>
+
+      <div class="profile-cta-row">
+        <a class="cta linkbtn" href="{{ url_for('message', slug=artist.slug) }}">Message</a>
+        <button class="cta" type="button">Invite to Collab</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+

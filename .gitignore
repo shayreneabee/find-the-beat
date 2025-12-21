@@ -1,0 +1,22 @@
+# Mac
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.venv/
+
+# Environment variables / secrets
+.env
+
+# Local database
+*.db
+
+# Flask
+instance/
+

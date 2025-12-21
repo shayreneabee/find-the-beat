@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Join as Creator • Find the Beat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">FTB</div>
+      <div>
+        <h1>Join as a Creator</h1>
+        <p class="sub">Build your profile</p>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <a class="back" href="/dashboard">← Dashboard</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="form-card">
+      {% if errors %}
+        <div class="alert">
+          <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+      {% endif %}
+
+      <form method="POST" class="form">
+        <label>Display name
+          <input name="display_name" value="{{ form.get('display_name','') }}" placeholder="Stage name / brand name" />
+        </label>
+
+        <label>Role
+          <input name="role" value="{{ form.get('role','') }}" placeholder="Producer, Artist, DJ..." />
+        </label>
+
+        <label>Genre
+          <input name="genre" value="{{ form.get('genre','') }}" placeholder="R&B, Hip-Hop, Afrobeats..." />
+        </label>
+
+        <label>Location
+          <input name="location" value="{{ form.get('location','') }}" placeholder="City, State" />
+        </label>
+
+        <label>Instagram (optional)
+          <input name="instagram" value="{{ form.get('instagram','') }}" placeholder="@handle" />
+        </label>
+
+        <label>Bio
+          <textarea name="bio" rows="6" placeholder="What do you do, what are you looking for?">{{ form.get('bio','') }}</textarea>
+        </label>
+
+        <div class="row">
+          <button class="cta" type="submit">Create Profile</button>
+          <a class="ghost" href="/dashboard">Cancel</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
+

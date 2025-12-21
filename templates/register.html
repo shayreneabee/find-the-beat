@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register • Find the Beat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">FTB</div>
+      <div>
+        <h1>Create account</h1>
+        <p class="sub">Join Find the Beat</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="form-card">
+      {% if errors %}
+        <div class="alert">
+          <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+      {% endif %}
+
+      <form method="POST" class="form">
+        <label>Name
+          <input name="name" value="{{ form.get('name','') }}" />
+        </label>
+
+        <label>Email
+          <input name="email" value="{{ form.get('email','') }}" />
+        </label>
+
+        <label>Password
+          <input type="password" name="password" />
+        </label>
+
+        <div class="row">
+          <button class="cta" type="submit">Register</button>
+          <a class="ghost" href="/login">I have an account</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
+

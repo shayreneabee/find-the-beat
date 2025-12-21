@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inbox • Find the Beat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">FTB</div>
+      <div>
+        <h1>Inbox</h1>
+        <p class="sub">Messages sent through Find the Beat</p>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <a class="back" href="{{ url_for('home') }}">← Back to Search</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    {% if messages|length == 0 %}
+      <div class="empty">
+        <h3>No messages yet.</h3>
+        <p>Go to a profile → Message → Send, then come back here.</p>
+      </div>
+    {% else %}
+      <div class="meta">
+        <span>All messages</span>
+        <span class="count">{{ messages|length }} total</span>
+      </div>
+
+      <section class="inbox">
+        {% for m in messages %}
+          <article class="msg">
+            <div class="msg-top">
+              <div>
+                <h3 class="msg-title">To: {{ m.to_name }}</h3>
+                <p class="msg-sub">
+                  From: <strong>{{ m.sender_name }}</strong> • {{ m.sender_email }}
+                </p>
+              </div>
+              <a class="cta linkbtn ghost" href="{{ url_for('profile', slug=m.to_slug) }}">View Profile</a>
+            </div>
+
+            <p class="msg-body">{{ m.body }}</p>
+          </article>
+        {% endfor %}
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
+

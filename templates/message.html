@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Message {{ artist.name }} • Find the Beat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">FTB</div>
+      <div>
+        <h1>Message {{ artist.name }}</h1>
+        <p class="sub">{{ artist.role }} • {{ artist.genre }} • {{ artist.location }}</p>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <a class="back" href="{{ url_for('profile', slug=artist.slug) }}">← Back to Profile</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="form-card">
+
+      {% if errors %}
+        <div class="alert">
+          <strong>Fix these:</strong>
+          <ul>
+            {% for e in errors %}
+              <li>{{ e }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="POST" class="form">
+        <label>
+          Your name
+          <input name="sender_name" value="{{ form.sender_name if form else '' }}">
+        </label>
+
+        <label>
+          Your email
+          <input name="sender_email" value="{{ form.sender_email if form else '' }}">
+        </label>
+
+        <label>
+          Message
+          <textarea name="body" rows="6">{{ form.body if form else '' }}</textarea>
+        </label>
+
+        <div class="row">
+          <button class="cta" type="submit">Send</button>
+          <a class="ghost" href="{{ url_for('profile', slug=artist.slug) }}">Cancel</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
+

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard • Find the Beat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">FTB</div>
+      <div>
+        <h1>Dashboard</h1>
+        <p class="sub">Hi {{ session.get('user_name', 'Creator') }}</p>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <a class="back" href="/discover">← Discover</a>
+      <a class="back" href="/logout">Logout</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    {% if creator %}
+      <section class="profile-card">
+        <h2 style="margin-top:0;">Your Creator Profile</h2>
+        <p class="sub" style="margin:6px 0 14px;">
+          {{ creator.display_name }} • {{ creator.role }} • {{ creator.genre }} • {{ creator.location }}
+        </p>
+        <p style="color: rgba(244,244,247,0.85); line-height:1.5;">{{ creator.bio }}</p>
+
+        <div class="profile-cta-row">
+          <a class="cta linkbtn" href="/join">Update profile</a>
+          <a class="cta linkbtn ghost" href="/discover">Browse creators</a>
+        </div>
+      </section>
+    {% else %}
+      <div class="empty">
+        <h3>No creator profile yet.</h3>
+        <p>Create one so people can find you.</p>
+        <div class="profile-cta-row">
+          <a class="cta linkbtn" href="/join">Join as Creator</a>
+        </div>
+      </div>
+    {% endif %}
+  </main>
+</body>
+</html>
+
