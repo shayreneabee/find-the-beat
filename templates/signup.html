@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Log In • Find the Beat</title>
+    <title>Sign Up • Find the Beat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body>
@@ -11,7 +11,7 @@
       <a class="chip" href="/landing">← Back</a>
 
       <section class="card" style="margin-top: 12px;">
-        <h2 class="h2">Log in</h2>
+        <h2 class="h2">Create your account</h2>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -22,10 +22,10 @@
         <form method="POST" class="searchRow" style="flex-direction:column; gap:10px;">
           <input name="email" placeholder="Email" />
           <input name="password" type="password" placeholder="Password" />
-          <button type="submit">Log In</button>
+          <button type="submit">Sign Up</button>
         </form>
 
-        <p class="count" style="margin-top:12px;">Need an account? <a class="chip" href="/signup">Sign up</a></p>
+        <p class="count" style="margin-top:12px;">Already have an account? <a class="chip" href="/login">Log in</a></p>
       </section>
     </div>
   </body>

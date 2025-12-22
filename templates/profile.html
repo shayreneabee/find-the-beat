@@ -1,65 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{{ artist.name }} • Find the Beat</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <header class="top">
-    <div class="brand">
-      <div class="logo">FTB</div>
-      <div>
-        <h1>{{ artist.name }}</h1>
-        <p class="sub">{{ artist.role }} • {{ artist.genre }} • {{ artist.location }}</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Profile • Find the Beat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="chips">
+        <a class="chip" href="/landing">Home</a>
+        <a class="chip" href="/">Search</a>
+        <a class="chip clear" href="/logout">Log out</a>
       </div>
+
+      <section class="card" style="margin-top: 12px;">
+        <h2 class="h2">Your artist profile</h2>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <p class="count">{{ messages[0] }}</p>
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" style="display:grid; gap:10px; margin-top:12px;">
+          <input name="display_name" placeholder="Display name (this shows in search)" value="{{ user.display_name }}" />
+          <input name="role" placeholder="Role (Producer, Vocalist, etc.)" value="{{ user.role }}" />
+          <input name="genre" placeholder="Genre" value="{{ user.genre }}" />
+          <input name="city" placeholder="City" value="{{ user.city }}" />
+          <input name="tags_csv" placeholder="Tags (comma-separated: hooks, mixing, live)" value="{{ user.tags_csv }}" />
+          <input name="bio" placeholder="Short bio" value="{{ user.bio }}" />
+          <button type="submit">Save Profile</button>
+        </form>
+
+        <p class="count" style="margin-top:12px;">
+          Once you add a display name, you’ll appear in the search grid on the homepage.
+        </p>
+      </section>
     </div>
-
-    <div class="profile-actions">
-      <a class="back" href="{{ url_for('home') }}">← Back to Search</a>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section class="profile-card">
-      <div class="profile-hero">
-        <img class="big-avatar-img"
-             src="{{ url_for('static', filename=artist.photo) }}"
-             alt="{{ artist.name }} avatar" />
-
-        <div class="profile-main">
-          <div class="tags">
-            <span class="tag">{{ artist.role }}</span>
-            <span class="tag">{{ artist.genre }}</span>
-            <span class="tag">{{ artist.location }}</span>
-          </div>
-
-          <p class="bio">{{ artist.bio }}</p>
-        </div>
-      </div>
-
-      <div class="profile-grid">
-        <div class="panel">
-          <h3>Contact</h3>
-          <p><strong>Instagram:</strong> {{ artist.links.instagram }}</p>
-          <p><strong>Email:</strong> {{ artist.links.email }}</p>
-        </div>
-
-        <div class="panel">
-          <h3>Availability</h3>
-          <p>• Studio sessions</p>
-          <p>• Features & collabs</p>
-          <p>• Live gigs</p>
-        </div>
-      </div>
-
-      <div class="profile-cta-row">
-        <a class="cta linkbtn" href="{{ url_for('message', slug=artist.slug) }}">Message</a>
-        <button class="cta" type="button">Invite to Collab</button>
-      </div>
-    </section>
-  </main>
-</body>
+  </body>
 </html>
 

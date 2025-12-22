@@ -9,6 +9,16 @@
 
   <body>
     <div class="wrap">
+<div class="chips" style="margin-top:0; margin-bottom:12px;">
+  <a class="chip" href="/landing">Landing</a>
+  {% if user %}
+    <a class="chip" href="/profile">My Profile</a>
+    <a class="chip clear" href="/logout">Log out</a>
+  {% else %}
+    <a class="chip" href="/login">Log in</a>
+    <a class="chip primary" href="/signup">Sign up</a>
+  {% endif %}
+</div>
       <header class="header">
         <h1>Find the Beat 🎵</h1>
         <p class="sub">Discover artists. Build your network.</p>

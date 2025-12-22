@@ -1,15 +1,14 @@
 :root {
-  /* Retro palette */
-  --bg: #1b120b;          /* deep cocoa */
-  --panel: #fff3e1;       /* warm cream */
-  --panel2: #f6e4c8;      /* darker cream */
-  --ink: #2a1a12;         /* espresso text */
-  --muted: rgba(42, 26, 18, 0.70);
+  /* Retro cream palette */
+  --bg: #1c140d;          /* deep espresso */
+  --panel: #fff4e6;       /* warm cream */
+  --panel2: #f3e3c7;      /* toasted cream */
+  --ink: #2b1a10;         /* dark brown text */
+  --muted: rgba(43, 26, 16, 0.7);
 
-  --orange: #e26d2d;      /* burnt orange */
-  --orange2: #ff9a3c;     /* brighter orange */
-  --brown: #7a4a2b;       /* caramel brown */
-  --line: #2a1a12;        /* bold line */
+  --accent: #e07a2f;      /* burnt orange */
+  --accent2: #f2a154;     /* soft orange */
+  --line: #2b1a10;        /* bold outline */
   --shadow: rgba(0,0,0,0.25);
 }
 
@@ -19,8 +18,8 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, Arial, sans-serif;
   background:
-    radial-gradient(900px 600px at 18% 8%, rgba(255,154,60,0.18), transparent 60%),
-    radial-gradient(800px 520px at 90% 12%, rgba(226,109,45,0.14), transparent 58%),
+    radial-gradient(900px 600px at 15% 0%, rgba(224,122,47,0.18), transparent 60%),
+    radial-gradient(800px 500px at 90% 10%, rgba(242,161,84,0.14), transparent 55%),
     var(--bg);
   color: var(--panel);
 }
@@ -34,16 +33,15 @@ body {
 /* Header */
 .header h1 {
   margin: 0;
-  font-size: 36px;
-  letter-spacing: 0.4px;
+  font-size: 34px;
   color: var(--panel);
 }
 .sub {
   margin: 8px 0 0;
-  color: rgba(255,243,225,0.78);
+  color: rgba(255,244,230,0.75);
 }
 
-/* Main filter/search panel */
+/* Panels */
 .card {
   margin-top: 18px;
   padding: 16px;
@@ -51,7 +49,7 @@ body {
   border-radius: 18px;
   background: linear-gradient(180deg, var(--panel), var(--panel2));
   color: var(--ink);
-  box-shadow: 0 12px 0 rgba(0,0,0,0.18);
+  box-shadow: 0 10px 0 rgba(0,0,0,0.18);
 }
 
 .h2 {
@@ -60,6 +58,7 @@ body {
   color: var(--ink);
 }
 
+/* Search */
 .searchRow {
   display: flex;
   gap: 10px;
@@ -75,14 +74,14 @@ input {
   outline: none;
 }
 input:focus {
-  box-shadow: 0 0 0 4px rgba(255,154,60,0.35);
+  box-shadow: 0 0 0 4px rgba(224,122,47,0.35);
 }
 
 button {
   padding: 12px 16px;
   border-radius: 14px;
   border: 3px solid var(--line);
-  background: linear-gradient(180deg, var(--orange2), var(--orange));
+  background: linear-gradient(180deg, var(--accent2), var(--accent));
   color: var(--ink);
   font-weight: 900;
   cursor: pointer;
@@ -93,6 +92,7 @@ button:active {
   box-shadow: 0 2px 0 rgba(0,0,0,0.18);
 }
 
+/* Chips */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -108,10 +108,10 @@ button:active {
   border-radius: 999px;
   border: 3px solid var(--line);
   background: rgba(255,255,255,0.55);
-  box-shadow: 0 5px 0 rgba(0,0,0,0.16);
+  box-shadow: 0 4px 0 rgba(0,0,0,0.16);
 }
 .chip:hover {
-  background: rgba(255,154,60,0.25);
+  background: rgba(224,122,47,0.25);
 }
 .chip.clear {
   background: rgba(122,74,43,0.18);
@@ -119,12 +119,12 @@ button:active {
 
 .count {
   margin: 10px 0 0;
-  color: rgba(42,26,18,0.75);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 700;
 }
 
-/* Results grid */
+/* Grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -138,10 +138,10 @@ button:active {
 .artistCard {
   border: 3px solid var(--line);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,243,225,0.92), rgba(246,228,200,0.92));
+  background: linear-gradient(180deg, rgba(255,244,230,0.95), rgba(243,227,199,0.95));
   color: var(--ink);
   padding: 14px;
-  box-shadow: 0 10px 0 rgba(0,0,0,0.16);
+  box-shadow: 0 8px 0 rgba(0,0,0,0.16);
 }
 
 .top {
@@ -152,11 +152,11 @@ button:active {
 
 .name {
   margin: 0;
-  font-weight: 1000;
+  font-weight: 900;
 }
 .meta {
   margin: 6px 0 0;
-  color: rgba(42,26,18,0.78);
+  color: rgba(43,26,16,0.75);
   font-size: 12px;
   font-weight: 700;
 }
@@ -167,13 +167,13 @@ button:active {
   padding: 6px 10px;
   border-radius: 999px;
   border: 3px solid var(--line);
-  background: rgba(226,109,45,0.22);
+  background: rgba(224,122,47,0.25);
   font-weight: 900;
 }
 
 .bio {
   margin: 10px 0 0;
-  color: rgba(42,26,18,0.88);
+  color: rgba(43,26,16,0.88);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -193,6 +193,7 @@ button:active {
   font-weight: 800;
 }
 
+/* Buttons */
 .actions {
   display: flex;
   gap: 8px;
@@ -211,20 +212,7 @@ button:active {
   text-decoration: none;
   box-shadow: 0 6px 0 rgba(0,0,0,0.16);
 }
-.btn:active {
-  transform: translateY(4px);
-  box-shadow: 0 2px 0 rgba(0,0,0,0.16);
-}
 .btn.primary {
-  background: linear-gradient(180deg, var(--orange2), var(--orange));
-}
-
-.empty {
-  grid-column: 1 / -1;
-  border: 3px dashed rgba(255,243,225,0.55);
-  border-radius: 18px;
-  padding: 18px;
-  background: rgba(255,243,225,0.08);
-  color: var(--panel);
+  background: linear-gradient(180deg, var(--accent2), var(--accent));
 }
 

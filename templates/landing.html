@@ -1,60 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Find the Beat</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body class="landing">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Find the Beat • Landing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="header">
+        <h1>Find the Beat 🎵</h1>
+        <p class="sub">Retro vibes. Real connections. Build your music circle.</p>
+      </header>
 
-  <header class="landing-header">
-    <div class="brand">
-      <div class="logo">FTB</div>
-      <h1>Find the Beat</h1>
+      <section class="card">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <p class="count">{{ messages[0] }}</p>
+          {% endif %}
+        {% endwith %}
+
+        {% if user %}
+          <h2 class="h2">Welcome back 😌</h2>
+          <div class="actions">
+            <a class="btn primary" href="/profile">Go to Profile</a>
+            <a class="btn" href="/">Search Artists</a>
+            <a class="btn" href="/logout">Log out</a>
+          </div>
+        {% else %}
+          <h2 class="h2">Join the network</h2>
+          <p class="count">Create an account, set your artist profile, and show up in search.</p>
+
+          <div class="actions">
+            <a class="btn primary" href="/signup">Create Account</a>
+            <a class="btn" href="/login">Log In</a>
+            <a class="btn" href="/">Browse</a>
+          </div>
+        {% endif %}
+      </section>
     </div>
-  </header>
-
-  <main class="landing-main">
-    <section class="hero">
-      <h2>Where creators connect.</h2>
-      <p>
-        Find artists, producers, vocalists, and collaborators
-        by sound, city, or style.
-      </p>
-
-      <div class="hero-actions">
-        <a href="/discover" class="cta primary">Explore Creators</a>
-        <a href="/discover?q=New+Orleans" class="cta ghost">Browse New Orleans</a>
-      </div>
-    </section>
-
-    <section class="features">
-      <div class="feature">
-        <h3>🎵 Discover</h3>
-        <p>Search by genre, role, or location.</p>
-      </div>
-
-      <div class="feature">
-        <h3>🤝 Connect</h3>
-        <p>Message creators directly.</p>
-      </div>
-
-      <div class="feature">
-        <h3>🚀 Collaborate</h3>
-        <p>Turn ideas into real projects.</p>
-      </div>
-    </section>
-  </main>
-
-</body>
+  </body>
 </html>
-
-<div class="hero-actions">
-  <a href="/discover" class="cta primary">Explore Creators</a>
-  <a href="/join" class="cta ghost">Join as a Creator</a>
-  <a href="/login" class="cta ghost">Login</a>
-</div>
-
-<a href="/dashboard" class="cta ghost">Dashboard</a>
 
