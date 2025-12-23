@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ artist.name }} • Find the Beat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="chips" style="margin-top:0; margin-bottom:12px;">
+        <a class="chip" href="/landing">Landing</a>
+        <a class="chip" href="/">Search</a>
+        {% if user %}
+          <a class="chip clear" href="/profile">My Profile</a>
+        {% endif %}
+      </div>
+
+      <section class="artistProfile">
+        <div class="profileTop">
+          <div class="avatarWrap">
+            {% if artist.profile_pic %}
+              <img class="avatar" src="{{ url_for('static', filename=artist.profile_pic) }}" alt="{{ artist.name }} profile picture">
+            {% else %}
+              <div class="avatar placeholder">{{ artist.name[:1] }}</div>
+            {% endif %}
+          </div>
+
+          <div class="profileHead">
+            <h1 class="profileName">{{ artist.name }}</h1>
+            <p class="profileMeta">
+              {{ artist.role }} • {{ artist.genre }} • {{ artist.city }}
+            </p>
+
+            {% if artist.instrument %}
+              <p class="profileMeta"><strong>Instrument:</strong> {{ artist.instrument }}</p>
+            {% endif %}
+
+            {% if artist.services and artist.services|length > 0 %}
+              <div class="tags" style="margin-top:10px;">
+                {% for s in artist.services %}
+                  <span class="tag">{{ s }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="profileActions">
+            <a class="btn primary" href="mailto:{{ artist.email if artist.email else '' }}">Contact</a>
+            <a class="btn" href="/">Back</a>
+          </div>
+        </div>
+
+        {% if artist.bio %}
+          <div class="profileSection">
+            <h2 class="h2">About</h2>
+            <p class="bio" style="margin:0;">{{ artist.bio }}</p>
+          </div>
+        {% endif %}
+
+        {% if artist.tags and artist.tags|length > 0 %}
+          <div class="profileSection">
+            <h2 class="h2">Tags</h2>
+            <div class="tags" style="margin-top:8px;">
+              {% for t in artist.tags %}
+                <span class="tag">{{ t }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+  </body>
+</html>
+

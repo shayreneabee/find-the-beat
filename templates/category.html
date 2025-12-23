@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Search • Find the Beat{% endblock %}
+{% block title %}{{ title }} • Find the Beat{% endblock %}
 
 {% block content %}
   <header class="ftb-bar">
     <div class="ftb-bar-inner">
       <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
       <div class="ftb-bar-actions">
-        <a class="ftb-link" href="/c/showcases">Showcases</a>
+        <a class="ftb-link" href="/">Search</a>
         <a class="ftb-link" href="/profile">Profile</a>
       </div>
     </div>
@@ -15,23 +15,26 @@
 
   <main class="ftb-main">
     <section class="ftb-sectionHead">
-      <h1 class="ftb-title">Search</h1>
-      <div class="ftb-sub">Find artists, producers, composers, and musicians.</div>
+      <h1 class="ftb-title">{{ title }}</h1>
+      <div class="ftb-sub">{{ subtitle }}</div>
     </section>
 
-    <form method="get" action="/" class="ftb-searchForm">
-      <input class="ftb-searchInput" name="q" value="{{ q or '' }}" placeholder="Try: composer, producer, sax, New Orleans..." />
-      <button class="ftb-btn" type="submit">Search</button>
-    </form>
+    {% if filters %}
+      <section class="ftb-filters">
+        {% for f in filters %}
+          <a class="ftb-pillLink" href="{{ f.href }}">{{ f.label }}</a>
+        {% endfor %}
+      </section>
+    {% endif %}
 
-    <section class="ftb-cardGrid" style="margin-top:16px;">
+    <section class="ftb-cardGrid">
       {% for p in people %}
         <a class="ftb-card" href="/u/{{ p.id }}">
           <div class="ftb-cardMedia">
             {% if p.profile_pic %}
               <img src="{{ url_for('static', filename=p.profile_pic) }}" alt="">
             {% else %}
-              <div class="ftb-cardFallback">🎤</div>
+              <div class="ftb-cardFallback">🎵</div>
             {% endif %}
           </div>
 
@@ -39,8 +42,7 @@
             <div class="ftb-cardTitle">{{ p.display_name }}</div>
             <div class="ftb-cardSub">
               {{ p.city or "—" }}
-              {% if p.role %} • {{ p.role }}{% endif %}
-              {% if p.instrument %} • {{ p.instrument }}{% endif %}
+              {% if p.special %} • {{ p.special }}{% endif %}
             </div>
           </div>
         </a>
@@ -48,7 +50,7 @@
     </section>
 
     {% if people|length == 0 %}
-      <p class="ftb-noteText">No matches. Try another keyword.</p>
+      <p class="ftb-noteText">No profiles here yet. Add yours and you’ll show up.</p>
     {% endif %}
   </main>
 {% endblock %}

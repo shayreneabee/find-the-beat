@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ showcase.title }} • Showcases{% endblock %}
+
+{% block content %}
+<header class="ftb-bar">
+  <div class="ftb-bar-inner">
+    <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
+    <div class="ftb-bar-actions">
+      <a class="ftb-link" href="/c/showcases">Back</a>
+      <a class="ftb-link" href="/showcases/new">Post</a>
+    </div>
+  </div>
+</header>
+
+<main class="ftb-main">
+  <section class="ftb-profileCard">
+    <div class="ftb-posterFrame">
+      <img class="ftb-poster" src="{{ url_for('static', filename=showcase.poster_path) }}" alt="">
+    </div>
+
+    <h1 class="ftb-title" style="margin-top:14px;">{{ showcase.title }}</h1>
+
+    <div class="ftb-chipRow" style="margin-top:10px;">
+      <span class="ftb-chip">📅 {{ showcase.event_date }}</span>
+      {% if showcase.event_time %}<span class="ftb-chip">🕗 {{ showcase.event_time }}</span>{% endif %}
+      <span class="ftb-chip">📍 {{ showcase.city }}</span>
+      <span class="ftb-chip">🏛️ {{ showcase.venue }}</span>
+    </div>
+
+    {% if showcase.address %}
+      <p class="ftb-noteText" style="margin-top:10px;">
+        Address: <strong>{{ showcase.address }}</strong>
+        • <a href="https://www.google.com/maps?q={{ (showcase.venue ~ ' ' ~ showcase.address ~ ' ' ~ showcase.city)|urlencode }}" target="_blank" rel="noreferrer">Map</a>
+      </p>
+    {% endif %}
+
+    {% if showcase.host_name %}
+      <p class="ftb-noteText">Hosted by <strong>{{ showcase.host_name }}</strong></p>
+    {% endif %}
+
+    {% if showcase.description %}
+      <p class="ftb-bio" style="margin-top:14px;">{{ showcase.description }}</p>
+    {% else %}
+      <p class="ftb-noteText" style="margin-top:14px;">Details coming soon.</p>
+    {% endif %}
+
+    {% if showcase.linked_performers and showcase.linked_performers|length > 0 %}
+      <h3 class="ftb-h3">Performers</h3>
+      <div class="ftb-chipRow">
+        {% for p in showcase.linked_performers %}
+          <a class="ftb-chip ftb-chip-soft" href="/u/{{ p.id }}">🎤 {{ p.name }}</a>
+        {% endfor %}
+      </div>
+    {% elif showcase.performers and showcase.performers|length > 0 %}
+      <h3 class="ftb-h3">Performers</h3>
+      <div class="ftb-chipRow">
+        {% for p in showcase.performers %}
+          <span class="ftb-chip ftb-chip-soft">🎤 {{ p }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="ftb-actions">
+      <button class="ftb-btn" onclick="navigator.clipboard.writeText(window.location.href); alert('Link copied ✅')">Share</button>
+      <a class="ftb-btn ftb-btn-ghost" href="/s/{{ showcase.id }}/calendar.ics">Add to Calendar</a>
+
+      {% if showcase.ticket_url %}
+        <a class="ftb-btn ftb-btn-ghost" href="{{ showcase.ticket_url }}" target="_blank" rel="noreferrer">RSVP / Tickets</a>
+      {% else %}
+        <button class="ftb-btn ftb-btn-ghost" disabled>RSVP (soon)</button>
+      {% endif %}
+    </div>
+  </section>
+</main>
+{% endblock %}
+

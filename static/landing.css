@@ -1,162 +1,242 @@
-/* =========================
-   FIND THE BEAT – LANDING
-========================= */
-
-body.ftb-landing {
-  margin: 0;
-  background: #f2ead6;
-  color: #111;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+/* ===== Landing Page (retro cute + stained-glass glow) ===== */
+.ftb-landing{
+  background:#f2ead6;
+  margin:0;
+  color:#111;
+  font-family: ui-rounded, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* Shell */
-.ftb-shell {
-  max-width: 420px;
-  margin: 0 auto;
-  min-height: 100vh;
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
+/* subtle paper texture */
+.ftb-landing::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(240,138,0,.12), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(239,179,0,.14), transparent 45%),
+    radial-gradient(circle at 30% 85%, rgba(0,0,0,.06), transparent 45%),
+    repeating-linear-gradient(45deg, rgba(0,0,0,.03) 0 2px, transparent 2px 10px);
+  mix-blend-mode:multiply;
+  opacity:.55;
+  z-index:0;
 }
 
-/* Top bar */
-.ftb-topbar {
-  background: #efb300;
-  border-bottom: 6px solid #111;
-  padding: 14px 16px 10px;
+/* top bar */
+.ftb-topbar{
+  background:#efb300;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+.ftb-topbar-inner{
+  max-width:520px;
+  margin:0 auto;
+  padding:16px 18px;
+}
+.ftb-brand{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  letter-spacing:2px;
+}
+.ftb-brandText{
+  font-weight:1000;
+  font-size:30px;
+  text-shadow: 2px 2px 0 rgba(0,0,0,.15);
+}
+.ftb-brandNote{
+  font-weight:1000;
+  font-size:30px;
+}
+.ftb-topbar-shadow{
+  height:8px;
+  background:#111;
 }
 
-.ftb-brand {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* big search button */
+.ftb-hero{
+  display:flex;
+  justify-content:center;
+  padding:18px 18px 10px;
+  position:relative;
+  z-index:1;
+}
+.ftb-bigSearch{
+  width:min(520px, 92vw);
+  text-decoration:none;
+  color:#111;
+  background: linear-gradient(135deg, #f08a00, #ffb347);
+  border:4px solid #111;
+  border-radius:18px;
+  font-weight:1000;
+  font-size:44px;
+  text-align:center;
+  padding:18px 10px;
+  box-shadow: 0 14px 0 rgba(0,0,0,.18);
+  transform: translateY(0);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  position:relative;
+  overflow:hidden;
+}
+.ftb-bigSearch::after{
+  content:"";
+  position:absolute;
+  inset:-40% -60%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), transparent 50%);
+  transform: rotate(8deg);
+  opacity:.55;
+}
+.ftb-bigSearch:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 18px 0 rgba(0,0,0,.18);
+  filter: saturate(1.05);
+}
+.ftb-bigSearch:active{
+  transform: translateY(6px);
+  box-shadow: 0 8px 0 rgba(0,0,0,.18);
 }
 
-.ftb-brandText {
-  font-weight: 900;
-  letter-spacing: 2px;
-  font-size: 26px;
+/* main wrapper */
+.ftb-wrap{
+  max-width:520px;
+  margin:0 auto;
+  padding:14px 18px 92px; /* space for bottom nav */
+  position:relative;
+  z-index:1;
+}
+.ftb-catsTitle{
+  margin:16px 0 14px;
+  font-size:38px;
+  letter-spacing:1px;
+  font-weight:1000;
+  line-height:1;
 }
 
-.ftb-note {
-  font-size: 26px;
-}
-
-/* Search */
-.ftb-searchHero {
-  padding: 14px 16px;
-}
-
-.ftb-searchBtn {
-  display: block;
-  text-align: center;
-  background: #f08a00;
-  color: #111;
-  border: 4px solid #111;
-  font-size: 36px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  padding: 18px;
-  text-decoration: none;
-}
-
-/* Categories */
-.ftb-cats {
-  padding: 16px;
-}
-
-.ftb-catsTitle {
-  font-size: 26px;
-  margin-bottom: 16px;
-  letter-spacing: 2px;
-}
-
-.ftb-grid {
-  display: grid;
+/* grid tiles */
+.ftb-grid{
+  display:grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap:16px;
+  align-items:stretch;
 }
 
-.ftb-tile {
-  background: #f7f0de;
-  border: 3px solid #111;
-  border-radius: 22px;
-  overflow: hidden;
-  text-decoration: none;
-  color: #111;
+/* tile */
+.ftb-tile{
+  text-decoration:none;
+  color:#111;
+  background:#f7f0de;
+  border:4px solid #111;
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow: 0 12px 0 rgba(0,0,0,.18);
+  transform: translateY(0);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  position:relative;
 }
 
-.ftb-img {
-  height: 90px;
-  background: linear-gradient(135deg, #3b2d12, #f08a00);
+/* stained-glass glow overlay */
+.ftb-tile::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.55), transparent 40%),
+    radial-gradient(circle at 80% 25%, rgba(240,138,0,.18), transparent 45%),
+    radial-gradient(circle at 35% 85%, rgba(239,179,0,.16), transparent 55%),
+    linear-gradient(135deg, rgba(255,255,255,.10), rgba(0,0,0,.04));
+  mix-blend-mode:overlay;
+  opacity:.65;
+  pointer-events:none;
 }
 
-.ftb-tileLabel {
-  text-align: center;
-  font-weight: 900;
-  padding: 12px;
-  letter-spacing: 2px;
+/* cute shine sweep */
+.ftb-tile::after{
+  content:"";
+  position:absolute;
+  top:-40%;
+  left:-80%;
+  width:140%;
+  height:160%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  transform: rotate(12deg);
+  opacity:0;
+  pointer-events:none;
 }
 
-.ftb-tileCenter {
+.ftb-tile:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 0 rgba(0,0,0,.18);
+  filter: saturate(1.05) contrast(1.02);
+}
+.ftb-tile:hover::after{
+  opacity:.8;
+  left:20%;
+  transition: left .45s ease, opacity .2s ease;
+}
+.ftb-tile:active{
+  transform: translateY(6px);
+  box-shadow: 0 8px 0 rgba(0,0,0,.18);
+}
+
+/* image area */
+.ftb-img{
+  height:120px;
+  background-size:cover;
+  background-position:center;
+  filter: contrast(1.02) saturate(1.02);
+}
+
+/* label */
+.ftb-tileLabel{
+  padding:10px 10px 12px;
+  text-align:center;
+  font-weight:1000;
+  font-size:20px;
+  letter-spacing:1px;
+  text-transform:lowercase;
+  background: linear-gradient(180deg, #f2ead6, #f7f0de);
+  border-top:4px solid #111;
+}
+
+.ftb-tileWide{
   grid-column: 1 / -1;
-  max-width: 260px;
-  margin: 0 auto;
+}
+.ftb-tileWide .ftb-img{
+  height:140px;
 }
 
-/* Bottom nav */
-.ftb-bottomNav {
-  background: #f08a00;
-  border-top: 6px solid #111;
-  display: grid;
-  grid-template-columns: 1fr 120px 1fr;
-  padding: 12px;
-  align-items: end;
+/* bottom nav */
+.ftb-bottomNav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  background: linear-gradient(135deg, #f08a00, #ffb347);
+  border-top:6px solid #111;
+  padding:10px 14px;
+  display:flex;
+  justify-content:space-around;
+  gap:10px;
+  z-index:11;
 }
-
-.ftb-navItem {
-  text-align: center;
-  font-weight: 900;
-  text-decoration: none;
-  color: #111;
+.ftb-navItem{
+  text-decoration:none;
+  color:#111;
+  font-weight:1000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  min-width:80px;
+  transform: translateY(0);
+  transition: transform .12s ease;
 }
-
-.ftb-recordOuter {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  border: 6px solid #111;
-  background: #f2ead6;
-  display: grid;
-  place-items: center;
-  margin-top: -20px;
+.ftb-navItem:hover{
+  transform: translateY(-2px);
 }
-
-.ftb-recordInner {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
-  background: #3b2d12;
-  border: 6px solid #111;
+.ftb-navItem span{
+  font-size:14px;
+  letter-spacing:1px;
 }
-
-.ftb-recordDot {
-  width: 10px;
-  height: 10px;
-  background: #f2ead6;
-  border-radius: 50%;
-}
-
-/* --- FORCE landing tile photos (must be last) --- */
-.ftb-img {
-  background-size: cover !important;
-  background-position: center !important;
-  border-bottom: 3px solid #111 !important;
-}
-
-/* filenames must match exactly */
-.ftb-img.production { background-image: url("/static/landing/production.jpg") !important; }
-.ftb-img.composers  { background-image: url("/static/landing/composers.jpg") !important; }
-.ftb-img.artist     { background-image: url("/static/landing/artist.jpg") !important; }
-.ftb-img.musicians  { background-image: url("/static/landing/musicians.jpg") !important; }
-.ftb-img.showcases  { background-image: url("/static/landing/showcases.jpg") !important; }
 

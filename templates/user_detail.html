@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}{{ person.display_name }} • Find the Beat{% endblock %}
+
+{% block content %}
+  <header class="ftb-bar">
+    <div class="ftb-bar-inner">
+      <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
+      <div class="ftb-bar-actions">
+        <a class="ftb-link" href="/">Search</a>
+        <a class="ftb-link" href="/profile">My Profile</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="ftb-main">
+    <section class="ftb-profileCard">
+      <div class="ftb-profileTop">
+        <div class="ftb-avatar">
+          {% if person.profile_pic %}
+            <img src="{{ url_for('static', filename=person.profile_pic) }}" alt="">
+          {% else %}
+            <div class="ftb-avatarFallback">👤</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <h1 class="ftb-title">{{ person.display_name }}</h1>
+          <div class="ftb-sub">
+            {{ person.city or "—" }}
+            {% if person.role %} • {{ person.role }}{% endif %}
+          </div>
+
+          {% if person.instrument %}
+            <div class="ftb-pillRow" style="margin-top:10px;">
+              <span class="ftb-chip">🎼 {{ person.instrument }}</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if person.bio %}
+        <p class="ftb-bio">{{ person.bio }}</p>
+      {% endif %}
+
+      {% if person.services %}
+        <h3 class="ftb-h3">Services</h3>
+        <div class="ftb-chipRow">
+          {% for s in person.services %}
+            <span class="ftb-chip">{{ s }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if person.tags %}
+        <h3 class="ftb-h3">Tags</h3>
+        <div class="ftb-chipRow">
+          {% for t in person.tags %}
+            <span class="ftb-chip ftb-chip-soft">{{ t }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+  </main>
+{% endblock %}
+

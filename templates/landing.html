@@ -3,42 +3,69 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Find the Beat • Landing</title>
+    <title>Find the Beat</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}">
   </head>
-  <body>
-    <div class="wrap">
-      <header class="header">
-        <h1>Find the Beat 🎵</h1>
-        <p class="sub">Retro vibes. Real connections. Build your music circle.</p>
-      </header>
 
-      <section class="card">
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <p class="count">{{ messages[0] }}</p>
-          {% endif %}
-        {% endwith %}
+  <body class="ftb-landing">
+    <!-- TOP BRAND BAR -->
+    <header class="ftb-topbar">
+      <div class="ftb-topbar-inner">
+        <div class="ftb-brand">
+          <span class="ftb-brandText">FIND THE BEAT</span>
+          <span class="ftb-brandNote">♪</span>
+        </div>
+      </div>
+      <div class="ftb-topbar-shadow"></div>
+    </header>
 
-        {% if user %}
-          <h2 class="h2">Welcome back 😌</h2>
-          <div class="actions">
-            <a class="btn primary" href="/profile">Go to Profile</a>
-            <a class="btn" href="/">Search Artists</a>
-            <a class="btn" href="/logout">Log out</a>
-          </div>
-        {% else %}
-          <h2 class="h2">Join the network</h2>
-          <p class="count">Create an account, set your artist profile, and show up in search.</p>
+    <!-- BIG SEARCH BUTTON (like your mock) -->
+    <section class="ftb-hero">
+      <a class="ftb-bigSearch" href="/">
+        SEARCH
+      </a>
+    </section>
 
-          <div class="actions">
-            <a class="btn primary" href="/signup">Create Account</a>
-            <a class="btn" href="/login">Log In</a>
-            <a class="btn" href="/">Browse</a>
-          </div>
-        {% endif %}
-      </section>
-    </div>
+    <!-- CATEGORIES -->
+    <main class="ftb-wrap">
+      <h2 class="ftb-catsTitle">I’M LOOKING FOR:</h2>
+
+      <div class="ftb-grid">
+        <a href="/c/production" class="ftb-tile">
+          <div class="ftb-img" style="background-image:url('{{ url_for('static', filename='img/production.jpg') }}');"></div>
+          <div class="ftb-tileLabel">production</div>
+        </a>
+
+        <a href="/c/composers" class="ftb-tile">
+          <div class="ftb-img" style="background-image:url('{{ url_for('static', filename='img/composers.jpg') }}');"></div>
+          <div class="ftb-tileLabel">composers</div>
+        </a>
+
+        <a href="/c/artist" class="ftb-tile">
+          <div class="ftb-img" style="background-image:url('{{ url_for('static', filename='img/artist.jpg') }}');"></div>
+          <div class="ftb-tileLabel">artist</div>
+        </a>
+
+        <a href="/c/musicians" class="ftb-tile">
+          <div class="ftb-img" style="background-image:url('{{ url_for('static', filename='img/musicians.jpg') }}');"></div>
+          <div class="ftb-tileLabel">musicians</div>
+        </a>
+
+        <a href="/c/showcases" class="ftb-tile ftb-tileWide">
+          <div class="ftb-img" style="background-image:url('{{ url_for('static', filename='img/showcase.jpg') }}');"></div>
+          <div class="ftb-tileLabel">showcases</div>
+        </a>
+      </div>
+    </main>
+
+    <!-- BOTTOM NAV (simple + cute) -->
+    <nav class="ftb-bottomNav">
+      <a class="ftb-navItem" href="/landing">🏠<span>Home</span></a>
+      <a class="ftb-navItem" href="/">🔎<span>Search</span></a>
+      <a class="ftb-navItem" href="/profile">👤<span>Profile</span></a>
+    </nav>
   </body>
 </html>
 

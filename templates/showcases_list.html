@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Showcases • Find the Beat{% endblock %}
+
+{% block content %}
+<header class="ftb-bar">
+  <div class="ftb-bar-inner">
+    <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
+    <div class="ftb-bar-actions">
+      <a class="ftb-link" href="/showcases/new">Post</a>
+      <a class="ftb-link" href="/">Search</a>
+      <a class="ftb-link" href="/profile">Profile</a>
+    </div>
+  </div>
+</header>
+
+<main class="ftb-main">
+  <section class="ftb-sectionHead">
+    <h1 class="ftb-title">Showcases</h1>
+    <div class="ftb-sub">Open mics, gigs, and curated nights.</div>
+  </section>
+
+  <section class="ftb-cardGrid">
+    {% for s in showcases %}
+      <a class="ftb-card" href="/s/{{ s.id }}">
+        <div class="ftb-cardMedia">
+          <img src="{{ url_for('static', filename=s.poster_path) }}" alt="">
+        </div>
+
+        <div class="ftb-cardBody">
+          <div class="ftb-cardTitle">{{ s.title }}</div>
+          <div class="ftb-cardSub">
+            {{ s.event_date }}{% if s.event_time %} • {{ s.event_time }}{% endif %} • {{ s.city }} • {{ s.venue }}
+          </div>
+
+          {% if s.host_name %}
+            <div class="ftb-miniMeta">Hosted by {{ s.host_name }}</div>
+          {% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </section>
+
+  {% if showcases|length == 0 %}
+    <p class="ftb-noteText">No showcases yet. Click <strong>Post</strong> to add the first one.</p>
+  {% endif %}
+</main>
+{% endblock %}
+
