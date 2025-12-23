@@ -1,218 +1,109 @@
-:root {
-  /* Retro cream palette */
-  --bg: #1c140d;          /* deep espresso */
-  --panel: #fff4e6;       /* warm cream */
-  --panel2: #f3e3c7;      /* toasted cream */
-  --ink: #2b1a10;         /* dark brown text */
-  --muted: rgba(43, 26, 16, 0.7);
-
-  --accent: #e07a2f;      /* burnt orange */
-  --accent2: #f2a154;     /* soft orange */
-  --line: #2b1a10;        /* bold outline */
-  --shadow: rgba(0,0,0,0.25);
-}
-
-* { box-sizing: border-box; }
-
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Arial, sans-serif;
-  background:
-    radial-gradient(900px 600px at 15% 0%, rgba(224,122,47,0.18), transparent 60%),
-    radial-gradient(800px 500px at 90% 10%, rgba(242,161,84,0.14), transparent 55%),
-    var(--bg);
-  color: var(--panel);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f2ead6;
+  color: #111;
 }
 
-.wrap {
-  max-width: 980px;
-  margin: 48px auto;
-  padding: 0 16px;
+a {
+  color: inherit;
 }
 
-/* Header */
-.header h1 {
-  margin: 0;
-  font-size: 34px;
-  color: var(--panel);
+img {
+  max-width: 100%;
+  display: block;
 }
-.sub {
-  margin: 8px 0 0;
-  color: rgba(255,244,230,0.75);
+/* ===== LANDING PAGE ===== */
+
+.ftb-landing {
+  background: #f2ead6;
 }
 
-/* Panels */
-.card {
-  margin-top: 18px;
-  padding: 16px;
-  border: 3px solid var(--line);
-  border-radius: 18px;
-  background: linear-gradient(180deg, var(--panel), var(--panel2));
-  color: var(--ink);
-  box-shadow: 0 10px 0 rgba(0,0,0,0.18);
+.ftb-shell {
+  max-width: 420px;
+  margin: 0 auto;
 }
 
-.h2 {
-  margin: 0 0 12px;
-  font-size: 18px;
-  color: var(--ink);
+/* Top bar */
+.ftb-topbar {
+  background: #efb300;
+  border-bottom: 6px solid #111;
 }
 
-/* Search */
-.searchRow {
-  display: flex;
-  gap: 10px;
-}
-
-input {
-  flex: 1;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 3px solid var(--line);
-  background: rgba(255,255,255,0.65);
-  color: var(--ink);
-  outline: none;
-}
-input:focus {
-  box-shadow: 0 0 0 4px rgba(224,122,47,0.35);
-}
-
-button {
-  padding: 12px 16px;
-  border-radius: 14px;
-  border: 3px solid var(--line);
-  background: linear-gradient(180deg, var(--accent2), var(--accent));
-  color: var(--ink);
-  font-weight: 900;
-  cursor: pointer;
-  box-shadow: 0 6px 0 rgba(0,0,0,0.18);
-}
-button:active {
-  transform: translateY(4px);
-  box-shadow: 0 2px 0 rgba(0,0,0,0.18);
-}
-
-/* Chips */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.chip {
-  text-decoration: none;
-  color: var(--ink);
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  border: 3px solid var(--line);
-  background: rgba(255,255,255,0.55);
-  box-shadow: 0 4px 0 rgba(0,0,0,0.16);
-}
-.chip:hover {
-  background: rgba(224,122,47,0.25);
-}
-.chip.clear {
-  background: rgba(122,74,43,0.18);
-}
-
-.count {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Grid */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 14px;
-}
-@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr);} }
-@media (max-width: 560px) { .grid { grid-template-columns: 1fr;} }
-
-/* Artist cards */
-.artistCard {
-  border: 3px solid var(--line);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,244,230,0.95), rgba(243,227,199,0.95));
-  color: var(--ink);
-  padding: 14px;
-  box-shadow: 0 8px 0 rgba(0,0,0,0.16);
-}
-
-.top {
+.ftb-brand {
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-}
-
-.name {
-  margin: 0;
+  align-items: center;
   font-weight: 900;
-}
-.meta {
-  margin: 6px 0 0;
-  color: rgba(43,26,16,0.75);
-  font-size: 12px;
-  font-weight: 700;
+  letter-spacing: 2px;
 }
 
-.badge {
-  align-self: start;
-  font-size: 11px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 3px solid var(--line);
-  background: rgba(224,122,47,0.25);
-  font-weight: 900;
+/* Search button */
+.ftb-searchHero {
+  padding: 20px 16px;
 }
 
-.bio {
-  margin: 10px 0 0;
-  color: rgba(43,26,16,0.88);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-.tag {
-  font-size: 11px;
-  padding: 6px 8px;
-  border-radius: 999px;
-  border: 2px solid var(--line);
-  background: rgba(255,255,255,0.55);
-  font-weight: 800;
-}
-
-/* Buttons */
-.actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.btn {
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 3px solid var(--line);
-  background: rgba(255,255,255,0.55);
-  color: var(--ink);
-  font-weight: 900;
+.ftb-searchBtn {
+  display: block;
+  background: #f08a00;
+  border: 4px solid #111;
   text-align: center;
+  padding: 18px;
+  font-size: 32px;
+  font-weight: 900;
   text-decoration: none;
-  box-shadow: 0 6px 0 rgba(0,0,0,0.16);
+  color: #111;
 }
-.btn.primary {
-  background: linear-gradient(180deg, var(--accent2), var(--accent));
+
+/* Categories */
+.ftb-cats {
+  padding: 16px;
+}
+
+.ftb-catsTitle {
+  margin-bottom: 14px;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.ftb-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.ftb-tile {
+  text-decoration: none;
+  color: #111;
+  background: #f7f0de;
+  border: 4px solid #111;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 0 rgba(0,0,0,0.25);
+}
+
+.ftb-img {
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Image bindings */
+.ftb-img.production { background-image: url("/static/landing/production.jpg"); }
+.ftb-img.composers  { background-image: url("/static/landing/composers.jpg"); }
+.ftb-img.artist     { background-image: url("/static/landing/artist.jpg"); }
+.ftb-img.musicians  { background-image: url("/static/landing/musicians.jpg"); }
+.ftb-img.showcases  { background-image: url("/static/landing/showcases.jpg"); }
+
+.ftb-tileLabel {
+  padding: 10px;
+  text-align: center;
+  font-weight: 900;
+}
+
+/* Center tile */
+.ftb-tileCenter {
+  grid-column: 1 / -1;
 }
 
