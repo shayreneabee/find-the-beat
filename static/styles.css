@@ -251,6 +251,13 @@ body.ftb-body {
 .ftb-actionIcon { font-size: 32px; }
 .ftb-actionText { font-weight: 900; text-align: center; }
 
+.ftb-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 /* ===== Inbox page ===== */
 .ftb-inboxItem {
   display: grid;

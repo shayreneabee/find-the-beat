@@ -73,6 +73,28 @@ def current_user_id():
 # Schemas / migrations
 # ============================================================
 def ensure_db():
+    conn = sqlite3.connect("ftb.db")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT,
+            password_hash TEXT,
+            display_name TEXT,
+            role TEXT,
+            genre TEXT,
+            city TEXT,
+            state TEXT,
+            bio TEXT,
+            tags_csv TEXT,
+            instrument TEXT,
+            services_csv TEXT,
+            profile_pic TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def ensure_db():
     conn = db()
     conn.execute(
         """
@@ -820,4 +842,8 @@ if __name__ == "__main__":
     ensure_messages_schema()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+if __name__ == "__main__":
+    ensure_db()
+    app.run()
 
