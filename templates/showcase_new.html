@@ -1,86 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Post a Showcase • Find the Beat{% endblock %}
-
 {% block content %}
-<header class="ftb-bar">
-  <div class="ftb-bar-inner">
-    <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
-    <div class="ftb-bar-actions">
-      <a class="ftb-link" href="/c/showcases">Showcases</a>
-      <a class="ftb-link" href="/">Search</a>
+
+<section class="ftb-page">
+  <h1 class="ftb-title">Post a Performance</h1>
+
+  {% if error %}
+    <div class="ftb-alert">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="ftb-form">
+    <label class="ftb-label">Title</label>
+    <input class="ftb-input" name="title" required placeholder="Open mic at The Blue Note">
+
+    <div class="ftb-2col">
+      <div>
+        <label class="ftb-label">City</label>
+        <input class="ftb-input" name="city" placeholder="New Orleans">
+      </div>
+      <div>
+        <label class="ftb-label">State</label>
+        <select class="ftb-input" name="state">
+          <option value="">—</option>
+          <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
+          <option>CO</option><option>CT</option><option>DE</option><option>DC</option><option>FL</option>
+          <option>GA</option><option>HI</option><option>ID</option><option>IL</option><option>IN</option>
+          <option>IA</option><option>KS</option><option>KY</option><option>LA</option><option>ME</option>
+          <option>MD</option><option>MA</option><option>MI</option><option>MN</option><option>MS</option>
+          <option>MO</option><option>MT</option><option>NE</option><option>NV</option><option>NH</option>
+          <option>NJ</option><option>NM</option><option>NY</option><option>NC</option><option>ND</option>
+          <option>OH</option><option>OK</option><option>OR</option><option>PA</option><option>RI</option>
+          <option>SC</option><option>SD</option><option>TN</option><option>TX</option><option>UT</option>
+          <option>VT</option><option>VA</option><option>WA</option><option>WV</option><option>WI</option>
+          <option>WY</option>
+        </select>
+      </div>
     </div>
-  </div>
-</header>
 
-<main class="ftb-main">
-  <section class="ftb-profileCard">
-    <h1 class="ftb-title">Post a Showcase</h1>
-    <p class="ftb-noteText">Drop the details — make it easy for people to pull up.</p>
-
-    {% if error %}
-      <p class="ftb-error">{{ error }}</p>
-    {% endif %}
-
-    <form method="post" class="ftb-form" enctype="multipart/form-data">
-      <label class="ftb-label">Title *</label>
-      <input class="ftb-input" name="title" value="{{ form.title or '' }}" placeholder="Open Mic Night: Find The Beat" />
-
-      <div class="ftb-2col">
-        <div>
-          <label class="ftb-label">Event Date (YYYY-MM-DD)</label>
-          <input class="ftb-input" name="event_date" value="{{ form.event_date or '' }}" placeholder="2026-01-05" />
-        </div>
-        <div>
-          <label class="ftb-label">Time (HH:MM)</label>
-          <input class="ftb-input" name="event_time" value="{{ form.event_time or '' }}" placeholder="19:00" />
-        </div>
+    <div class="ftb-2col">
+      <div>
+        <label class="ftb-label">Date</label>
+        <input class="ftb-input" type="date" name="event_date">
       </div>
-
-      <label class="ftb-label">City</label>
-      <input class="ftb-input" name="city" value="{{ form.city or '' }}" placeholder="New Orleans" />
-
-      <label class="ftb-label">Venue</label>
-      <input class="ftb-input" name="venue" value="{{ form.venue or '' }}" placeholder="The Listening Room" />
-
-      <label class="ftb-label">Address (optional)</label>
-      <input class="ftb-input" name="address" value="{{ form.address or '' }}" placeholder="123 Rampart St" />
-
-      <label class="ftb-label">Host Name (optional)</label>
-      <input class="ftb-input" name="host_name" value="{{ form.host_name or '' }}" placeholder="ShayBee" />
-
-      <label class="ftb-label">Performers (names, comma separated)</label>
-      <input class="ftb-input" name="performers_csv" value="{{ form.performers_csv or '' }}" placeholder="Chad, DJ Nova, Tasha B" />
-
-      <label class="ftb-label">Performer User IDs (optional, comma separated)</label>
-      <input class="ftb-input" name="performer_user_ids_csv" value="{{ form.performer_user_ids_csv or '' }}" placeholder="1, 2, 3" />
-      <p class="ftb-noteText" style="margin-top:6px;">If you add IDs, they become clickable profiles.</p>
-
-      <label class="ftb-label">RSVP / Ticket Link (optional)</label>
-      <input class="ftb-input" name="ticket_url" value="{{ form.ticket_url or '' }}" placeholder="https://..." />
-
-      <label class="ftb-label">Poster Image (upload)</label>
-      <input class="ftb-input" type="file" name="poster" accept="image/*" />
-	<label class="ftb-label" style="margin-top:10px;"><strong>Showcase Video (optional)</strong></label>
-	<input
- 	 class="ftb-input"
- 	 type="file"
- 	 name="video"
- 	 accept="video/mp4,video/webm,video/quicktime"
-	>
-	<p class="ftb-noteText" style="margin-top:6px;">
-  	MP4 is best. Keep it short (like a promo clip).
-	</p>
-
-      <label class="ftb-label">Description</label>
-      <textarea class="ftb-textarea" name="description" rows="6" placeholder="Tell folks what to expect...">{{ form.description or '' }}</textarea>
-
-      <div class="ftb-actions">
-        <button class="ftb-btn" type="submit">Post Showcase</button>
-        <a class="ftb-btn ftb-btn-ghost" href="/c/showcases">Cancel</a>
+      <div>
+        <label class="ftb-label">Time</label>
+        <input class="ftb-input" type="time" name="event_time">
       </div>
-	<form method="post" enctype="multipart/form-data">
-  </section>
-</main>
+    </div>
+
+    <label class="ftb-label">Upload Video (optional)</label>
+    <input class="ftb-input" type="file" name="video_file" accept="video/*">
+
+    <label class="ftb-label">Description (optional)</label>
+    <textarea class="ftb-input" name="description" rows="4" placeholder="What was the vibe?"></textarea>
+
+    <button class="ftb-btn" type="submit">Post</button>
+  </form>
+</section>
+
 {% endblock %}
-
 

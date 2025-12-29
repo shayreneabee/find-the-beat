@@ -70,9 +70,8 @@ function copyShowcaseLink(){
 <div class="ftb-mediaCard">
   {% if showcase.video_path %}
 <div class="ftb-videoWrap">
-  <video class="ftb-video" controls preload="metadata">
-    <source src="{{ showcase.video_path }}">
-    Your browser does not support the video tag.
+  <video class="ftb-video" controls playsinline>
+    <source src="{{ url_for('static', filename=showcase.video_path) }}">
   </video>
 </div>
   {% elif showcase.poster_path %}

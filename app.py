@@ -1,5 +1,5 @@
 import os
-import sqlite3
+from werkzeug.utils import secure_filename
 
 from datetime import datetime, timedelta
 
@@ -33,6 +33,15 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "mp4", "mov", "webm"}
 
 # keep it reasonable for local dev
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200MB
+
+UPLOAD_SUBDIR = "uploads"
+UPLOAD_FOLDER = os.path.join(app.static_folder, UPLOAD_SUBDIR)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+ALLOWED_VIDEO_EXTS = {"mp4", "mov", "m4v", "webm"}
+
+def allowed_video(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_VIDEO_EXTS
 
 
 # ============================================================

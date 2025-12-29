@@ -56,6 +56,23 @@
     <span class="ftb-navLabel">Search</span>
   </a>
 
+<a href="{{ url_for('profile') }}" class="ftb-cornerProfile">
+  <span class="ftb-navAvatarWrap">
+    <img class="ftb-navAvatar"
+         src="{{ url_for('static', filename=(me.profile_pic if me and me.profile_pic else 'img/default-avatar.png')) }}"
+         alt="Profile">
+  </span>
+</a>
+
+<a href="{{ url_for('profile') }}" class="ftb-cornerProfile">
+  <span class="ftb-navAvatarWrap">
+    <img class="ftb-navAvatar"
+         src="{{ url_for('static', filename=(user_pic if user_pic else 'img/default-avatar.png')) }}"
+         alt="Profile">
+  </span>
+</a>
+
+
   <a class="ftb-navItem {% if (active_nav|default(''))=='profile' %}is-active{% endif %}"
      href="{{ url_for('profile') }}">
     <span class="ftb-navIcon">👤</span>
