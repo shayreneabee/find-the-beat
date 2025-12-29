@@ -60,6 +60,16 @@
 
       <label class="ftb-label">Poster Image (upload)</label>
       <input class="ftb-input" type="file" name="poster" accept="image/*" />
+	<label class="ftb-label" style="margin-top:10px;"><strong>Showcase Video (optional)</strong></label>
+	<input
+ 	 class="ftb-input"
+ 	 type="file"
+ 	 name="video"
+ 	 accept="video/mp4,video/webm,video/quicktime"
+	>
+	<p class="ftb-noteText" style="margin-top:6px;">
+  	MP4 is best. Keep it short (like a promo clip).
+	</p>
 
       <label class="ftb-label">Description</label>
       <textarea class="ftb-textarea" name="description" rows="6" placeholder="Tell folks what to expect...">{{ form.description or '' }}</textarea>
@@ -68,7 +78,7 @@
         <button class="ftb-btn" type="submit">Post Showcase</button>
         <a class="ftb-btn ftb-btn-ghost" href="/c/showcases">Cancel</a>
       </div>
-    </form>
+	<form method="post" enctype="multipart/form-data">
   </section>
 </main>
 {% endblock %}

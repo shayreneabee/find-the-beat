@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Production • {{ job_label }}{% endblock %}
+
+{% block content %}
+<header class="ftb-bar">
+  <div class="ftb-bar-inner">
+    <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
+    <div class="ftb-bar-actions">
+      <a class="ftb-link" href="/c/production">Production</a>
+      <a class="ftb-link" href="/">Search</a>
+      <a class="ftb-link" href="/profile">Profile</a>
+    </div>
+  </div>
+</header>
+
+<main class="ftb-main">
+  <section class="ftb-screenTitle">
+    <div class="ftb-orangeBar">PRODUCTION</div>
+    <div class="ftb-orangeBar small">ALL PRODUCTION JOBS</div>
+  </section>
+
+  <section class="ftb-prodHeader">
+    <a class="ftb-backBtn" href="/c/production">‹</a>
+    <h2 class="ftb-prodTitle">{{ job_label }}</h2>
+  </section>
+
+  <section class="ftb-prodList">
+    {% for p in people %}
+      <a class="ftb-prodRow" href="/u/{{ p.id }}">
+        <div class="ftb-prodThumb">
+          {% if p.profile_pic %}
+            <img src="{{ url_for('static', filename=p.profile_pic) }}" alt="">
+          {% else %}
+            <div class="ftb-avatarFallback">♪</div>
+          {% endif %}
+        </div>
+
+        <div class="ftb-prodText">
+          <div class="ftb-prodName">
+            {{ p.first }}{% if p.st %}, {{ p.st }}{% endif %}
+          </div>
+
+          <div class="ftb-prodMeta">
+            {{ p.city }}{% if p.st %}, {{ p.st }}{% endif %} • {{ job_label }}
+          </div>
+        </div>
+
+        <div class="ftb-prodGo">›</div>
+      </a>
+
+      <div class="ftb-prodDivider"></div>
+    {% endfor %}
+
+    {% if people|length == 0 %}
+      <p class="ftb-noteText" style="margin-top:18px;">
+        No one has listed “{{ job_label }}” yet. Add it in Profile → Services.
+      </p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

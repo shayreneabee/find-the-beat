@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Messages{% endblock %}
+{% block content %}
+
+<header class="ftb-bar">
+  <div class="ftb-bar-inner">
+    <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
+    <div class="ftb-bar-actions">
+      <a class="ftb-link" href="/inbox">Inbox</a>
+      <a class="ftb-link" href="/messages/new">New</a>
+    </div>
+  </div>
+</header>
+
+<main class="ftb-main">
+  <section class="ftb-screenTitle">
+    <div class="ftb-orangeBar">MESSAGES</div>
+    <div class="ftb-orangeBar small">{% if other %}{{ other["display_name"] }}{% else %}Conversation{% endif %}</div>
+  </section>
+
+  <section class="ftb-chatBox">
+    {% for m in msgs %}
+      <div class="ftb-bubbleRow {% if m.from_user_id == me %}me{% endif %}">
+        <div class="ftb-bubble">
+          <div class="ftb-bubbleText">{{ m.body }}</div>
+          <div class="ftb-bubbleTime">{{ (m.created_at or "")[:16].replace("T"," ") }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="ftb-chatInput">
+    <form method="post" class="ftb-chatForm">
+      {% if other %}
+        <input type="hidden" name="to_user_id" value="{{ other['id'] }}">
+      {% else %}
+        <input type="hidden" name="to_user_id" value="">
+      {% endif %}
+
+      {% set sc = (msgs[0].showcase_id if msgs and msgs[0].showcase_id else "") %}
+      <input type="hidden" name="showcase_id" value="{{ sc }}">
+
+      <input class="ftb-input" name="body" placeholder="Write a message..." required>
+      <button class="ftb-btn" type="submit">Send</button>
+    </form>
+  </section>
+</main>
+
+{% endblock %}
+

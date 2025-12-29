@@ -1,0 +1,944 @@
+import os
+import sqlite3
+from datetime import datetime, timedelta
+
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    abort,
+    flash,
+    Response,
+)
+from werkzeug.utils import secure_filename
+
+
+# ============================================================
+# App setup
+# ============================================================
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
+app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200MB
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "ftb.db")
+
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "mp4", "mov", "webm"}
+
+
+# ============================================================
+# Helpers
+# ============================================================
+def ensure_messages_schema():
+    conn = db()
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          thread_key TEXT NOT NULL,
+          from_user_id INTEGER NOT NULL,
+          to_user_id INTEGER NOT NULL,
+          body TEXT NOT NULL,
+          showcase_id INTEGER,
+          created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+def db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def allowed_file(filename: str) -> bool:
+    if not filename or "." not in filename:
+        return False
+    ext = filename.rsplit(".", 1)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
+
+
+def ensure_db():
+    conn = db()
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT,
+          password_hash TEXT,
+          display_name TEXT,
+          role TEXT,
+          genre TEXT,
+          city TEXT,
+          bio TEXT,
+          tags_csv TEXT,
+          instrument TEXT,
+          services_csv TEXT,
+          profile_pic TEXT,
+          state TEXT
+        )
+        """
+    )
+    conn.commit()
+
+    # Seed a default user if empty
+    c = conn.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
+    if c == 0:
+        conn.execute(
+            """
+            INSERT INTO users (email, password_hash, display_name, role, genre, city, state, bio, tags_csv, instrument, services_csv, profile_pic)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "shay@example.com",
+                "x",
+                "ShayBee",
+                "Singer",
+                "R&B",
+                "McComb",
+                "MS",
+                "",
+                "",
+                "",
+                "producer, audio engineer",
+                "",
+            ),
+        )
+        conn.commit()
+
+    conn.close()
+
+
+def ensure_showcases_schema():
+    conn = db()
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS showcases (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          event_date TEXT,
+          event_time TEXT,
+          city TEXT,
+          address TEXT,
+          venue TEXT,
+          description TEXT,
+          poster_path TEXT,
+          host_user_id INTEGER,
+          host_name TEXT,
+          performers_csv TEXT,
+          performer_user_ids_csv TEXT,
+          ticket_url TEXT,
+          created_at TEXT
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def current_user_id():
+    # For now you said you’re the only user; keep it simple
+    return 1
+
+
+def parse_csv(s: str):
+    return [x.strip() for x in (s or "").split(",") if x.strip()]
+
+
+# ============================================================
+# Routes
+# ============================================================
+
+@app.route("/c/musicians/<path:inst>")
+def musicians_people(inst):
+    inst_raw = (inst or "").replace("-", " ").strip()
+    pretty = " ".join([w.capitalize() for w in inst_raw.split()])
+    key = inst_raw.lower()
+
+    conn = db()
+    rows = conn.execute("""
+        SELECT id, display_name, city, state, instrument, services_csv, role, profile_pic
+        FROM users
+        ORDER BY id DESC
+    """).fetchall()
+    conn.close()
+
+    def first_name(dn):
+        dn = (dn or "").strip()
+        return dn.split()[0] if dn else "Unnamed"
+
+    people = []
+    for r in rows:
+        instrument = (r["instrument"] or "").lower()
+        services = (r["services_csv"] or "").lower()
+        role = (r["role"] or "").lower()
+
+        if key in instrument or key in services or key in role:
+            people.append({
+                "id": r["id"],
+                "first": first_name(r["display_name"]),
+                "city": (r["city"] or "—").strip(),
+                "st": (r["state"] or "").strip().upper(),
+                "instrument": (r["instrument"] or "").strip(),
+                "profile_pic": r["profile_pic"] or "",
+            })
+
+    return render_template("people_list.html", section="MUSICIANS", heading=pretty, people=people)
+
+
+@app.route("/c/composers/<path:genre>")
+def composers_people(genre):
+    genre_raw = (genre or "").replace("-", " ").strip()
+    pretty = " ".join([w.capitalize() for w in genre_raw.split()])
+    key = genre_raw.lower()
+
+    conn = db()
+    rows = conn.execute("""
+        SELECT id, display_name, city, state, genre, services_csv, role, profile_pic
+        FROM users
+        ORDER BY id DESC
+    """).fetchall()
+    conn.close()
+
+    def first_name(dn):
+        dn = (dn or "").strip()
+        return dn.split()[0] if dn else "Unnamed"
+
+    people = []
+    for r in rows:
+        g = (r["genre"] or "").lower()
+        services = (r["services_csv"] or "").lower()
+        role = (r["role"] or "").lower()
+
+        if key in g or key in services or "composer" in role:
+            people.append({
+                "id": r["id"],
+                "first": first_name(r["display_name"]),
+                "city": (r["city"] or "—").strip(),
+                "st": (r["state"] or "").strip().upper(),
+                "genre": (r["genre"] or "").strip(),
+                "profile_pic": r["profile_pic"] or "",
+            })
+
+    return render_template("people_list.html", section="COMPOSERS", heading=pretty, people=people)
+
+
+@app.route("/c/artist/<path:tag>")
+def artists_people(tag):
+    tag_raw = (tag or "").replace("-", " ").strip()
+    pretty = " ".join([w.capitalize() for w in tag_raw.split()])
+    key = tag_raw.lower()
+
+    conn = db()
+    rows = conn.execute("""
+        SELECT id, display_name, city, state, role, genre, tags_csv, services_csv, profile_pic
+        FROM users
+        ORDER BY id DESC
+    """).fetchall()
+    conn.close()
+
+    def first_name(dn):
+        dn = (dn or "").strip()
+        return dn.split()[0] if dn else "Unnamed"
+
+    people = []
+    for r in rows:
+        role = (r["role"] or "").lower()
+        genre = (r["genre"] or "").lower()
+        tags = (r["tags_csv"] or "").lower()
+        services = (r["services_csv"] or "").lower()
+
+        if key in role or key in genre or key in tags or key in services:
+            people.append({
+                "id": r["id"],
+                "first": first_name(r["display_name"]),
+                "city": (r["city"] or "—").strip(),
+                "st": (r["state"] or "").strip().upper(),
+                "role": (r["role"] or "").strip(),
+                "profile_pic": r["profile_pic"] or "",
+            })
+
+    return render_template("people_list.html", section="ARTISTS", heading=pretty, people=people)
+
+@app.route("/landing")
+def landing():
+    return render_template("landing.html")
+
+
+@app.route("/")
+def home():
+    q = (request.args.get("q") or "").strip().lower()
+
+    conn = db()
+    rows = conn.execute(
+        """
+        SELECT id, display_name, role, genre, city, state, instrument, services_csv, profile_pic
+        FROM users
+        ORDER BY id DESC
+        """
+    ).fetchall()
+    conn.close()
+
+    people = []
+    for r in rows:
+        services = parse_csv(r["services_csv"])
+        if q:
+            hay = " ".join([
+                (r["display_name"] or ""),
+                (r["role"] or ""),
+                (r["genre"] or ""),
+                (r["city"] or ""),
+                (r["state"] or ""),
+                (r["instrument"] or ""),
+                (r["services_csv"] or ""),
+            ]).lower()
+            if q not in hay:
+                continue
+
+        people.append(
+            {
+                "id": r["id"],
+                "display_name": r["display_name"],
+                "role": r["role"],
+                "genre": r["genre"],
+                "city": r["city"],
+                "state": r["state"],
+                "instrument": r["instrument"],
+                "services": services,
+                "profile_pic": r["profile_pic"] or "",
+            }
+        )
+
+    # This is your “search results” page
+    return render_template("index.html", people=people, q=q)
+
+
+@app.route("/c/<string:kind>")
+def category(kind):
+    kind = (kind or "").strip().lower()
+
+    # Keep showcases separate
+    if kind == "showcases":
+        return redirect(url_for("showcases_list"))
+
+    conn = db()
+    rows = conn.execute(
+        """
+        SELECT id, display_name, role, genre, city, state, instrument, services_csv, profile_pic
+        FROM users
+        ORDER BY id DESC
+        """
+    ).fetchall()
+    conn.close()
+
+    # Titles/subtitles for your UI
+    title_map = {
+        "artist": ("Artists", "All artists"),
+        "musicians": ("Musicians", "All instruments"),
+        "composers": ("Composers", "All composers"),
+        "production": ("Production", "All production jobs"),
+    }
+    title, subtitle = title_map.get(kind, (kind.title(), f"All {kind.title()}"))
+
+    # Simple filters for the top bar (optional)
+    filters = []
+    if kind == "musicians":
+        for inst in ["Guitar", "Piano", "Drums", "Sax", "Violin"]:
+            filters.append({"label": inst, "href": "/c/musicians"})
+    elif kind == "composers":
+        for g in ["Film Score", "Jazz", "Ragtime", "Video Game", "Television"]:
+            filters.append({"label": g, "href": "/c/composers"})
+    elif kind == "production":
+        for r in ["Producer", "Engineer", "Mixer", "Mastering"]:
+            filters.append({"label": r, "href": "/c/production"})
+
+    # Filter people
+    people = []
+    for r in rows:
+        services = (r["services_csv"] or "").lower()
+        role = (r["role"] or "").lower()
+        genre = (r["genre"] or "").lower()
+        instrument = (r["instrument"] or "").lower()
+
+        if kind == "production":
+            # Production screen 1 uses template logic (job list)
+            pass
+        elif kind == "composers":
+            if "composer" not in role and "film score" not in services and "composer" not in services:
+                # Loose filter; you can tighten later
+                pass
+        elif kind == "musicians":
+            pass
+        elif kind == "artist":
+            pass
+
+        people.append(
+            {
+                "id": r["id"],
+                "display_name": r["display_name"],
+                "role": r["role"],
+                "genre": r["genre"],
+                "city": r["city"] or "—",
+                "state": r["state"] or "",
+                "instrument": r["instrument"] or "",
+                "services": parse_csv(r["services_csv"]),
+                "profile_pic": r["profile_pic"] or "",
+            }
+        )
+
+    return render_template(
+        "category.html",
+        kind=kind,
+        title=title,
+        subtitle=subtitle,
+        people=people,
+        filters=filters,
+    )
+
+
+# ----------------------------
+# Production Screen 2 (tight)
+# ----------------------------
+@app.route("/c/production/<path:job>")
+def production_people(job):
+    job_label_raw = (job or "").replace("-", " ").strip()
+    pretty_job = " ".join([w.capitalize() for w in job_label_raw.split()])
+    j = job_label_raw.lower()
+
+    def first_name(dn: str):
+        dn = (dn or "").strip()
+        return dn.split()[0] if dn else "Unnamed"
+
+    conn = db()
+    rows = conn.execute(
+        """
+        SELECT id, display_name, city, state, services_csv, role, genre, profile_pic
+        FROM users
+        ORDER BY id DESC
+        """
+    ).fetchall()
+    conn.close()
+
+    people = []
+    for r in rows:
+        services = (r["services_csv"] or "").lower()
+        role = (r["role"] or "").lower()
+        genre = (r["genre"] or "").lower()
+
+        if (j in services) or (j in role) or (j in genre):
+            people.append(
+                {
+                    "id": r["id"],
+                    "first": first_name(r["display_name"]),
+                    "city": (r["city"] or "—").strip(),
+                    "st": (r["state"] or "").strip().upper(),
+                    "profile_pic": r["profile_pic"] or "",
+                }
+            )
+
+    return render_template("production_people.html", job_label=pretty_job, people=people)
+
+
+# ----------------------------
+# Profile (City + State + Pic)
+# ----------------------------
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    user_id = current_user_id()
+
+    if request.method == "POST":
+        display_name = (request.form.get("display_name") or "").strip()
+        role = (request.form.get("role") or "").strip()
+        genre = (request.form.get("genre") or "").strip()
+        city = (request.form.get("city") or "").strip()
+        state = (request.form.get("state") or "").strip().upper()
+        bio = (request.form.get("bio") or "").strip()
+        instrument = (request.form.get("instrument") or "").strip()
+        services_csv = (request.form.get("services_csv") or "").strip()
+        tags_csv = (request.form.get("tags_csv") or "").strip()
+
+        # Optional: file upload (if you add enctype later)
+        profile_pic_path = None
+        file = request.files.get("profile_pic")
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filename = f"user_{user_id}_{filename}"
+            save_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(save_path)
+            profile_pic_path = f"uploads/{filename}"
+
+        conn = db()
+
+        if profile_pic_path:
+            conn.execute(
+                """
+                UPDATE users
+                SET display_name=?, role=?, genre=?, city=?, state=?, bio=?, instrument=?, services_csv=?, tags_csv=?, profile_pic=?
+                WHERE id=?
+                """,
+                (
+                    display_name,
+                    role,
+                    genre,
+                    city,
+                    state,
+                    bio,
+                    instrument,
+                    services_csv,
+                    tags_csv,
+                    profile_pic_path,
+                    user_id,
+                ),
+            )
+        else:
+            conn.execute(
+                """
+                UPDATE users
+                SET display_name=?, role=?, genre=?, city=?, state=?, bio=?, instrument=?, services_csv=?, tags_csv=?
+                WHERE id=?
+                """,
+                (
+                    display_name,
+                    role,
+                    genre,
+                    city,
+                    state,
+                    bio,
+                    instrument,
+                    services_csv,
+                    tags_csv,
+                    user_id,
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+        flash("Profile saved ✅")
+        return redirect(url_for("profile"))
+
+    conn = db()
+    user = conn.execute(
+        """
+        SELECT id, display_name, role, genre, city, state, bio, tags_csv, instrument, services_csv, profile_pic
+        FROM users
+        WHERE id=?
+        """,
+        (user_id,),
+    ).fetchone()
+    conn.close()
+
+    if not user:
+        abort(404)
+
+    return render_template("profile.html", user=dict(user))
+
+
+# ----------------------------
+# User detail page
+# ----------------------------
+@app.route("/inbox")
+def inbox():
+    ensure_messages_schema()
+    me = current_user_id()
+
+    conn = db()
+    rows = conn.execute(
+        """
+        SELECT m.id, m.thread_key, m.body, m.created_at, m.showcase_id,
+               m.from_user_id, m.to_user_id,
+               u1.display_name AS from_name,
+               u2.display_name AS to_name
+        FROM messages m
+        LEFT JOIN users u1 ON u1.id = m.from_user_id
+        LEFT JOIN users u2 ON u2.id = m.to_user_id
+        WHERE m.from_user_id = ? OR m.to_user_id = ?
+        ORDER BY m.created_at DESC
+        """,
+        (me, me),
+    ).fetchall()
+    conn.close()
+
+    # Build latest message per thread
+    latest = {}
+    for r in rows:
+        if r["thread_key"] not in latest:
+            latest[r["thread_key"]] = dict(r)
+
+    threads = list(latest.values())
+    return render_template("inbox.html", threads=threads, me=me)
+
+
+@app.route("/messages/<thread_key>", methods=["GET", "POST"])
+def message_thread(thread_key):
+    ensure_messages_schema()
+    me = current_user_id()
+
+    if request.method == "POST":
+        body = (request.form.get("body") or "").strip()
+        to_user_id = int(request.form.get("to_user_id") or "0")
+        showcase_id = request.form.get("showcase_id") or None
+        showcase_id = int(showcase_id) if showcase_id else None
+
+        if body and to_user_id:
+            conn = db()
+            conn.execute(
+                """
+                INSERT INTO messages (thread_key, from_user_id, to_user_id, body, showcase_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (thread_key, me, to_user_id, body, showcase_id, datetime.utcnow().isoformat()),
+            )
+            conn.commit()
+            conn.close()
+
+        return redirect(url_for("message_thread", thread_key=thread_key))
+
+    conn = db()
+    msgs = conn.execute(
+        """
+        SELECT m.*, u1.display_name AS from_name, u1.profile_pic AS from_pic,
+                  u2.display_name AS to_name
+        FROM messages m
+        LEFT JOIN users u1 ON u1.id = m.from_user_id
+        LEFT JOIN users u2 ON u2.id = m.to_user_id
+        WHERE m.thread_key = ?
+        ORDER BY m.created_at ASC
+        """,
+        (thread_key,),
+    ).fetchall()
+
+    # Who is the other person?
+    other_id = None
+    for m in msgs:
+        if m["from_user_id"] != me:
+            other_id = m["from_user_id"]
+            break
+        if m["to_user_id"] != me:
+            other_id = m["to_user_id"]
+            break
+
+    other = None
+    if other_id:
+        other = conn.execute("SELECT id, display_name, profile_pic FROM users WHERE id=?", (other_id,)).fetchone()
+
+    conn.close()
+
+    return render_template("thread.html", msgs=msgs, thread_key=thread_key, me=me, other=other)
+
+
+@app.route("/messages/new", methods=["GET", "POST"])
+def message_new():
+    ensure_messages_schema()
+    me = current_user_id()
+
+    to_user_id = request.args.get("to") or request.form.get("to_user_id") or ""
+    showcase_id = request.args.get("showcase") or request.form.get("showcase_id") or ""
+
+    if request.method == "POST":
+        to_user_id = int(to_user_id or "0")
+        body = (request.form.get("body") or "").strip()
+        showcase_id_val = int(showcase_id) if showcase_id else None
+
+        if not (to_user_id and body):
+            flash("Write a message first 😌")
+            return redirect(url_for("message_new", to=to_user_id, showcase=showcase_id))
+
+        # stable thread key between two users (and optional showcase)
+        a, b = sorted([me, to_user_id])
+        thread_key = f"u{a}_u{b}"
+        if showcase_id_val:
+            thread_key = f"{thread_key}_s{showcase_id_val}"
+
+        conn = db()
+        conn.execute(
+            """
+            INSERT INTO messages (thread_key, from_user_id, to_user_id, body, showcase_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (thread_key, me, to_user_id, body, showcase_id_val, datetime.utcnow().isoformat()),
+        )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("message_thread", thread_key=thread_key))
+
+    conn = db()
+    people = conn.execute("SELECT id, display_name, profile_pic FROM users ORDER BY id DESC").fetchall()
+    conn.close()
+
+    return render_template("message_new.html", people=people, to_user_id=str(to_user_id), showcase_id=str(showcase_id))
+
+@app.route("/u/<int:user_id>")
+def user_detail(user_id):
+    conn = db()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not row:
+        conn.close()
+        abort(404)
+
+    showcases = conn.execute(
+        """
+        SELECT id, title, event_date, event_time, city, poster_path
+        FROM showcases
+        WHERE host_user_id = ?
+        ORDER BY COALESCE(event_date,'') DESC, id DESC
+        """,
+        (user_id,),
+    ).fetchall()
+    conn.close()
+
+    user = dict(row)
+    user["tags"] = parse_csv(user.get("tags_csv"))
+    user["services"] = parse_csv(user.get("services_csv"))
+
+    show_list = []
+    for s in showcases:
+        show_list.append(
+            {
+                "id": s["id"],
+                "title": s["title"],
+                "event_date": s["event_date"] or "TBA",
+                "event_time": s["event_time"] or "",
+                "city": s["city"] or "—",
+                "poster_path": s["poster_path"] or "img/showcase.jpg",
+            }
+        )
+
+    return render_template("user_detail.html", user=user, showcases=show_list)
+
+
+# ----------------------------
+# Showcases list
+# ----------------------------
+@app.route("/c/showcases")
+def showcases_list():
+    ensure_showcases_schema()
+
+    conn = db()
+    rows = conn.execute(
+        """
+        SELECT id, title, event_date, event_time, city, venue, poster_path, host_name
+        FROM showcases
+        ORDER BY COALESCE(event_date,'') DESC, id DESC
+        """
+    ).fetchall()
+    conn.close()
+
+    showcases = []
+    for r in rows:
+        showcases.append(
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "event_date": r["event_date"] or "TBA",
+                "event_time": r["event_time"] or "",
+                "city": r["city"] or "—",
+                "venue": r["venue"] or "—",
+                "poster_path": r["poster_path"] or "img/showcase.jpg",
+                "host_name": r["host_name"] or "",
+            }
+        )
+
+    return render_template("showcases_list.html", showcases=showcases)
+
+
+# ----------------------------
+# Showcase detail
+# ----------------------------
+@app.route("/s/<int:showcase_id>")
+def showcase_detail(showcase_id):
+    ensure_showcases_schema()
+
+    conn = db()
+    r = conn.execute("SELECT * FROM showcases WHERE id = ?", (showcase_id,)).fetchone()
+    conn.close()
+    if not r:
+        abort(404)
+
+    performers = [x.strip() for x in (r["performers_csv"] or "").split(",") if x.strip()]
+    linked_ids = [x.strip() for x in (r["performer_user_ids_csv"] or "").split(",") if x.strip()]
+
+    linked_performers = []
+    if linked_ids:
+        conn = db()
+        for pid in linked_ids:
+            try:
+                uid = int(pid)
+            except:
+                continue
+            u = conn.execute("SELECT id, display_name FROM users WHERE id=?", (uid,)).fetchone()
+            if u:
+                linked_performers.append({"id": u["id"], "display_name": u["display_name"]})
+        conn.close()
+
+    showcase = {
+        "id": r["id"],
+        "title": r["title"],
+        "event_date": r["event_date"] or "TBA",
+        "event_time": r["event_time"] or "",
+        "city": r["city"] or "—",
+        "address": r["address"] or "",
+        "venue": r["venue"] or "—",
+        "description": r["description"] or "",
+        "poster_path": r["poster_path"] or "img/showcase.jpg",
+        "video_path": (r["video_path"] or "") if "video_path" in r.keys() else "",
+        "host_user_id": r["host_user_id"],
+        "host_name": r["host_name"] or "",
+        "performers": performers,
+        "linked_performers": linked_performers,
+        "ticket_url": r["ticket_url"] or "",
+        "is_owner": (current_user_id() is not None and r["host_user_id"] == current_user_id()),
+    }
+
+    return render_template("showcase_detail.html", showcase=showcase)
+
+
+
+@app.route("/s/<int:showcase_id>/calendar.ics")
+def showcase_ics(showcase_id):
+    ensure_showcases_schema()
+
+    conn = db()
+    r = conn.execute(
+        """
+        SELECT id, title, event_date, event_time, city, address, venue, description
+        FROM showcases WHERE id = ?
+        """,
+        (showcase_id,),
+    ).fetchone()
+        "poster_path": r["poster_path"] or "img/showcase.jpg",
+    conn.close()
+
+    if not r:
+        abort(404)
+
+    title = r["title"]
+    date_str = r["event_date"] or ""
+    time_str = r["event_time"] or "19:00"
+    location = " ".join([x for x in [r["venue"], r["address"], r["city"]] if x])
+    desc = (r["description"] or "").replace("\n", "\\n")
+
+    try:
+        start = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    except:
+        start = datetime.now() + timedelta(days=1)
+
+    end = start + timedelta(hours=2)
+
+    def fmt(dt):
+        return dt.strftime("%Y%m%dT%H%M%S")
+
+    ics = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//FindTheBeat//Showcases//EN
+BEGIN:VEVENT
+UID:ftb-showcase-{r["id"]}@findthebeat
+DTSTAMP:{fmt(datetime.utcnow())}
+DTSTART:{fmt(start)}
+DTEND:{fmt(end)}
+SUMMARY:{title}
+LOCATION:{location}
+DESCRIPTION:{desc}
+END:VEVENT
+END:VCALENDAR
+"""
+
+    return Response(ics, mimetype="text/calendar")
+
+
+@app.route("/showcases/new", methods=["GET", "POST"])
+def showcase_new():
+    ensure_showcases_schema()
+
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        event_date = (request.form.get("event_date") or "").strip()
+        event_time = (request.form.get("event_time") or "").strip()
+        city = (request.form.get("city") or "").strip()
+        address = (request.form.get("address") or "").strip()
+        venue = (request.form.get("venue") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        ticket_url = (request.form.get("ticket_url") or "").strip()
+
+        host_user_id = current_user_id()
+        host_name = (request.form.get("host_name") or "").strip() or "Host"
+        performers_csv = (request.form.get("performers_csv") or "").strip()
+        performer_user_ids_csv = (request.form.get("performer_user_ids_csv") or "").strip()
+
+        if not title:
+            return render_template("showcase_new.html", error="Title is required.", form=request.form)
+
+        poster_path = None
+        video_path = None
+    video = request.files.get("video")
+    if video and video.filename and allowed_file(video.filename):
+        vname = secure_filename(video.filename)
+        vname = f"showcase_{int(datetime.utcnow().timestamp())}_{vname}"
+     vsave = os.path.join(UPLOAD_FOLDER, vname)
+     video.save(vsave)
+     video_path = f"uploads/{vname}"
+
+    file = request.files.get("poster")
+    video = request.files.get("video")
+
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filename = f"showcase_{int(datetime.utcnow().timestamp())}_{filename}"
+            save_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(save_path)
+            poster_path = f"uploads/{filename}"
+
+        conn = db()
+        conn.execute(
+            """
+            INSERT INTO showcases (
+              title, event_date, event_time, city, address, venue, description,
+              poster_path, host_user_id, host_name, performers_csv, performer_user_ids_csv,
+              ticket_url, created_at ..., poster_path, video_path, host_user_id, ...
+
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                title,
+                event_date,
+                event_time,
+                city,
+                address,
+                venue,
+                description,
+                poster_path or "",
+                host_user_id,
+                host_name,
+                performers_csv,
+                performer_user_ids_csv,
+                ticket_url,
+        poster_path or "",
+        video_path or "",
+                datetime.utcnow().isoformat(),
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        flash("Showcase posted ✅")
+        return redirect(url_for("showcases_list"))
+
+    return render_template("showcase_new.html", form={})
+
+
+# ============================================================
+# Run
+# ============================================================
+if __name__ == "__main__":
+    ensure_db()
+    ensure_showcases_schema()
+    ensure_messages_schema()
+    app.run(debug=True)

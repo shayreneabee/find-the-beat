@@ -1,57 +1,52 @@
 {% extends "base.html" %}
-
-{% block title %}{{ title }} • Find the Beat{% endblock %}
-
 {% block content %}
-  <header class="ftb-bar">
-    <div class="ftb-bar-inner">
-      <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
-      <div class="ftb-bar-actions">
-        <a class="ftb-link" href="/">Search</a>
-        <a class="ftb-link" href="/profile">Profile</a>
-      </div>
+
+  <div class="ftb-bar">{{ title }}</div>
+  {% if subtitle %}
+    <div class="ftb-subbar">{{ subtitle }}</div>
+  {% endif %}
+
+  {# If you pass items (list of {label, href}) we show 2-column grid #}
+  {% if items and items|length %}
+    <div class="ftb-2col">
+      {% for it in items %}
+        <a href="{{ it.href }}">{{ it.label }}</a>
+      {% endfor %}
     </div>
-  </header>
 
-  <main class="ftb-main">
-    <section class="ftb-sectionHead">
-      <h1 class="ftb-title">{{ title }}</h1>
-      <div class="ftb-sub">{{ subtitle }}</div>
-    </section>
-
-    {% if filters %}
-      <section class="ftb-filters">
-        {% for f in filters %}
-          <a class="ftb-pillLink" href="{{ f.href }}">{{ f.label }}</a>
-        {% endfor %}
-      </section>
-    {% endif %}
-
-    <section class="ftb-cardGrid">
+  {# Else if you pass people, we show the avatar rows #}
+  {% elif people and people|length %}
+    <div class="ftb-list">
       {% for p in people %}
-        <a class="ftb-card" href="/u/{{ p.id }}">
-          <div class="ftb-cardMedia">
-            {% if p.profile_pic %}
-              <img src="{{ url_for('static', filename=p.profile_pic) }}" alt="">
-            {% else %}
-              <div class="ftb-cardFallback">🎵</div>
-            {% endif %}
-          </div>
+        <a class="ftb-rowLink" href="{{ p.href or ('/u/' ~ p.id) }}">
+          <div class="ftb-row">
+            <div class="ftb-avatarFrame">
+              {% if p.profile_pic %}
+                <img src="{{ url_for('static', filename=p.profile_pic) }}" alt="avatar">
+              {% else %}
+                <div class="ftb-avatarFallback">♪</div>
+              {% endif %}
+            </div>
 
-          <div class="ftb-cardBody">
-            <div class="ftb-cardTitle">{{ p.display_name }}</div>
-            <div class="ftb-cardSub">
-              {{ p.city or "—" }}
-              {% if p.special %} • {{ p.special }}{% endif %}
+            <div>
+              <div class="ftb-rowTitle">
+                {{ p.display_name or "Unnamed" }},
+                {{ p.state or "—" }}
+              </div>
+              <div class="ftb-rowSub">
+                {{ p.city or "—" }}{% if p.city and p.state %}, {% endif %}{{ p.state or "" }}
+                {% if p.role %} — {{ p.role }}{% endif %}
+              </div>
             </div>
           </div>
+          <div class="ftb-rowDivider"></div>
         </a>
       {% endfor %}
-    </section>
+    </div>
 
-    {% if people|length == 0 %}
-      <p class="ftb-noteText">No profiles here yet. Add yours and you’ll show up.</p>
-    {% endif %}
-  </main>
+  {% else %}
+    <p style="padding:18px 8px; opacity:.8; font-weight:700;">Nothing here yet. Add your profile details and try again.</p>
+  {% endif %}
+
 {% endblock %}
 

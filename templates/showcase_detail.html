@@ -11,6 +11,23 @@
     </div>
   </div>
 </header>
+<div class="ftb-chipRow" style="margin-top:10px;">
+  <a class="ftb-btn" href="/s/{{ showcase.id }}/calendar.ics">Add to Calendar</a>
+  <a class="ftb-btn" href="/messages/new?to={{ showcase.host_user_id }}&showcase={{ showcase.id }}">Message Host</a>
+  <button class="ftb-btn" type="button" onclick="copyShowcaseLink()">Copy Link</button>
+  <a class="ftb-btn" target="_blank" href="sms:&body={{ ('Check this out: ' ~ request.url)|urlencode }}">Text Share</a>
+</div>
+
+<script>
+function copyShowcaseLink(){
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    alert("Link copied ✅");
+  }).catch(() => {
+    prompt("Copy this link:", url);
+  });
+}
+</script>
 
 <main class="ftb-main">
   <section class="ftb-profileCard">
@@ -43,6 +60,28 @@
     {% else %}
       <p class="ftb-noteText" style="margin-top:14px;">Details coming soon.</p>
     {% endif %}
+{% if showcase.video_path %}
+  <section class="ftb-profileCard" style="margin-top:14px;">
+    <div class="ftb-cardHeader">Video</div>
+    <video controls playsinline style="width:100%; border:2px solid #111; border-radius:16px; background:#000;">
+      <source src="{{ url_for('static', filename=showcase.video_path) }}">
+      Your browser does not support the video tag.
+    </video>
+<div class="ftb-mediaCard">
+  {% if showcase.video_path %}
+<div class="ftb-videoWrap">
+  <video class="ftb-video" controls preload="metadata">
+    <source src="{{ showcase.video_path }}">
+    Your browser does not support the video tag.
+  </video>
+</div>
+  {% elif showcase.poster_path %}
+    <img class="ftb-poster" src="{{ url_for('static', filename=showcase.poster_path) }}" alt="Showcase poster">
+  {% endif %}
+</div>
+
+  </section>
+{% endif %}
 
     {% if showcase.linked_performers and showcase.linked_performers|length > 0 %}
       <h3 class="ftb-h3">Performers</h3>

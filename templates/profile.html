@@ -1,61 +1,55 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Profile • Find the Beat</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  </head>
+{% extends "base.html" %}
+{% block content %}
 
-  <body class="ftb-page">
-    <header class="ftb-bar">
-      <div class="ftb-bar-inner">
-        <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
-        <div class="ftb-bar-actions">
-          <a class="ftb-link" href="/">Search</a>
-          <a class="ftb-link" href="/u/{{ user['id'] }}">View</a>
+  <div class="ftb-bar">MY PROFILE</div>
+
+  <form class="ftb-profileCard" method="post" enctype="multipart/form-data">
+    <div style="text-align:left; padding: 12px 4px;">
+      <label><strong>Display Name</strong></label>
+      <input name="display_name" value="{{ user['display_name'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
+
+      <label><strong>Role</strong></label>
+      <input name="role" value="{{ user['role'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
+
+      <label><strong>Genre</strong></label>
+      <input name="genre" value="{{ user['genre'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
+
+      <div style="display:grid; grid-template-columns: 1fr 110px; gap:10px;">
+        <div>
+          <label><strong>City</strong></label>
+          <input name="city" value="{{ user['city'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
+        </div>
+
+        <div>
+          <label><strong>State</strong></label>
+          <select name="state" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
+            {% set st = (user['state'] or '') %}
+            <option value="">--</option>
+            {% for s in ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"] %}
+              <option value="{{ s }}" {% if st == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
-    </header>
 
-    <main class="ftb-main">
-      <section class="ftb-profileCard">
-        <h1 class="ftb-title">My Profile</h1>
-        <p class="ftb-noteText">Fill this out and you’ll start showing up in the category pages.</p>
+      <label><strong>Instrument</strong></label>
+      <input name="instrument" value="{{ user['instrument'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
 
-        <form method="post">
-          <label><strong>Display Name</strong></label>
-          <input name="display_name" value="{{ user['display_name'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">
+      <label><strong>Services</strong> (comma separated)</label>
+      <input name="services_csv" value="{{ user['services_csv'] or '' }}" placeholder="Producer, Mixer, Composer..." style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
 
-          <label><strong>Role</strong> (Singer, Artist, Composer, Producer…)</label>
-          <input name="role" value="{{ user['role'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">
+      <label><strong>Tags</strong> (comma separated)</label>
+      <input name="tags_csv" value="{{ user['tags_csv'] or '' }}" placeholder="R&B, Studio, New Orleans..." style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">
 
-          <label><strong>Genre</strong></label>
-          <input name="genre" value="{{ user['genre'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">
+      <label><strong>Bio</strong></label>
+      <textarea name="bio" rows="5" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #1a120b;border-radius:12px;">{{ user['bio'] or '' }}</textarea>
 
-          <label><strong>City</strong></label>
-          <input name="city" value="{{ user['city'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">
+      <label><strong>Profile Picture</strong></label>
+      <input type="file" name="profile_pic" accept="image/*" style="width:100%;margin:6px 0 14px;">
 
-          <label><strong>Instrument</strong> (Guitar, Piano, Vocals…)</label>
-          <input name="instrument" value="{{ user['instrument'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">
+      <button class="ftb-btn" type="submit">Save Profile</button>
+    </div>
+  </form>
 
-          <label><strong>Services</strong> (comma separated)</label>
-          <input name="services_csv" placeholder="Singer, Songwriter, Composer, Producer" value="{{ user['services_csv'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">
-
-          <label><strong>Tags</strong> (comma separated)</label>
-          <input name="tags_csv" placeholder="R&B, New Orleans, Studio" value="{{ user['tags_csv'] or '' }}" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">
-
-          <label><strong>Bio</strong></label>
-          <textarea name="bio" rows="5" style="width:100%;padding:10px;margin:6px 0 12px;border:2px solid #111;border-radius:10px;">{{ user['bio'] or '' }}</textarea>
-
-          <button class="ftb-btn" type="submit">Save Profile</button>
-        </form>
-
-        <p class="ftb-noteText" style="margin-top:14px;">
-          After saving: try <a href="/c/artist">/c/artist</a>, <a href="/c/composers">/c/composers</a>, <a href="/c/production">/c/production</a>, <a href="/c/musicians">/c/musicians</a>.
-        </p>
-      </section>
-    </main>
-  </body>
-</html>
+{% endblock %}
 

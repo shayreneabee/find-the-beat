@@ -3,26 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Find the Beat{% endblock %}</title>
+    <title>{{ title or "Find the Beat" }}</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    {% block head %}{% endblock %}
+
+    {# Optional: per-page css #}
+    {% block extra_css %}{% endblock %}
   </head>
+  <body class="ftb-body">
 
-  <body class="ftb-page">
-    {% block content %}{% endblock %}
+    <header class="ftb-topbar">
+      <div class="ftb-brand">
+        <span class="ftb-logoText">FIND THE BEAT</span>
+        <span class="ftb-note">♪</span>
+      </div>
+      <div class="ftb-topDivider"></div>
+    </header>
 
-    <!-- Bottom Nav (always visible) -->
-    <nav class="ftb-bottomNav">
-      <a class="ftb-navItem" href="/landing">🏠<span>Home</span></a>
-      <a class="ftb-navItem" href="/">🔎<span>Search</span></a>
-      <a class="ftb-navItem" href="/profile">👤<span>Profile</span></a>
-    </nav>
+    <main class="ftb-main">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="ftb-flash">
+            {% for m in messages %}
+              <div class="ftb-flashItem">{{ m }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+<nav class="ftb-bottomNav">
+  <a class="ftb-navItem {% if (active_nav|default(''))=='home' %}is-active{% endif %}"
+     href="{{ url_for('landing') }}">
+    <span class="ftb-navIcon">⌂</span>
+    <span class="ftb-navLabel">Home</span>
+  </a>
+
+  <a class="ftb-navItem {% if (active_nav|default(''))=='search' %}is-active{% endif %}"
+     href="{{ url_for('home') }}">
+    <span class="ftb-navIcon">⌕</span>
+    <span class="ftb-navLabel">Search</span>
+  </a>
+
+  <a class="ftb-navItem {% if (active_nav|default(''))=='profile' %}is-active{% endif %}"
+     href="{{ url_for('profile') }}">
+    <span class="ftb-navIcon">👤</span>
+    <span class="ftb-navLabel">Profile</span>
+  </a>
+</nav>
+
   </body>
 </html>
-<nav class="ftb-bottomNav">
-  <a class="ftb-navItem {% if request.path.startswith('/landing') %}active{% endif %}" href="/landing">🏠<span>Home</span></a>
-  <a class="ftb-navItem {% if request.path == '/' or request.path.startswith('/c/') %}active{% endif %}" href="/">🔎<span>Search</span></a>
-  <a class="ftb-navItem {% if request.path.startswith('/profile') or request.path.startswith('/u/') %}active{% endif %}" href="/profile">👤<span>Profile</span></a>
-</nav>
 

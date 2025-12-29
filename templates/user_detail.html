@@ -1,66 +1,41 @@
 {% extends "base.html" %}
-
-{% block title %}{{ person.display_name }} • Find the Beat{% endblock %}
-
 {% block content %}
-  <header class="ftb-bar">
-    <div class="ftb-bar-inner">
-      <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
-      <div class="ftb-bar-actions">
-        <a class="ftb-link" href="/">Search</a>
-        <a class="ftb-link" href="/profile">My Profile</a>
-      </div>
+
+  <div class="ftb-bar">{{ user.display_name or "Artist" }}</div>
+
+  <div class="ftb-profileCard">
+    {% if user.profile_pic %}
+      <img class="ftb-profilePic" src="{{ url_for('static', filename=user.profile_pic) }}" alt="profile">
+    {% endif %}
+
+    <div class="ftb-pill">
+      {{ user.city or "—" }}{% if user.city and user.state %}, {% endif %}{{ user.state or "" }}
     </div>
-  </header>
 
-  <main class="ftb-main">
-    <section class="ftb-profileCard">
-      <div class="ftb-profileTop">
-        <div class="ftb-avatar">
-          {% if person.profile_pic %}
-            <img src="{{ url_for('static', filename=person.profile_pic) }}" alt="">
-          {% else %}
-            <div class="ftb-avatarFallback">👤</div>
-          {% endif %}
-        </div>
+    <div class="ftb-pill">
+      {{ user.role or "Artist" }}
+      {% if user.genre %} — {{ user.genre }}{% endif %}
+      {% if user.instrument %} — {{ user.instrument }}{% endif %}
+    </div>
 
-        <div>
-          <h1 class="ftb-title">{{ person.display_name }}</h1>
-          <div class="ftb-sub">
-            {{ person.city or "—" }}
-            {% if person.role %} • {{ person.role }}{% endif %}
-          </div>
+    {% if user.bio %}
+      <p style="padding:12px 12px 0; font-weight:600; opacity:.9;">
+        {{ user.bio }}
+      </p>
+    {% endif %}
 
-          {% if person.instrument %}
-            <div class="ftb-pillRow" style="margin-top:10px;">
-              <span class="ftb-chip">🎼 {{ person.instrument }}</span>
-            </div>
-          {% endif %}
-        </div>
-      </div>
+    <div class="ftb-actions2">
+      <a class="ftb-actionBox" href="/inbox?to={{ user.id }}">
+        <div class="ftb-actionIcon">📥</div>
+        <div class="ftb-actionText">Message</div>
+      </a>
 
-      {% if person.bio %}
-        <p class="ftb-bio">{{ person.bio }}</p>
-      {% endif %}
+      <a class="ftb-actionBox" href="/showcases?host={{ user.id }}">
+        <div class="ftb-actionIcon">✨</div>
+        <div class="ftb-actionText">Showcases</div>
+      </a>
+    </div>
+  </div>
 
-      {% if person.services %}
-        <h3 class="ftb-h3">Services</h3>
-        <div class="ftb-chipRow">
-          {% for s in person.services %}
-            <span class="ftb-chip">{{ s }}</span>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {% if person.tags %}
-        <h3 class="ftb-h3">Tags</h3>
-        <div class="ftb-chipRow">
-          {% for t in person.tags %}
-            <span class="ftb-chip ftb-chip-soft">{{ t }}</span>
-          {% endfor %}
-        </div>
-      {% endif %}
-    </section>
-  </main>
 {% endblock %}
 

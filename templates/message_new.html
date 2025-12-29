@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}New Message{% endblock %}
+{% block content %}
+
+<header class="ftb-bar">
+  <div class="ftb-bar-inner">
+    <a class="ftb-logo" href="/landing">FIND THE BEAT ♪</a>
+    <div class="ftb-bar-actions">
+      <a class="ftb-link" href="/inbox">Inbox</a>
+    </div>
+  </div>
+</header>
+
+<main class="ftb-main">
+  <section class="ftb-screenTitle">
+    <div class="ftb-orangeBar">NEW MESSAGE</div>
+    <div class="ftb-orangeBar small">Send a DM</div>
+  </section>
+
+  <section class="ftb-profileCard">
+    <form method="post">
+      <label class="ftb-label"><strong>To</strong></label>
+      <select class="ftb-input" name="to_user_id" required>
+        <option value="">Select a person</option>
+        {% for p in people %}
+          <option value="{{ p.id }}" {% if to_user_id == (p.id|string) %}selected{% endif %}>
+            {{ p.display_name or "Unnamed" }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <input type="hidden" name="showcase_id" value="{{ showcase_id }}">
+
+      <label class="ftb-label" style="margin-top:10px;"><strong>Message</strong></label>
+      <textarea class="ftb-input" name="body" rows="4" placeholder="Hey! I saw your showcase…" required></textarea>
+
+      <button class="ftb-btn" type="submit" style="margin-top:12px;">Send</button>
+    </form>
+  </section>
+</main>
+{% endblock %}
+
