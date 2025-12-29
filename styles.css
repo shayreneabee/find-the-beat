@@ -1,0 +1,48 @@
+.ftb-topBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 14px 14px;
+  background:#f28c0f;
+  border-bottom: 4px solid #111;
+}
+
+.ftb-avatarLink{
+  display:inline-block;
+  width:44px;
+  height:44px;
+  border: 3px solid #111;
+  border-radius: 14px;
+  overflow:hidden;
+  background:#efe8d6;
+  box-shadow: 0 6px 0 rgba(0,0,0,.25);
+}
+
+.ftb-avatar{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.ftb-video{
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  display:block;
+  margin: 12px auto;
+  border: 3px solid #111;
+  border-radius: 14px;
+  box-shadow: 0 8px 0 rgba(0,0,0,.2);
+}
+.ftb-video{
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  display:block;
+  margin: 12px auto;
+  border: 3px solid #111;
+  border-radius: 14px;
+  box-shadow: 0 8px 0 rgba(0,0,0,.2);
+}
+

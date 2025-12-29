@@ -168,6 +168,10 @@ def ensure_messages_schema():
 def landing():
     return render_template("landing.html")
 
+@app.route("/welcome")
+def welcome():
+    return render_template("welcome.html", active_nav="home")
+
 
 @app.route("/")
 def home():
@@ -776,6 +780,18 @@ def message_thread(thread_key):
     conn.close()
 
     return render_template("thread.html", msgs=msgs, thread_key=thread_key, me=me, other=other)
+
+@app.context_processor
+def inject_user_pic():
+    # if you're hardcoding user_id=1 for now
+    try:
+        conn = db()
+        r = conn.execute("SELECT profile_pic FROM users WHERE id=1").fetchone()
+        conn.close()
+        pic = r["profile_pic"] if r and r["profile_pic"] else ""
+    except Exception:
+        pic = ""
+    return {"user_pic": pic}
 
 
 # ============================================================

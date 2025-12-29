@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ title or "Find the Beat" }}</title>
+<div class="ftb-topBar">
+  <a class="ftb-brand" href="{{ url_for('landing') }}">FIND THE BEAT ♪</a>
+
+  <a class="ftb-avatarLink" href="{{ url_for('profile') }}" aria-label="Profile">
+    <img class="ftb-avatar"
+         src="{{ url_for('static', filename=(user_pic if user_pic else 'img/avatar.png')) }}"
+         alt="Profile">
+  </a>
+</div>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
