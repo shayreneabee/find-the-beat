@@ -20,11 +20,6 @@ from werkzeug.utils import secure_filename
 # App setup
 # ============================================================
 app = Flask(__name__)
-
-# Ensure database and tables exist on startup (Render-safe)
-ensure_db()
-ensure_showcases_schema()
-ensure_messages_schema()
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -786,6 +781,14 @@ def message_thread(thread_key):
 # ============================================================
 # Run
 # ============================================================
+# --- Render / Gunicorn safe startup init ---
+def init_app():
+    ensure_db()
+    ensure_showcases_schema()
+    ensure_messages_schema()
+
+init_app()
+
 if __name__ == "__main__":
     ensure_db()
     ensure_showcases_schema()
