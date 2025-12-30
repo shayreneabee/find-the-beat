@@ -1,79 +1,29 @@
 {% extends "base.html" %}
+{% set active_nav = 'home' %}
+
 {% block content %}
+<section class="ftb-screen">
+  <header class="ftb-topbar">
+    <div class="ftb-brandRow">
+      <div class="ftb-brand">FIND THE BEAT<span class="ftb-note">♪</span></div>
+      <a class="ftb-chipBtn" href="/signup">SIGN UP</a>
+    </div>
+  </header>
 
-<div class="ftb-screen ftb-welcome">
-  <div class="ftb-heroCard">
-    <div class="ftb-heroIcon">♪</div>
-    <div class="ftb-heroTitle">welcome<br>to<br>Find the Beat</div>
+  <div class="ftb-panel ftb-welcomePanel">
+    <div class="ftb-welcomeIcon">♪</div>
+    <h1 class="ftb-welcomeTitle">Welcome<br/>to<br/>Find The Beat</h1>
   </div>
 
-  <div class="ftb-authCard">
-    <a class="ftb-btnWide" href="{{ url_for('login') }}">Sign In</a>
-    <a class="ftb-linkTopRight" href="{{ url_for('signup') }}">Sign Up</a>
-  </div>
-</div>
+  <form class="ftb-form" method="post" action="/login">
+    <label class="ftb-label">EMAIL ADDRESS:</label>
+    <input class="ftb-input" type="email" name="email" required>
 
+    <label class="ftb-label">PASSWORD:</label>
+    <input class="ftb-input" type="password" name="password" required>
+
+    <button class="ftb-btn ftb-btnPrimary" type="submit">SIGN-IN</button>
+  </form>
+</section>
 {% endblock %}
-
-.ftb-screen{
-  min-height: calc(100vh - 90px); /* leaves space for bottom nav if you have it */
-  padding: 18px 16px 96px;
-  background: #efe8d6;
-}
-
-.ftb-welcome .ftb-heroCard{
-  margin: 18px auto 22px;
-  max-width: 420px;
-  background: #f28c0f;
-  border: 3px solid #111;
-  box-shadow: 0 8px 0 rgba(0,0,0,.25);
-  padding: 26px 18px;
-  text-align: center;
-}
-
-.ftb-heroIcon{
-  font-size: 44px;
-  line-height: 1;
-  margin-bottom: 10px;
-}
-
-.ftb-heroTitle{
-  font-size: 34px;
-  letter-spacing: 2px;
-  text-transform: lowercase;
-}
-
-.ftb-authCard{
-  max-width: 420px;
-  margin: 0 auto;
-  position: relative;
-}
-
-.ftb-btnWide{
-  display: block;
-  width: 100%;
-  text-align: center;
-  padding: 14px 14px;
-  margin: 14px 0;
-  background: #f28c0f;
-  color: #111;
-  border: 3px solid #111;
-  text-decoration: none;
-  box-shadow: 0 6px 0 rgba(0,0,0,.25);
-  font-size: 22px;
-}
-
-.ftb-btnWide:hover{ transform: translateY(1px); }
-
-.ftb-linkTopRight{
-  position: absolute;
-  right: 0;
-  top: -44px;
-  background: #efe8d6;
-  border: 2px solid #111;
-  padding: 8px 12px;
-  text-decoration: none;
-  color: #111;
-  box-shadow: 0 6px 0 rgba(0,0,0,.2);
-}
 
