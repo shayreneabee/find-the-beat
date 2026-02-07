@@ -1,5 +1,10 @@
 .venv/
 __pycache__/
-instance/
-.env
-*.sqlite
+instance/*.db
+*.db
+.DS_Store
+static/uploads/photos/*
+static/uploads/videos/*
+!static/uploads/photos/.keep
+!static/uploads/videos/.keep
+
