@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile • Find the Beat{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <h2>Edit Profile</h2>
+
+    <form class="form" method="POST" enctype="multipart/form-data">
+      <label>Name</label>
+      <input name="name" value="{{ profile.name }}" required>
+
+      <label>City</label>
+      <input name="city" value="{{ profile.city }}" required>
+
+      <label>Role</label>
+      <input name="role" value="{{ profile.role }}" required>
+
+      <label>Instrument</label>
+      <input name="instrument" value="{{ profile.instrument or '' }}">
+
+      <label>Bio</label>
+      <textarea name="bio" rows="4">{{ profile.bio or '' }}</textarea>
+
+      <label>Replace photo</label>
+      <input type="file" name="photo" accept="image/*">
+
+      <div class="actions">
+        <button class="btn primary" type="submit">Save</button>
+        <a class="btn" href="/profiles/{{ profile.id }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Owner Login</h2>
+  <p class="muted">Enter your owner code to manage profiles, uploads, and deletes.</p>
+
+  <form method="post" class="form">
+    <label>Owner Code</label>
+    <input name="code" placeholder="CEO-777" required>
+    <button class="btn gold" type="submit">Unlock</button>
+  </form>
+</section>
+{% endblock %}
+

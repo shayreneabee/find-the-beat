@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Showcase</h2>
+  <p class="muted">Recent performances across the platform.</p>
+
+  {% for p in performances %}
+    <div class="perf">
+      <div class="perf-title">{{ p.title }} <span class="muted">• {{ p.profile.name }}</span></div>
+      <video class="video" controls>
+        <source src="{{ url_for('static', filename='uploads/videos/' ~ p.video_filename) }}">
+      </video>
+      <div class="mini-row">
+        <a class="btn" href="{{ url_for('profile_detail', profile_id=p.profile.id) }}">View Profile</a>
+      </div>
+    </div>
+  {% else %}
+    <p class="muted">No performances yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}
+

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Find the Beat{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <div class="demo-banner">Demo: Early preview — more features coming weekly.</div>
+
+    <header class="hero">
+      <img class="wordmark" src="{{ url_for('static', filename='brent-co-wordmark.png') }}" alt="Brent & Co.">
+      <h1 class="app-title">Find the Beat</h1>
+
+      <nav class="pillbar">
+        <a class="pill" href="/">Home</a>
+        <a class="pill" href="/search">Showcase</a>
+        <a class="pill pill-active" href="/profiles/new">Create Profile</a>
+        <a class="pill" href="/profiles">Profiles</a>
+        <a class="pill" href="/login">Login</a>
+      </nav>
+    </header>
+
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="row">
+    <h2>Inbox</h2>
+    <a class="btn" href="{{ url_for('profile_detail', profile_id=profile.id) }}">Back</a>
+  </div>
+
+  {% for m in messages %}
+    <div class="msg">
+      <div class="msg-head">
+        <strong>{{ m.from_name }}</strong>
+        {% if m.from_role %}<span class="pill-mini">{{ m.from_role }}</span>{% endif %}
+        <span class="muted right">{{ m.created_at.strftime("%b %d, %Y %I:%M %p") }}</span>
+      </div>
+      <div class="msg-body">{{ m.body }}</div>
+    </div>
+  {% else %}
+    <p class="muted">No messages yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}
+

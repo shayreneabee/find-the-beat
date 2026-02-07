@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Upload Performance</h2>
+  <p class="muted">For {{ profile.name }}</p>
+
+  <form method="post" enctype="multipart/form-data" class="form">
+    <label>Title</label>
+    <input name="title" placeholder="Performance at gig 1" required>
+
+    <label>Video file</label>
+    <input type="file" name="video" accept="video/*" required>
+
+    <button class="btn gold" type="submit">Upload</button>
+    <a class="btn" href="{{ url_for('profile_detail', profile_id=profile.id) }}">Back</a>
+  </form>
+</section>
+{% endblock %}
+

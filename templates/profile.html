@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.name }} • Find the Beat{% endblock %}
+
+{% block content %}
+  <div class="profile-header card">
+    <div class="profile-hero">
+      <div class="avatar xl">
+        {% if profile.photo_filename %}
+          <img src="{{ url_for('static', filename='uploads/photos/' ~ profile.photo_filename) }}" alt="{{ profile.name }}">
+        {% else %}
+          <span>{{ (profile.name or "?" )[:1] }}</span>
+        {% endif %}
+      </div>
+
+      <div class="profile-info">
+        <h2 class="m0">{{ profile.name }}</h2>
+        <div class="muted">{{ profile.city }} • {{ profile.role }}</div>
+        {% if profile.instrument %}
+          <div class="tag">{{ profile.instrument }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if profile.bio %}
+      <p class="bio">{{ profile.bio }}</p>
+    {% endif %}
+
+    <div class="actions">
+      <a class="btn" href="/profiles/{{ profile.id }}/edit">Edit</a>
+      <a class="btn danger" href="/profiles/{{ profile.id }}/delete">Delete</a>
+      <a class="btn" href="/profiles">Back</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Showcases</h3>
+    <p class="muted">Next: list uploaded videos / performances here.</p>
+
+    <div class="actions">
+      <a class="btn primary" href="/performances/upload?profile_id={{ profile.id }}">Upload a Performance</a>
+      <a class="btn" href="/messages?to={{ profile.id }}">Inbox</a>
+    </div>
+  </div>
+{% endblock %}
+

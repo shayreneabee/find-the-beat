@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Profiles • Find the Beat{% endblock %}
+
+{% block content %}
+  <div class="pagehead">
+    <h2>Profiles</h2>
+    <a class="btn" href="/profiles/new">+ Create Profile</a>
+  </div>
+
+  {% if profiles|length == 0 %}
+    <p class="muted">No profiles yet. Create the first one.</p>
+  {% else %}
+    <div class="profile-grid">
+      {% for p in profiles %}
+        <a class="profile-card" href="/profiles/{{ p.id }}">
+          <div class="avatar">
+            {% if p.photo_filename %}
+              <img src="{{ url_for('static', filename='uploads/photos/' ~ p.photo_filename) }}" alt="{{ p.name }}">
+            {% else %}
+              <span>{{ (p.name or "?" )[:1] }}</span>
+            {% endif %}
+          </div>
+
+          <div class="pc-meta">
+            <div class="pc-name">{{ p.name }}</div>
+            <div class="pc-sub">{{ p.role }} • {{ p.city }}</div>
+            {% if p.instrument %}
+              <div class="pc-sub muted">{{ p.instrument }}</div>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+

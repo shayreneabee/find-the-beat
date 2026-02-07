@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Create Profile</h2>
+  <p class="muted">Keep it simple. You can improve it later.</p>
+
+  <form method="POST" enctype="multipart/form-data" class="form">
+    <label>Name / Stage name</label>
+    <input name="name" required>
+
+    <label>City</label>
+    <input name="city" placeholder="Dallas, TX">
+    <input type="file" name="photo">
+
+    <label>Role</label>
+    <select name="role" required>
+      <option value="">Choose one</option>
+      <option>Artist</option>
+      <option>Musician</option>
+      <option>Production</option>
+      <option>Composer</option>
+    </select>
+
+    <label>Instrument (optional)</label>
+    <input name="instrument" placeholder="Guitar / Piano / Drums">
+
+    <label>Bio (optional)</label>
+    <textarea name="bio" rows="4" placeholder="What should people know about you?"></textarea>
+
+    <label>Profile photo (optional)</label>
+    <input type="file" name="photo" accept="image/*">
+
+    <button class="btn gold" type="submit">Create</button>
+  </form>
+</section>
+{% endblock %}
