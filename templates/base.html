@@ -1,29 +1,48 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}Find the Beat{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body>
-    <div class="demo-banner">Demo: Early preview — more features coming weekly.</div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Find the Beat{% endblock %}</title>
 
-    <header class="hero">
-      <img class="wordmark" src="{{ url_for('static', filename='brent-co-wordmark.png') }}" alt="Brent & Co.">
-      <h1 class="app-title">Find the Beat</h1>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-title">Find the Beat</div>
+      <div class="brand-sub">Connect artists • book talent • share performances</div>
+    </div>
 
-      <nav class="pillbar">
-        <a class="pill" href="/">Home</a>
-        <a class="pill" href="/search">Showcase</a>
-        <a class="pill pill-active" href="/profiles/new">Create Profile</a>
-        <a class="pill" href="/profiles">Profiles</a>
-        <a class="pill" href="/login">Login</a>
-      </nav>
-    </header>
+    <nav class="nav">
+      <a class="pill" href="{{ url_for('home') }}">Home</a>
+      <a class="pill" href="{{ url_for('search') }}">Search</a>
+      <a class="pill" href="{{ url_for('showcases') }}">Showcases</a>
+      <a class="pill" href="{{ url_for('profiles') }}">Profiles</a>
+      <a class="pill" href="{{ url_for('new_profile') }}">Create Profile</a>
+      <a class="pill" href="{{ url_for('performances') }}">Performances</a>
+      <a class="pill" href="{{ url_for('upload_performance') }}">Upload Performance</a>
+      <a class="pill" href="{{ url_for('inbox') }}">Inbox</a>
+      <a class="pill" href="{{ url_for('new_message') }}">New Message</a>
+    </nav>
+  </header>
 
-    <main class="container">
+  <main class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flashwrap">
+          {% for m in messages %}
+            <div class="flash">{{ m }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <section class="main-card">
       {% block content %}{% endblock %}
-    </main>
-  </body>
+    </section>
+
+    <footer class="footer">© 2026 Brent &amp; Co.</footer>
+  </main>
+</body>
 </html>

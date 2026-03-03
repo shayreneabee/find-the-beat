@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Performances</h2>
+  <p><a class="btn primary" href="{{ url_for('new_performance') }}">+ Upload Performance</a></p>
+
+  {% if performances|length == 0 %}
+    <p class="muted">No performances yet. Upload the first one.</p>
+  {% else %}
+    <div class="list">
+      {% for perf in performances %}
+        <a class="row" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+          <div class="row-title">{{ perf.title }}</div>
+          <div class="row-meta">
+            {% if perf.profile %}{{ perf.profile.name }} • {% endif %}
+            {{ perf.created_at.strftime("%b %d, %Y") }}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+

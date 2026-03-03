@@ -1,277 +1,141 @@
-:root{
-  --cream:#f4f0df;
-  --cream2:#efe9d2;
-  --orange:#e38a12;
-  --orange2:#f3a631;
-  --brown:#3a2a14;
-  --shadow: rgba(58,42,20,.25);
-  --stroke: rgba(58,42,20,.22);
+/* ========================================
+   FIND THE BEAT — LUX LIGHT GLASS THEME
+   Brent & Co. Official UI
+======================================== */
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #f5f7fb, #e8edf5);
+  color: #0f172a;
 }
 
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  background: var(--cream);
-  color: #1d1a14;
+/* ===== HEADER ===== */
+.hero {
+  background: linear-gradient(90deg, #0f172a, #1e293b);
+  padding: 30px 20px 20px 20px;
+  color: white;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.top-banner{
-  background: #f6e6b8;
-  border-bottom: 2px solid var(--stroke);
-  padding: 10px 14px;
-  font-weight: 700;
-  color: #3b2b14;
-}
-
-.shell{
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 18px 14px 40px;
-}
-
-.brand{
-  text-align:center;
-  padding: 18px 0 10px;
-}
-
-.brand-logo{
-  max-width: 320px;
-  height:auto;
-}
-
-.brand-title{
-  margin: 10px 0 6px;
-  font-size: 26px;
-  font-weight: 900;
-  color: var(--brown);
-}
-
-.nav{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap: 14px;
-  margin: 14px 0 0;
-}
-
-.pill{
-  display:inline-block;
-  padding: 12px 18px;
-  background: #fff;
-  border: 2px solid var(--stroke);
-  border-radius: 18px;
-  text-decoration:none;
-  color: #16120c;
+.app-title {
+  font-size: 32px;
   font-weight: 800;
-  box-shadow: 0 10px 0 var(--shadow);
-}
-.pill:hover{transform: translateY(-1px)}
-.pill.gold{
-  background: #f7e1a6;
-  border-color: rgba(227,138,18,.35);
+  margin: 10px 0 5px 0;
 }
 
-.flash-wrap{margin: 10px auto 0; max-width: 760px}
-.flash{
-  padding: 10px 12px;
-  border-radius: 12px;
-  margin: 8px 0;
-  border: 2px solid var(--stroke);
-  background: #fff;
-  font-weight: 700;
-}
-.flash.success{background:#eaf8ea}
-.flash.error{background:#ffeaea}
-
-.card{
-  background: var(--cream2);
-  border: 2px solid var(--stroke);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 16px 0 var(--shadow);
-  margin: 18px 0;
+.subtitle {
+  opacity: .8;
+  font-size: 15px;
 }
 
-.center{text-align:center}
-.row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
-.muted{color:#5b5245; font-weight:600}
-
-.btn{
-  display:inline-block;
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 2px solid var(--stroke);
-  background: #fff;
-  text-decoration:none;
-  font-weight: 900;
-  color:#16120c;
-  box-shadow: 0 10px 0 var(--shadow);
-}
-.btn.primary{
-  background: var(--orange2);
-  border-color: rgba(58,42,20,.25);
-}
-.btn.gold{
-  background: #f2cf6a;
-}
-.btn.danger{
-  background: #ffd3d3;
-}
-.btn:hover{transform: translateY(-1px)}
-
-.cta-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top: 14px}
-
-.form{display:grid; gap: 10px; max-width: 520px}
-.form input, .form textarea, .form select{
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 2px solid var(--stroke);
-  background:#fff;
-  font-size: 16px;
-}
-.form label{font-weight: 900; color:#2a2014}
-
-.grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-  margin-top: 14px;
+/* ===== NAVBAR ===== */
+.pillbar {
+  margin-top: 18px;
 }
 
-.profile-card{
-  display:flex;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 2px solid var(--stroke);
-  background: #f7f3e0;
-  text-decoration:none;
-  color:inherit;
-  box-shadow: 0 12px 0 var(--shadow);
-}
-.profile-card.no-link{box-shadow:none}
-.profile-name{font-size: 20px; font-weight: 950}
-.profile-meta{color:#5b5245; font-weight: 800}
-
-.avatar{
-  width: 62px;
-  height: 62px;
-  border-radius: 999px; /* CIRCULAR */
-  overflow:hidden;
-  border: 4px solid rgba(58,42,20,.25);
-  background:#fff;
-  flex: 0 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.avatar img{
-  width:100%;
-  height:100%;
-  object-fit: cover;
-}
-.avatar.xl{width: 104px; height: 104px}
-.avatar-fallback{
-  font-weight: 950;
-  color: var(--brown);
-  font-size: 22px;
-}
-.avatar-fallback.big{font-size: 36px}
-.avatar {
-  width: 72px;
-  height: 72px;
+.pillbar .pill {
+  display: inline-block;
+  margin: 6px 6px 0 0;
+  padding: 10px 18px;
   border-radius: 999px;
-  overflow: hidden;
-  border: 4px solid #cfcfcf;
-  background: #fff;
-  flex: 0 0 auto;
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* keeps it cute */
-  display: block;
-}
-
-.profile-hero{
-  display:flex;
-  gap: 16px;
-  align-items:center;
-  flex-wrap:wrap;
-}
-.hero-text h2{margin: 0 0 6px; font-size: 30px}
-.mini-row{display:flex; gap:10px; margin-top: 10px; flex-wrap:wrap}
-
-.hr{
-  border:0;
-  height:2px;
-  background: var(--stroke);
-  margin: 14px 0;
-}
-
-.video{
-  width:100%;
-  max-width: 760px;
-  border-radius: 14px;
-  border: 2px solid var(--stroke);
-  background:#000;
-}
-
-.perf{
-  padding: 12px;
-  border-radius: 14px;
-  border: 2px solid var(--stroke);
-  background:#fff;
-  margin: 12px 0;
-}
-.perf-title{font-weight: 950; margin-bottom: 8px}
-
-.msg{
-  background:#fff;
-  border:2px solid var(--stroke);
-  border-radius: 14px;
-  padding: 12px;
-  margin: 10px 0;
-}
-.msg-head{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-.msg-body{margin-top: 8px; font-weight: 650; white-space: pre-wrap}
-.pill-mini{
-  padding: 4px 10px;
-  border-radius: 999px;
-  border:2px solid var(--stroke);
-  background: #f7e1a6;
-  font-weight: 900;
-}
-.right{margin-left:auto}
-
-/* FTB category pages (mockup vibe) */
-.ftb-page { max-width: 880px; margin: 0 auto; }
-.ftb-title { letter-spacing: 2px; margin: 10px 0 6px; }
-.ftb-sub { margin-bottom: 18px; opacity: .75; }
-
-.ftb-list { display: grid; gap: 14px; }
-.ftb-row {
-  display: grid;
-  grid-template-columns: 84px 1fr;
-  gap: 14px;
-  align-items: center;
-  padding: 14px;
-  border-radius: 18px;
-  border: 2px solid rgba(0,0,0,.15);
-  box-shadow: 0 10px 0 rgba(0,0,0,.12);
-  background: rgba(255,255,255,.35);
+  background: white;
+  color: #0f172a;
   text-decoration: none;
-  color: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: .2s;
 }
-.ftb-thumb {
-  width: 72px;
-  height: 72px;
-  border-radius: 14px;
-  background: rgba(0,0,0,.08);
-  border: 2px solid rgba(0,0,0,.15);
+
+.pillbar .pill:hover {
+  background: #6366f1;
+  color: white;
+  transform: translateY(-1px);
 }
-.ftb-row-main { font-weight: 800; font-size: 18px; }
-.ftb-row-sub { opacity: .75; margin-top: 2px; }
+
+/* ===== MAIN CONTAINER ===== */
+.container,
+.main-card {
+  background: white;
+  border-radius: 20px;
+  padding: 35px;
+  margin: 40px auto;
+  width: 92%;
+  max-width: 1100px;
+  box-shadow: 0 25px 60px rgba(15,23,42,0.08);
+}
+
+/* ===== HEADINGS ===== */
+h1, h2, h3 {
+  color: #0f172a;
+  margin-top: 0;
+}
+
+/* ===== TEXT ===== */
+p, label {
+  color: #334155;
+  font-size: 15px;
+}
+
+/* ===== FORM FIELDS ===== */
+input, textarea, select {
+  width: 100%;
+  padding: 14px;
+  margin-top: 6px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  border: 1px solid #dbe2ea;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border: 1px solid #6366f1;
+  background: white;
+}
+
+/* ===== FILE INPUTS ===== */
+input[type="file"] {
+  background: white;
+  padding: 12px;
+}
+
+/* ===== BUTTONS ===== */
+button, .btn {
+  background: linear-gradient(90deg, #6366f1, #4f46e5);
+  color: white;
+  border: none;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: .2s;
+}
+
+button:hover, .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(79,70,229,0.25);
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 18px;
+  border: 1px solid #e5eaf1;
+}
+
+/* ===== FOOTER ===== */
+footer {
+  text-align: center;
+  padding: 30px;
+  font-size: 13px;
+  color: #64748b;
+}
 

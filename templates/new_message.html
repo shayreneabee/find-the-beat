@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}New Message • Find the Beat{% endblock %}
+{% block content %}
+<h1>New Message</h1>
+
+<form method="post" class="form">
+  <label>From</label>
+  <select name="sender_id" required>
+    <option value="">Choose…</option>
+    {% for p in profiles %}
+      <option value="{{ p.id }}">{{ p.display_name }}</option>
+    {% endfor %}
+  </select>
+
+  <label>To</label>
+  <select name="recipient_id" required>
+    <option value="">Choose…</option>
+    {% for p in profiles %}
+      <option value="{{ p.id }}">{{ p.display_name }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Subject (optional)</label>
+  <input name="subject" placeholder="Quick subject line">
+
+  <label>Message</label>
+  <textarea name="body" rows="5" required placeholder="Type your message…"></textarea>
+
+  <button type="submit">Send</button>
+</form>
+{% endblock %}

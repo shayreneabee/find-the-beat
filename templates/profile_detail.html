@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ p.display_name }} • Find the Beat{% endblock %}
+{% block content %}
+<h1>{{ p.display_name }}</h1>
+<p class="muted">{{ p.role }}</p>
+
+{% if p.bio %}
+  <p>{{ p.bio }}</p>
+{% endif %}
+
+{% if p.photo_filename %}
+  <img class="heroimg" src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="profile photo">
+{% endif %}
+
+<h2 class="h2">Performances</h2>
+{% if performances %}
+  <ul class="list">
+    {% for perf in performances %}
+      <li><strong>{{ perf.title }}</strong> <span class="muted">• {{ perf.created_at.strftime("%b %d, %Y") }}</span></li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="muted">No performances yet.</p>
+{% endif %}
+{% endblock %}

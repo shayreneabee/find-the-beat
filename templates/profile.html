@@ -1,45 +1,50 @@
 {% extends "base.html" %}
-{% block title %}{{ profile.name }} • Find the Beat{% endblock %}
+{% block title %}{{ profile.name }}{% endblock %}
 
 {% block content %}
-  <div class="profile-header card">
-    <div class="profile-hero">
-      <div class="avatar xl">
-        {% if profile.photo_filename %}
-          <img src="{{ url_for('static', filename='uploads/photos/' ~ profile.photo_filename) }}" alt="{{ profile.name }}">
-        {% else %}
-          <span>{{ (profile.name or "?" )[:1] }}</span>
-        {% endif %}
-      </div>
-
-      <div class="profile-info">
-        <h2 class="m0">{{ profile.name }}</h2>
-        <div class="muted">{{ profile.city }} • {{ profile.role }}</div>
-        {% if profile.instrument %}
-          <div class="tag">{{ profile.instrument }}</div>
-        {% endif %}
-      </div>
+  <div class="profile-hero">
+    <div class="avatar">
+      {% if profile.photo_filename %}
+        <img src="{{ url_for('static', filename='uploads/photos/' ~ profile.photo_filename) }}" alt="Photo">
+      {% else %}
+        <div class="avatar-fallback">{{ profile.name[:1] }}</div>
+      {% endif %}
     </div>
 
-    {% if profile.bio %}
-      <p class="bio">{{ profile.bio }}</p>
-    {% endif %}
+    <div class="profile-meta">
+      <h2>{{ profile.name }}</h2>
+      <div class="muted">
+        {{ profile.role }}
+        {% if profile.instrument %} • {{ profile.instrument }}{% endif %}
+        {% if profile.city %} • {{ profile.city }}{% endif %}
+      </div>
+      {% if profile.bio %}<p>{{ profile.bio }}</p>{% endif %}
 
-    <div class="actions">
-      <a class="btn" href="/profiles/{{ profile.id }}/edit">Edit</a>
-      <a class="btn danger" href="/profiles/{{ profile.id }}/delete">Delete</a>
-      <a class="btn" href="/profiles">Back</a>
+      <div class="row">
+        <a class="btn" href="{{ url_for('edit_profile', profile_id=profile.id) }}">Edit</a>
+        <a class="btn" href="{{ url_for('new_performance') }}">Upload Performance</a>
+        <a class="btn" href="{{ url_for('new_message') }}">Message</a>
+      </div>
     </div>
   </div>
 
-  <div class="card">
-    <h3>Showcases</h3>
-    <p class="muted">Next: list uploaded videos / performances here.</p>
+  <hr>
 
-    <div class="actions">
-      <a class="btn primary" href="/performances/upload?profile_id={{ profile.id }}">Upload a Performance</a>
-      <a class="btn" href="/messages?to={{ profile.id }}">Inbox</a>
+  <h3>Performances</h3>
+  {% if perfs|length == 0 %}
+    <p class="muted">No performances uploaded yet.</p>
+  {% else %}
+    <div class="grid">
+      {% for perf in perfs %}
+        <a class="card" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+          <strong>{{ perf.title }}</strong>
+          {% if perf.thumb_filename %}
+            <img class="thumb" src="{{ url_for('static', filename='uploads/photos/' ~ perf.thumb_filename) }}" alt="thumb">
+          {% endif %}
+          <div class="muted">{{ perf.created_at.strftime("%b %d, %Y") }}</div>
+        </a>
+      {% endfor %}
     </div>
-  </div>
+  {% endif %}
 {% endblock %}
 

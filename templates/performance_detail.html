@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ perf.title }} • Performance{% endblock %}
+{% block content %}
+  <div class="card">
+    <h2>{{ perf.title }}</h2>
+    <div class="muted">
+      {{ perf.created_at.strftime("%b %d, %Y") }}
+      {% if perf.profile %} • {{ perf.profile.name }}{% endif %}
+    </div>
+
+    {% if perf.description %}
+      <p>{{ perf.description }}</p>
+    {% endif %}
+
+    {% if perf.video_filename %}
+      <video controls class="video">
+        <source src="{{ url_for('static', filename='uploads/videos/' ~ perf.video_filename) }}" />
+        Your browser does not support video playback.
+      </video>
+    {% endif %}
+  </div>
+{% endblock %}
+

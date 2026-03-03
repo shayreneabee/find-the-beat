@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Performances • Find the Beat{% endblock %}
+{% block content %}
+<h1>Performances</h1>
+
+{% if performances %}
+  <ul class="list">
+    {% for perf in performances %}
+      <li>
+        <strong>{{ perf.title }}</strong>
+        <span class="muted">• Profile #{{ perf.profile_id }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="muted">No performances yet.</p>
+{% endif %}
+{% endblock %}

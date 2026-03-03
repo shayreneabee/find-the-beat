@@ -1,36 +1,26 @@
 {% extends "base.html" %}
+{% block title %}Create Profile • Find the Beat{% endblock %}
 {% block content %}
-<section class="card">
-  <h2>Create Profile</h2>
-  <p class="muted">Keep it simple. You can improve it later.</p>
+<h1>Create Profile</h1>
 
-  <form method="POST" enctype="multipart/form-data" class="form">
-    <label>Name / Stage name</label>
-    <input name="name" required>
+<form method="post" enctype="multipart/form-data" class="form">
+  <label>Display name</label>
+  <input name="display_name" placeholder="Artist / Producer name" required>
 
-    <label>City</label>
-    <input name="city" placeholder="Dallas, TX">
-    <input type="file" name="photo">
+  <label>Role</label>
+  <select name="role">
+    <option value="artist">artist</option>
+    <option value="producer">producer</option>
+    <option value="venue">venue</option>
+    <option value="promoter">promoter</option>
+  </select>
 
-    <label>Role</label>
-    <select name="role" required>
-      <option value="">Choose one</option>
-      <option>Artist</option>
-      <option>Musician</option>
-      <option>Production</option>
-      <option>Composer</option>
-    </select>
+  <label>Bio</label>
+  <textarea name="bio" rows="4" placeholder="Short bio…"></textarea>
 
-    <label>Instrument (optional)</label>
-    <input name="instrument" placeholder="Guitar / Piano / Drums">
+  <label>Photo (optional)</label>
+  <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
 
-    <label>Bio (optional)</label>
-    <textarea name="bio" rows="4" placeholder="What should people know about you?"></textarea>
-
-    <label>Profile photo (optional)</label>
-    <input type="file" name="photo" accept="image/*">
-
-    <button class="btn gold" type="submit">Create</button>
-  </form>
-</section>
+  <button type="submit">Create</button>
+</form>
 {% endblock %}

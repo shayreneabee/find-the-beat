@@ -1,18 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Showcases • Find the Beat{% endblock %}
-
 {% block content %}
-  <div class="ftb-page">
-    <h2 class="ftb-title">SHOWCASES</h2>
-    <div class="ftb-sub">LATEST PERFORMANCES</div>
+  <div class="card">
+    <h2>Showcases</h2>
+    <p class="muted">Latest performances (showcase feed).</p>
 
-    <div class="card">
-      <p class="muted">Next: list performances + “share” button flow (your mockups).</p>
-      <div class="actions">
-        <a class="btn primary" href="/profiles/new">Create a Profile</a>
-        <a class="btn" href="/profiles">View Profiles</a>
+    {% if items %}
+      <div class="grid">
+        {% for p in items %}
+          <a class="tile" href="{{ url_for('performance_detail', perf_id=p.id) }}">
+            <strong>{{ p.title }}</strong>
+            <div class="muted">
+              {{ p.created_at.strftime("%b %d, %Y") }}
+              {% if p.profile %} • {{ p.profile.name }}{% endif %}
+            </div>
+          </a>
+        {% endfor %}
       </div>
-    </div>
+    {% else %}
+      <p class="muted">No performances yet.</p>
+    {% endif %}
   </div>
 {% endblock %}
 

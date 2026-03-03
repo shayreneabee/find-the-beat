@@ -1,43 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Search • Find the Beat{% endblock %}
-
 {% block content %}
   <div class="card">
-    <h2>FINDTHEBEAT♪ SEARCH</h2>
-    <p class="muted">I’m looking for:</p>
-
-    <div class="tile-grid">
-      <a class="tile" href="/production">
-        <div class="tile-img" style="background-image:url('{{ url_for('static', filename='ftb/production.jpg') }}');"></div>
-        <div class="tile-label">production</div>
-      </a>
-
-      <a class="tile" href="/composers">
-        <div class="tile-img" style="background-image:url('{{ url_for('static', filename='ftb/composers.jpg') }}');"></div>
-        <div class="tile-label">composers</div>
-      </a>
-
-      <a class="tile" href="/artists">
-        <div class="tile-img" style="background-image:url('{{ url_for('static', filename='ftb/artists.jpg') }}');"></div>
-        <div class="tile-label">artist</div>
-      </a>
-
-      <a class="tile" href="/musicians">
-        <div class="tile-img" style="background-image:url('{{ url_for('static', filename='ftb/musicians.jpg') }}');"></div>
-        <div class="tile-label">musicians</div>
-      </a>
-
-      <a class="tile wide" href="/showcase">
-        <div class="tile-img" style="background-image:url('{{ url_for('static', filename='ftb/showcases.jpg') }}');"></div>
-        <div class="tile-label">showcases</div>
-      </a>
-    </div>
-
-    <div class="mini-nav">
-      <a href="/">Home</a>
-      <a href="/search">Search</a>
-      <a href="/profiles">Profile</a>
-    </div>
+    <h2>Search</h2>
+    <p class="muted">Search UI coming next (filters by city/role/instrument).</p>
   </div>
 {% endblock %}
 

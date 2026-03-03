@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Search • Find the Beat{% endblock %}
+{% block content %}
+<h1>Search</h1>
+
+<form method="get" class="form">
+  <label>Search profiles</label>
+  <input name="q" value="{{ q }}" placeholder="Type a name…" />
+  <button type="submit">Search</button>
+</form>
+
+{% if q %}
+  <h2 class="h2">Results</h2>
+  {% if results %}
+    <ul class="list">
+      {% for p in results %}
+        <li>
+          <a href="{{ url_for('profile_detail', profile_id=p.id) }}">
+            {{ p.display_name }} <span class="tag">{{ p.role }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No results for “{{ q }}”.</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

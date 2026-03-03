@@ -1,19 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="card">
-  <h2>Upload Performance</h2>
-  <p class="muted">For {{ profile.name }}</p>
+<div class="card">
+  <h2 class="title">Upload a Performance</h2>
+  <p class="muted">Add a video file or paste a link to show off your sound.</p>
 
-  <form method="post" enctype="multipart/form-data" class="form">
-    <label>Title</label>
-    <input name="title" placeholder="Performance at gig 1" required>
+  <form method="POST" enctype="multipart/form-data" class="form-grid">
+    <label>
+      Choose Profile
+      <select name="profile_id" required>
+        <option value="">-- Select --</option>
+        {% for p in profiles %}
+          <option value="{{ p.id }}">{{ p.name }} • {{ p.role }}</option>
+        {% endfor %}
+      </select>
+    </label>
 
-    <label>Video file</label>
-    <input type="file" name="video" accept="video/*" required>
+    <label>
+      Title
+      <input type="text" name="title" placeholder="Ex: Live at Deep Ellum" required>
+    </label>
 
-    <button class="btn gold" type="submit">Upload</button>
-    <a class="btn" href="{{ url_for('profile_detail', profile_id=profile.id) }}">Back</a>
+    <label>
+      Description (optional)
+      <textarea name="description" rows="3" placeholder="What’s the vibe? Who produced it?"></textarea>
+    </label>
+
+    <div class="split">
+      <label>
+        Upload Video (optional)
+        <input type="file" name="video_file" accept="video/*">
+      </label>
+
+      <label>
+        OR Video Link (optional)
+        <input type="url" name="video_url" placeholder="https://youtube.com/...">
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Add to Showcase</button>
+      <a class="btn" href="{{ url_for('showcase') }}">Back to Showcase</a>
+    </div>
   </form>
-</section>
+</div>
 {% endblock %}
 

@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Home • Find the Beat{% endblock %}
-
 {% block content %}
-  <section class="card">
-    <h2>Welcome</h2>
-    <p class="muted">Your creatives network — artists, musicians, producers, and composers.</p>
+  <h1>We live 🥹</h1>
+  <p class="muted">
+    Profiles, performances, showcases, and inbox messaging are wired up.
+    Next: polish + signup/launch flow.
+  </p>
 
-    <div class="actions">
-      <a class="btn primary" href="/search">Enter Showcase</a>
-      <a class="btn" href="/profiles/new">Create Profile</a>
-      <a class="btn" href="/profiles">View Profiles</a>
-    </div>
-  </section>
+  <div class="grid">
+    <a class="cardlink" href="{{ url_for('new_profile') }}">Create a Profile</a>
+    <a class="cardlink" href="{{ url_for('profiles') }}">View Profiles</a>
+    <a class="cardlink" href="{{ url_for('upload_performance') }}">Upload Performance</a>
+    <a class="cardlink" href="{{ url_for('inbox') }}">Open Inbox</a>
+  </div>
 {% endblock %}
-
