@@ -20,7 +20,7 @@
 {% if profiles %}
     <div class="grid-3">
         {% for p in profiles %}
-            <div class="card-link">
+            <a class="card-link" href="{{ url_for('profile_detail', profile_id=p.id) }}">
                 {% if p.photo_filename %}
                     <img
                         class="media-frame"
@@ -45,7 +45,7 @@
                 {% else %}
                     <p class="card-meta">No bio yet.</p>
                 {% endif %}
-            </div>
+            </a>
         {% endfor %}
     </div>
 {% else %}

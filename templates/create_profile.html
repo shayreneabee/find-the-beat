@@ -3,31 +3,32 @@
 {% block title %}Create Profile{% endblock %}
 
 {% block content %}
+<section class="form-card">
+    <h1>Create Profile</h1>
 
-<h1>Create Artist Profile</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Display Name</label>
+        <input type="text" name="display_name" required>
 
-<form method="POST" enctype="multipart/form-data">
+        <label>Role</label>
+        <select name="role" required>
+            <option value="Rapper">Rapper</option>
+            <option value="Singer">Singer</option>
+            <option value="Producer">Producer</option>
+            <option value="DJ">DJ</option>
+            <option value="Engineer">Engineer</option>
+            <option value="Other">Other</option>
+        </select>
 
-<label>Artist Name</label>
-<input type="text" name="display_name" required>
+        <label>Profile Photo</label>
+        <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
 
-<label>Role</label>
-<select name="role">
-<option>Rapper</option>
-<option>Singer</option>
-<option>Producer</option>
-<option>DJ</option>
-<option>Engineer</option>
-<option>Other</option>
-</select>
+        <label>Bio</label>
+        <textarea name="bio" placeholder="Tell people about this artist..."></textarea>
 
-<label>Bio</label>
-<textarea name="bio"></textarea>
-
-<br><br>
-
-<button type="submit">Create Profile</button>
-
-</form>
-
+        <div style="margin-top:16px;">
+            <button type="submit">Create Profile</button>
+        </div>
+    </form>
+</section>
 {% endblock %}

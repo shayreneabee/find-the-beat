@@ -1,57 +1,82 @@
 {% extends "base.html" %}
+
+{% block title %}{{ profile.display_name }}{% endblock %}
+
 {% block content %}
-
-{% if p %}
-  <h1>{{ p.display_name }}</h1>
-  <p class="muted">{{ p.role }} • {{ p.location }}</p>
-  <p>{{ p.bio }}</p>
-
-  {% if p.photo_filename %}
-    <img class="thumb" src="{{ url_for('photo', filename=p.photo_filename) }}" alt="photo">
-  {% endif %}
-
-  <div class="grid">
-    <a class="card" href="{{ url_for('upload_performance') }}">Upload a Performance</a>
-    <a class="card" href="{{ url_for('new_message') }}">Message Someone</a>
-  </div>
-
-  <h2>Performances</h2>
-  {% if perfs %}
-    <div class="list">
-      {% for x in perfs %}
-        <div class="row">
-          <div>
-            <div class="row-title">{{ x.title }}</div>
-            <div class="muted">{{ x.description }}</div>
-          </div>
-          <div class="tag">{{ x.created_at.strftime("%b %d") }}</div>
+<section class="content-card" style="padding:24px;">
+    <div class="grid-2">
+        <div>
+            {% if profile.photo_filename %}
+                <img
+                    class="media-frame"
+                    src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}"
+                    alt="{{ profile.display_name }}"
+                    style="height:360px; object-fit:cover;"
+                >
+            {% else %}
+                <div
+                    class="media-frame"
+                    style="height:360px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); color:#b8c7dd; font-weight:700;"
+                >
+                    No Photo Yet
+                </div>
+            {% endif %}
         </div>
-      {% endfor %}
+
+        <div>
+            <h1 style="margin-top:0;">{{ profile.display_name }}</h1>
+            <p class="card-meta" style="font-size:1rem;">{{ profile.role }}</p>
+
+            {% if profile.bio %}
+                <p>{{ profile.bio }}</p>
+            {% else %}
+                <p class="muted">No bio yet.</p>
+            {% endif %}
+
+            <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="{{ url_for('edit_profile', profile_id=profile.id) }}" class="secondary-btn">Edit Profile</a>
+                <a href="{{ url_for('upload_performance') }}" class="secondary-btn">Upload Performance</a>
+                <a href="{{ url_for('new_message') }}" class="secondary-btn">Message</a>
+            </div>
+        </div>
     </div>
-  {% else %}
-    <p class="muted">No performances yet.</p>
-  {% endif %}
+</section>
 
-{% else %}
-  <h1>Create Profile</h1>
-  <form class="form" method="post" enctype="multipart/form-data">
-    <label>Display name *</label>
-    <input name="display_name" required>
+<section style="margin-top:24px;">
+    <h2>Performances</h2>
 
-    <label>Role *</label>
-    <input name="role" required placeholder="artist / producer / venue…">
+    {% if perfs %}
+        <div class="grid-3">
+            {% for perf in perfs %}
+                <a class="card-link" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+                    {% if perf.thumb_filename %}
+                        <img
+                            class="media-frame"
+                            src="{{ url_for('uploaded_photo', filename=perf.thumb_filename) }}"
+                            alt="{{ perf.title }}"
+                            style="height:220px; object-fit:cover;"
+                        >
+                    {% else %}
+                        <div
+                            class="media-frame"
+                            style="height:220px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); color:#b8c7dd; font-weight:700;"
+                        >
+                            No Thumbnail Yet
+                        </div>
+                    {% endif %}
 
-    <label>Location</label>
-    <input name="location" placeholder="Dallas, TX">
+                    <h3 class="card-title" style="margin-top:14px;">{{ perf.title }}</h3>
 
-    <label>Bio</label>
-    <textarea name="bio" rows="4" placeholder="What should people know?"></textarea>
-
-    <label>Photo</label>
-    <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
-
-    <button type="submit">Create Profile</button>
-  </form>
-{% endif %}
-
+                    {% if perf.description %}
+                        <p class="card-meta">{{ perf.description }}</p>
+                    {% endif %}
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="content-card" style="padding:24px;">
+            <p class="muted" style="margin:0;">No performances uploaded yet.</p>
+        </section>
+    {% endif %}
+</section>
 {% endblock %}

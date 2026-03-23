@@ -15,7 +15,7 @@
 {% if performances %}
     <div class="grid-3">
         {% for perf in performances %}
-            <div class="card-link">
+            <a class="card-link" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
                 {% if perf.thumb_filename %}
                     <img
                         class="media-frame"
@@ -23,6 +23,13 @@
                         alt="{{ perf.title }}"
                         style="height:220px; object-fit:cover;"
                     >
+                {% else %}
+                    <div
+                        class="media-frame"
+                        style="height:220px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); color:#b8c7dd; font-weight:700;"
+                    >
+                        No Thumbnail Yet
+                    </div>
                 {% endif %}
 
                 <h3 class="card-title" style="margin-top:14px;">{{ perf.title }}</h3>
@@ -34,14 +41,7 @@
                 {% if perf.description %}
                     <p class="card-meta">{{ perf.description }}</p>
                 {% endif %}
-
-                {% if perf.video_filename %}
-                    <video class="video-frame" controls style="margin-top:14px;">
-                        <source src="{{ url_for('uploaded_video', filename=perf.video_filename) }}">
-                        Your browser does not support the video tag.
-                    </video>
-                {% endif %}
-            </div>
+            </a>
         {% endfor %}
     </div>
 {% else %}

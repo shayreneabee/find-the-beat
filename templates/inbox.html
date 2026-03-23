@@ -15,23 +15,32 @@
 {% if msgs %}
     <div class="grid-2">
         {% for msg in msgs %}
-            <a
-                class="message-item"
-                href="{{ url_for('thread', me=msg.sender_id, other=msg.recipient_id) }}"
-            >
-                <h3 class="item-title">Conversation</h3>
-                <p class="item-meta">
-                    From profile #{{ msg.sender_id }} → To profile #{{ msg.recipient_id }}
-                </p>
-
-                <p style="margin:10px 0 0;">{{ msg.body }}</p>
-
-                {% if msg.created_at %}
-                    <p class="muted" style="margin-top:10px;">
-                        {{ msg.created_at.strftime("%b %d, %Y • %I:%M %p") }}
+            <div class="message-item">
+                <a href="{{ url_for('thread', me=msg.sender_id, other=msg.recipient_id) }}">
+                    <h3 class="item-title">Conversation</h3>
+                    <p class="item-meta">
+                        From profile #{{ msg.sender_id }} → To profile #{{ msg.recipient_id }}
                     </p>
-                {% endif %}
-            </a>
+
+                    <p style="margin:10px 0 0;">{{ msg.body }}</p>
+
+                    {% if msg.created_at %}
+                        <p class="muted" style="margin-top:10px;">
+                            {{ msg.created_at.strftime("%b %d, %Y • %I:%M %p") }}
+                        </p>
+                    {% endif %}
+                </a>
+
+                <div style="margin-top:14px;">
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_message', message_id=msg.id) }}"
+                        class="inline-form"
+                    >
+                        <button type="submit" class="danger-btn">Delete</button>
+                    </form>
+                </div>
+            </div>
         {% endfor %}
     </div>
 {% else %}

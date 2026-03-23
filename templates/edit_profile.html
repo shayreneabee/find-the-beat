@@ -1,34 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Edit · {{ profile.name }}{% endblock %}
+
+{% block title %}Edit Profile{% endblock %}
+
 {% block content %}
-  <section class="card">
-    <h2>Edit Profile</h2>
+<section class="form-card">
+    <h1>Edit Profile</h1>
 
-    <form class="form" method="POST" enctype="multipart/form-data">
-      <label>Name *</label>
-      <input name="name" value="{{ profile.name }}" required>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Display Name</label>
+        <input type="text" name="display_name" value="{{ profile.display_name }}" required>
 
-      <label>City</label>
-      <input name="city" value="{{ profile.city or '' }}">
+        <label>Role</label>
+        <select name="role" required>
+            <option value="Rapper" {% if profile.role == "Rapper" %}selected{% endif %}>Rapper</option>
+            <option value="Singer" {% if profile.role == "Singer" %}selected{% endif %}>Singer</option>
+            <option value="Producer" {% if profile.role == "Producer" %}selected{% endif %}>Producer</option>
+            <option value="DJ" {% if profile.role == "DJ" %}selected{% endif %}>DJ</option>
+            <option value="Engineer" {% if profile.role == "Engineer" %}selected{% endif %}>Engineer</option>
+            <option value="Other" {% if profile.role == "Other" %}selected{% endif %}>Other</option>
+        </select>
 
-      <label>Role</label>
-      <input name="role" value="{{ profile.role or '' }}">
+        <label>Replace Profile Photo</label>
+        <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
 
-      <label>Instrument</label>
-      <input name="instrument" value="{{ profile.instrument or '' }}">
+        {% if profile.photo_filename %}
+            <div style="margin-top:16px;">
+                <img
+                    class="media-frame"
+                    src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}"
+                    alt="{{ profile.display_name }}"
+                    style="max-width:280px; height:auto;"
+                >
+            </div>
+        {% endif %}
 
-      <label>Bio</label>
-      <textarea name="bio" rows="4">{{ profile.bio or '' }}</textarea>
+        <label>Bio</label>
+        <textarea name="bio" placeholder="Tell people about this artist...">{{ profile.bio or "" }}</textarea>
 
-      <label>Replace Photo</label>
-      <input type="file" name="photo" accept="image/*">
-
-      <label>Replace Video</label>
-      <input type="file" name="video" accept="video/*">
-
-      <button class="btn primary" type="submit">Save Changes</button>
-      <a class="btn" href="{{ url_for('profile_detail', profile_id=profile.id) }}">Cancel</a>
+        <div style="margin-top:16px;">
+            <button type="submit">Save Changes</button>
+        </div>
     </form>
-  </section>
+</section>
 {% endblock %}
-

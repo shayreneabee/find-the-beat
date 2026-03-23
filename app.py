@@ -85,6 +85,17 @@ def create_app():
         items = Profile.query.order_by(Profile.created_at.desc()).all()
         return render_template("profiles.html", profiles=items)
 
+    @app.get("/profile/<int:profile_id>")
+    def profile_detail(profile_id):
+        profile = Profile.query.get_or_404(profile_id)
+        perfs = (
+            Performance.query
+            .filter_by(profile_id=profile.id)
+            .order_by(Performance.created_at.desc())
+            .all()
+        )
+        return render_template("profile_detail.html", profile=profile, perfs=perfs)
+
     @app.route("/create_profile", methods=["GET", "POST"])
     def create_profile():
         if request.method == "GET":
@@ -121,10 +132,47 @@ def create_app():
         flash("Profile created!")
         return redirect(url_for("profiles"))
 
+    @app.route("/edit_profile/<int:profile_id>", methods=["GET", "POST"])
+    def edit_profile(profile_id):
+        profile = Profile.query.get_or_404(profile_id)
+
+        if request.method == "GET":
+            return render_template("edit_profile.html", profile=profile)
+
+        display_name = request.form["display_name"].strip()
+        role = request.form["role"].strip()
+        bio = request.form["bio"].strip()
+
+        if not display_name or not role:
+            flash("Display name and role are required.")
+            return redirect(url_for("edit_profile", profile_id=profile.id))
+
+        profile.display_name = display_name
+        profile.role = role
+        profile.bio = bio
+
+        photo = request.files.get("photo")
+        if photo and photo.filename:
+            if _ext_ok(photo.filename, ALLOWED_IMG):
+                profile.photo_filename = _save_upload(photo, app.config["UPLOAD_PHOTOS"])
+            else:
+                flash("Photo must be jpg, jpeg, png, or webp.")
+                return redirect(url_for("edit_profile", profile_id=profile.id))
+
+        db.session.commit()
+
+        flash("Profile updated!")
+        return redirect(url_for("profile_detail", profile_id=profile.id))
+
     @app.get("/performances")
     def performances():
         items = Performance.query.order_by(Performance.created_at.desc()).all()
         return render_template("performances.html", performances=items)
+
+    @app.get("/performance/<int:perf_id>")
+    def performance_detail(perf_id):
+        perf = Performance.query.get_or_404(perf_id)
+        return render_template("performance_detail.html", perf=perf)
 
     @app.route("/upload_performance", methods=["GET", "POST"])
     def upload_performance():
@@ -212,6 +260,14 @@ def create_app():
         db.session.commit()
 
         return redirect(url_for("thread", me=sender_id, other=recipient_id))
+
+    @app.post("/delete_message/<int:message_id>")
+    def delete_message(message_id):
+        msg = Message.query.get_or_404(message_id)
+        db.session.delete(msg)
+        db.session.commit()
+        flash("Message deleted.")
+        return redirect(url_for("inbox"))
 
     @app.get("/thread")
     def thread():
