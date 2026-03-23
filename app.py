@@ -42,7 +42,7 @@ def _save_upload(file_storage, folder: str) -> str:
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "dev"
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///find_the_beat.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///find_the_beat_v2.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     app.config["UPLOAD_PHOTOS"] = str(BASE_DIR / "static" / "uploads" / "photos")
