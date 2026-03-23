@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Create Profile{% endblock %}
+
+{% block content %}
+
+<h1>Create Artist Profile</h1>
+
+<form method="POST" enctype="multipart/form-data">
+
+<label>Artist Name</label>
+<input type="text" name="display_name" required>
+
+<label>Role</label>
+<select name="role">
+<option>Rapper</option>
+<option>Singer</option>
+<option>Producer</option>
+<option>DJ</option>
+<option>Engineer</option>
+<option>Other</option>
+</select>
+
+<label>Bio</label>
+<textarea name="bio"></textarea>
+
+<br><br>
+
+<button type="submit">Create Profile</button>
+
+</form>
+
+{% endblock %}

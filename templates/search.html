@@ -1,28 +1,80 @@
 {% extends "base.html" %}
-{% block title %}Search • Find the Beat{% endblock %}
+
+{% block title %}Search{% endblock %}
+
 {% block content %}
-<h1>Search</h1>
+<section class="hero-card" style="padding:24px;">
+    <h1 style="margin:0 0 10px;">Search Talent</h1>
+    <p class="hero-subtitle" style="margin-bottom:0;">
+        Find artists, performers, producers, and collaborators by name, role, or bio.
+    </p>
+</section>
 
-<form method="get" class="form">
-  <label>Search profiles</label>
-  <input name="q" value="{{ q }}" placeholder="Type a name…" />
-  <button type="submit">Search</button>
-</form>
+<section class="form-card" style="margin-top:20px;">
+    <form method="GET" action="{{ url_for('search') }}">
+        <label>Keyword</label>
+        <input
+            type="text"
+            name="q"
+            value="{{ q }}"
+            placeholder="Search by name, role, or bio"
+        >
 
-{% if q %}
-  <h2 class="h2">Results</h2>
-  {% if results %}
-    <ul class="list">
-      {% for p in results %}
-        <li>
-          <a href="{{ url_for('profile_detail', profile_id=p.id) }}">
-            {{ p.display_name }} <span class="tag">{{ p.role }}</span>
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="muted">No results for “{{ q }}”.</p>
-  {% endif %}
-{% endif %}
+        <label>Role</label>
+        <input
+            type="text"
+            name="role"
+            value="{{ role }}"
+            placeholder="Rapper, Singer, Producer..."
+        >
+
+        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit">Search</button>
+            <a href="{{ url_for('search') }}" class="secondary-btn">Clear</a>
+        </div>
+    </form>
+</section>
+
+<section style="margin-top:24px;">
+    <h2 style="margin-bottom:14px;">Results</h2>
+
+    {% if results %}
+        <div class="grid-3">
+            {% for p in results %}
+                <div class="card-link">
+                    {% if p.photo_filename %}
+                        <img
+                            class="media-frame"
+                            src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}"
+                            alt="{{ p.display_name }}"
+                            style="height:220px; object-fit:cover;"
+                        >
+                    {% else %}
+                        <div
+                            class="media-frame"
+                            style="height:220px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); color:#b8c7dd; font-weight:700;"
+                        >
+                            No Photo Yet
+                        </div>
+                    {% endif %}
+
+                    <h3 class="card-title" style="margin-top:14px;">{{ p.display_name }}</h3>
+                    <p class="card-meta">{{ p.role }}</p>
+
+                    {% if p.bio %}
+                        <p class="card-meta">{{ p.bio }}</p>
+                    {% else %}
+                        <p class="card-meta">No bio yet.</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="content-card" style="padding:24px;">
+            <p class="muted" style="margin:0;">
+                No matching profiles yet. Try another keyword or role.
+            </p>
+        </section>
+    {% endif %}
+</section>
 {% endblock %}

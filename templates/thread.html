@@ -1,39 +1,45 @@
 {% extends "base.html" %}
+
+{% block title %}Thread{% endblock %}
+
 {% block content %}
+<section class="hero-card" style="padding:24px;">
+    <h1 style="margin:0 0 10px;">Conversation Thread</h1>
+    <p class="hero-subtitle" style="margin-bottom:0;">
+        <strong>{{ me.display_name }}</strong> ↔ <strong>{{ other.display_name }}</strong>
+    </p>
+</section>
 
-<div class="page">
-  <div class="page-head">
-    <div>
-      <h2>Messages</h2>
-      <p class="muted">You ({{ me.name }}) ↔ <strong>{{ other.name }}</strong></p>
-    </div>
-    <a class="btn secondary" href="{{ url_for('inbox') }}">Back to Inbox</a>
-  </div>
+<section class="content-card" style="padding:24px;">
+    {% if msgs %}
+        <div class="thread-stack">
+            {% for msg in msgs %}
+                <div class="thread-bubble {% if msg.sender_id == me.id %}mine{% else %}theirs{% endif %}">
+                    <p style="margin:0 0 8px; font-weight:700;">
+                        {% if msg.sender_id == me.id %}
+                            {{ me.display_name }}
+                        {% else %}
+                            {{ other.display_name }}
+                        {% endif %}
+                    </p>
 
-  {% if error %}
-    <div class="card" style="border-color: #ffcc00;">
-      <strong>Heads up:</strong> {{ error }}
-    </div>
-  {% endif %}
+                    <p style="margin:0;">{{ msg.body }}</p>
 
-  <div class="chat">
-    {% for m in messages %}
-      <div class="bubble {% if m.sender_id == me.id %}me{% else %}them{% endif %}">
-        {% if m.subject %}
-          <div class="bubble-subject">{{ m.subject }}</div>
-        {% endif %}
-        <div class="bubble-body">{{ m.body }}</div>
-        <div class="bubble-time muted">{{ m.created_at.strftime("%b %d • %I:%M %p") }}</div>
-      </div>
-    {% endfor %}
-  </div>
+                    {% if msg.created_at %}
+                        <p class="muted" style="margin:10px 0 0;">
+                            {{ msg.created_at.strftime("%b %d, %Y • %I:%M %p") }}
+                        </p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted">No messages in this conversation yet.</p>
+    {% endif %}
+</section>
 
-  <form method="POST" class="composer">
-    <input type="text" name="subject" placeholder="Subject (optional)" class="input" />
-    <textarea name="body" rows="3" placeholder="Write your message…" class="input"></textarea>
-    <button class="btn primary" type="submit">Send</button>
-  </form>
+<div style="margin-top:20px;">
+    <a href="{{ url_for('new_message') }}" class="secondary-btn">Send Another Message</a>
+    <a href="{{ url_for('inbox') }}" class="secondary-btn" style="margin-left:10px;">Back to Inbox</a>
 </div>
-
 {% endblock %}
-

@@ -1,48 +1,48 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{% block title %}Find the Beat{% endblock %}</title>
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Find The Beat{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-title">Find the Beat</div>
-      <div class="brand-sub">Connect artists • book talent • share performances</div>
-    </div>
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="brand-block">
+                <div class="brand-kicker">Brent &amp; Co.</div>
+                <a href="{{ url_for('home') }}" class="brand-name">Find The Beat</a>
+                <p class="brand-subtitle">Connect artists • showcase talent • build creative community</p>
+            </div>
 
-    <nav class="nav">
-      <a class="pill" href="{{ url_for('home') }}">Home</a>
-      <a class="pill" href="{{ url_for('search') }}">Search</a>
-      <a class="pill" href="{{ url_for('showcases') }}">Showcases</a>
-      <a class="pill" href="{{ url_for('profiles') }}">Profiles</a>
-      <a class="pill" href="{{ url_for('new_profile') }}">Create Profile</a>
-      <a class="pill" href="{{ url_for('performances') }}">Performances</a>
-      <a class="pill" href="{{ url_for('upload_performance') }}">Upload Performance</a>
-      <a class="pill" href="{{ url_for('inbox') }}">Inbox</a>
-      <a class="pill" href="{{ url_for('new_message') }}">New Message</a>
-    </nav>
-  </header>
-
-  <main class="container">
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flashwrap">
-          {% for m in messages %}
-            <div class="flash">{{ m }}</div>
-          {% endfor %}
+            <nav class="main-nav">
+                <a href="{{ url_for('home') }}" class="nav-pill">Home</a>
+                <a href="{{ url_for('search') }}" class="nav-pill">Search</a>
+                <a href="{{ url_for('profiles') }}" class="nav-pill">Profiles</a>
+                <a href="{{ url_for('upload_performance') }}" class="nav-pill">Upload Performance</a>
+                <a href="{{ url_for('performances') }}" class="nav-pill">Performances</a>
+                <a href="{{ url_for('new_message') }}" class="nav-pill">Message</a>
+                <a href="{{ url_for('inbox') }}" class="nav-pill">Inbox</a>
+            </nav>
         </div>
-      {% endif %}
-    {% endwith %}
+    </header>
 
-    <section class="main-card">
-      {% block content %}{% endblock %}
-    </section>
+    <main class="page-shell">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <section class="flash-stack">
+                    {% for message in messages %}
+                        <div class="flash-card">{{ message }}</div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
 
-    <footer class="footer">© 2026 Brent &amp; Co.</footer>
-  </main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <p>© 2026 Brent &amp; Co. • Find The Beat</p>
+    </footer>
 </body>
 </html>

@@ -1,18 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Profiles • Find the Beat{% endblock %}
-{% block content %}
-<h1>Profiles</h1>
 
-{% if items %}
-  <div class="grid2">
-    {% for p in items %}
-      <a class="profilecard" href="{{ url_for('profile_detail', profile_id=p.id) }}">
-        <div class="pc-title">{{ p.display_name }}</div>
-        <div class="pc-meta">{{ p.role }}</div>
-      </a>
-    {% endfor %}
-  </div>
+{% block title %}Profiles{% endblock %}
+
+{% block content %}
+<section class="hero-card" style="padding:24px;">
+    <h1 style="margin:0 0 10px;">Artist Profiles</h1>
+    <p class="hero-subtitle" style="margin-bottom:0;">
+        Browse creative talent across the platform and connect with artists ready to move.
+    </p>
+</section>
+
+<div class="grid-3" style="margin:20px 0 18px;">
+    <a class="card-link" href="{{ url_for('create_profile') }}">
+        <h3 class="card-title">+ Create Profile</h3>
+        <p class="card-meta">Add a new artist or creative profile.</p>
+    </a>
+</div>
+
+{% if profiles %}
+    <div class="grid-3">
+        {% for p in profiles %}
+            <div class="card-link">
+                {% if p.photo_filename %}
+                    <img
+                        class="media-frame"
+                        src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}"
+                        alt="{{ p.display_name }}"
+                        style="height:220px; object-fit:cover;"
+                    >
+                {% else %}
+                    <div
+                        class="media-frame"
+                        style="height:220px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); color:#b8c7dd; font-weight:700;"
+                    >
+                        No Photo Yet
+                    </div>
+                {% endif %}
+
+                <h3 class="card-title" style="margin-top:14px;">{{ p.display_name }}</h3>
+                <p class="card-meta">{{ p.role }}</p>
+
+                {% if p.bio %}
+                    <p class="card-meta">{{ p.bio }}</p>
+                {% else %}
+                    <p class="card-meta">No bio yet.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
 {% else %}
-  <p class="muted">No profiles yet. Create one.</p>
+    <section class="content-card" style="padding:24px;">
+        <p class="muted" style="margin:0;">No profiles yet. Create the first one!</p>
+    </section>
 {% endif %}
 {% endblock %}

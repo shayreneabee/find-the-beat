@@ -1,16 +1,51 @@
 {% extends "base.html" %}
-{% block title %}Home • Find the Beat{% endblock %}
-{% block content %}
-  <h1>We live 🥹</h1>
-  <p class="muted">
-    Profiles, performances, showcases, and inbox messaging are wired up.
-    Next: polish + signup/launch flow.
-  </p>
 
-  <div class="grid">
-    <a class="cardlink" href="{{ url_for('new_profile') }}">Create a Profile</a>
-    <a class="cardlink" href="{{ url_for('profiles') }}">View Profiles</a>
-    <a class="cardlink" href="{{ url_for('upload_performance') }}">Upload Performance</a>
-    <a class="cardlink" href="{{ url_for('inbox') }}">Open Inbox</a>
-  </div>
+{% block title %}Home • Find The Beat{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+    <h1 class="hero-title">Find the talent. Feel the energy. Build the moment.</h1>
+    <p class="hero-subtitle">
+        Find The Beat is your live creative network for artists, performers, producers, and collaborators.
+        Search profiles, watch performances, and make connections that move.
+    </p>
+
+    <div class="hero-actions">
+        <a href="{{ url_for('profiles') }}" class="primary-btn">Explore Profiles</a>
+        <a href="{{ url_for('performances') }}" class="secondary-btn">Watch Performances</a>
+        <a href="{{ url_for('new_message') }}" class="secondary-btn">Send a Message</a>
+    </div>
+</section>
+
+<section class="grid-3">
+    <a href="{{ url_for('search') }}" class="card-link">
+        <h3 class="card-title">Search Talent</h3>
+        <p class="card-meta">Find artists, collaborators, and creative energy fast.</p>
+    </a>
+
+    <a href="{{ url_for('profiles') }}" class="card-link">
+        <h3 class="card-title">Browse Profiles</h3>
+        <p class="card-meta">View talent pages, bios, and creative identities.</p>
+    </a>
+
+    <a href="{{ url_for('performances') }}" class="card-link">
+        <h3 class="card-title">View Performances</h3>
+        <p class="card-meta">Stream uploaded content and discover standout talent.</p>
+    </a>
+
+    <a href="{{ url_for('new_message') }}" class="card-link">
+        <h3 class="card-title">Start a Conversation</h3>
+        <p class="card-meta">Reach out directly and begin building relationships.</p>
+    </a>
+
+    <a href="{{ url_for('inbox') }}" class="card-link">
+        <h3 class="card-title">Open Inbox</h3>
+        <p class="card-meta">Keep up with creative conversations and opportunities.</p>
+    </a>
+
+    <a href="{{ url_for('performances') }}" class="card-link">
+        <h3 class="card-title">Discover New Energy</h3>
+        <p class="card-meta">Fresh talent, fresh visuals, fresh momentum.</p>
+    </a>
+</section>
 {% endblock %}

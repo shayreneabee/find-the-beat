@@ -1,28 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Inbox • Find the Beat{% endblock %}
+
+{% block title %}Inbox{% endblock %}
+
 {% block content %}
 <h1>Inbox</h1>
 
-{% if messages %}
-  <ul class="list">
-    {% for m in messages %}
-      <li class="msg">
-        <div class="msg-top">
-          <strong>
-            {{ profiles.get(m.sender_id).display_name if profiles.get(m.sender_id) else "Unknown" }}
-          </strong>
-          <span class="muted">→</span>
-          <strong>
-            {{ profiles.get(m.recipient_id).display_name if profiles.get(m.recipient_id) else "Unknown" }}
-          </strong>
-          <span class="muted">• {{ m.created_at.strftime("%b %d, %Y %I:%M %p") }}</span>
-        </div>
-        {% if m.subject %}<div class="msg-subject">{{ m.subject }}</div>{% endif %}
-        <div class="msg-body">{{ m.body }}</div>
-      </li>
-    {% endfor %}
-  </ul>
+<div class="grid-3" style="margin-bottom:18px;">
+    <a class="card-link" href="{{ url_for('new_message') }}">
+        <h3 class="card-title">+ New Message</h3>
+        <p class="card-meta">Start a new conversation with an artist or collaborator.</p>
+    </a>
+</div>
+
+{% if msgs %}
+    <div class="grid-2">
+        {% for msg in msgs %}
+            <a
+                class="message-item"
+                href="{{ url_for('thread', me=msg.sender_id, other=msg.recipient_id) }}"
+            >
+                <h3 class="item-title">Conversation</h3>
+                <p class="item-meta">
+                    From profile #{{ msg.sender_id }} → To profile #{{ msg.recipient_id }}
+                </p>
+
+                <p style="margin:10px 0 0;">{{ msg.body }}</p>
+
+                {% if msg.created_at %}
+                    <p class="muted" style="margin-top:10px;">
+                        {{ msg.created_at.strftime("%b %d, %Y • %I:%M %p") }}
+                    </p>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
 {% else %}
-  <p class="muted">No messages yet.</p>
+    <p class="muted">No messages yet.</p>
 {% endif %}
 {% endblock %}
