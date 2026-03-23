@@ -2,49 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Find The Beat{% endblock %}</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header class="site-header">
-        <div class="header-inner">
-            <div class="brand-block">
-                <p class="brand-kicker">Brent &amp; Co.</p>
-                <a href="{{ url_for('home') }}" class="brand-name">Find The Beat</a>
-                <p class="brand-subtitle">
-                    Discover talent • showcase performances • build creative community
-                </p>
+
+<header class="site-header">
+    <div class="logo">
+        <span class="brand-small">BRENT & CO.</span>
+        <h1>Find The Beat</h1>
+        <p class="tagline">
+            Connect artists • showcase talent • build creative community
+        </p>
+    </div>
+
+    <nav class="main-nav">
+
+        <!-- ALWAYS -->
+        <a href="{{ url_for('home') }}" class="nav-pill">Home</a>
+        <a href="{{ url_for('search') }}" class="nav-pill">Search</a>
+        <a href="{{ url_for('profiles') }}" class="nav-pill">Profiles</a>
+        <a href="{{ url_for('performances') }}" class="nav-pill">Performances</a>
+
+        <!-- LOGGED IN -->
+        {% if current_user %}
+            <a href="{{ url_for('dashboard') }}" class="nav-pill">Dashboard</a>
+            <a href="{{ url_for('my_profile') }}" class="nav-pill">My Profile</a>
+            <a href="{{ url_for('upload_performance') }}" class="nav-pill highlight">Upload</a>
+            <a href="{{ url_for('inbox') }}" class="nav-pill">Inbox</a>
+            <a href="{{ url_for('logout') }}" class="nav-pill logout">Logout</a>
+
+        <!-- LOGGED OUT -->
+        {% else %}
+            <a href="{{ url_for('signup') }}" class="nav-pill highlight">Sign Up</a>
+            <a href="{{ url_for('login') }}" class="nav-pill">Log In</a>
+        {% endif %}
+
+    </nav>
+</header>
+
+<main class="main-content">
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-wrap">
+                {% for m in messages %}
+                    <div class="flash">{{ m }}</div>
+                {% endfor %}
             </div>
+        {% endif %}
+    {% endwith %}
 
-            <nav class="main-nav">
-                <a href="{{ url_for('home') }}" class="nav-pill">Home</a>
-                <a href="{{ url_for('search') }}" class="nav-pill">Search</a>
-                <a href="{{ url_for('profiles') }}" class="nav-pill">Profiles</a>
-                <a href="{{ url_for('upload_performance') }}" class="nav-pill">Upload Performance</a>
-                <a href="{{ url_for('performances') }}" class="nav-pill">Performances</a>
-                <a href="{{ url_for('new_message') }}" class="nav-pill">Message</a>
-                <a href="{{ url_for('inbox') }}" class="nav-pill">Inbox</a>
-            </nav>
-        </div>
-    </header>
+    {% block content %}{% endblock %}
+</main>
 
-    <main class="page-shell">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <section class="flash-stack">
-                    {% for message in messages %}
-                        <div class="flash-card">{{ message }}</div>
-                    {% endfor %}
-                </section>
-            {% endif %}
-        {% endwith %}
+<footer class="footer">
+    © 2026 Brent & Co. • Find The Beat
+</footer>
 
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="site-footer">
-        <p>© 2026 Brent &amp; Co. • Find The Beat</p>
-    </footer>
 </body>
 </html>

@@ -2,6 +2,7 @@ import os
 import secrets
 from pathlib import Path
 from datetime import datetime
+from functools import wraps
 
 from flask import (
     Flask,
@@ -11,11 +12,13 @@ from flask import (
     url_for,
     flash,
     send_from_directory,
+    session,
 )
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from extensions import db
-from models import Profile, Performance, Message
+from models import User, Profile, Performance, Message
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -53,9 +56,123 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+    def current_user():
+        user_id = session.get("user_id")
+        if not user_id:
+            return None
+        return User.query.get(user_id)
+
+    def login_required(view_func):
+        @wraps(view_func)
+        def wrapped(*args, **kwargs):
+            if not session.get("user_id"):
+                flash("Please log in first.")
+                return redirect(url_for("login"))
+            return view_func(*args, **kwargs)
+        return wrapped
+
+    @app.context_processor
+    def inject_user():
+        return {
+            "current_user": current_user()
+        }
+
     @app.get("/")
     def home():
         return render_template("home.html")
+
+    @app.route("/signup", methods=["GET", "POST"])
+    def signup():
+        if request.method == "GET":
+            return render_template("signup.html")
+
+        email = request.form["email"].strip().lower()
+        password = request.form["password"].strip()
+
+        if not email or not password:
+            flash("Email and password are required.")
+            return redirect(url_for("signup"))
+
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            flash("That email is already registered.")
+            return redirect(url_for("signup"))
+
+        user = User(
+            email=email,
+            password_hash=generate_password_hash(password)
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        session["user_id"] = user.id
+        flash("Account created!")
+        return redirect(url_for("dashboard"))
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        if request.method == "GET":
+            return render_template("login.html")
+
+        email = request.form["email"].strip().lower()
+        password = request.form["password"].strip()
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user or not check_password_hash(user.password_hash, password):
+            flash("Invalid email or password.")
+            return redirect(url_for("login"))
+
+        session["user_id"] = user.id
+        flash("Welcome back!")
+        return redirect(url_for("dashboard"))
+
+    @app.get("/logout")
+    def logout():
+        session.clear()
+        flash("Logged out.")
+        return redirect(url_for("home"))
+
+    @app.get("/dashboard")
+    @login_required
+    def dashboard():
+        user = current_user()
+        my_profiles = Profile.query.filter_by(user_id=user.id).order_by(Profile.created_at.desc()).all()
+
+        profile_ids = [p.id for p in my_profiles]
+        my_performances = []
+        if profile_ids:
+            my_performances = (
+                Performance.query
+                .filter(Performance.profile_id.in_(profile_ids))
+                .order_by(Performance.created_at.desc())
+                .all()
+            )
+
+        return render_template(
+            "dashboard.html",
+            my_profiles=my_profiles,
+            my_performances=my_performances,
+        )
+
+    @app.get("/my_profile")
+    @login_required
+    def my_profile():
+        user = current_user()
+        profile = Profile.query.filter_by(user_id=user.id).order_by(Profile.created_at.desc()).first()
+
+        if not profile:
+            flash("Create your profile first.")
+            return redirect(url_for("create_profile"))
+
+        perfs = (
+            Performance.query
+            .filter_by(profile_id=profile.id)
+            .order_by(Performance.created_at.desc())
+            .all()
+        )
+
+        return render_template("my_profile.html", profile=profile, perfs=perfs)
 
     @app.get("/search")
     def search():
@@ -97,7 +214,10 @@ def create_app():
         return render_template("profile_detail.html", profile=profile, perfs=perfs)
 
     @app.route("/create_profile", methods=["GET", "POST"])
+    @login_required
     def create_profile():
+        user = current_user()
+
         if request.method == "GET":
             return render_template("create_profile.html")
 
@@ -123,18 +243,25 @@ def create_app():
             display_name=display_name,
             role=role,
             bio=bio,
-            photo_filename=photo_filename
+            photo_filename=photo_filename,
+            user_id=user.id,
         )
 
         db.session.add(profile)
         db.session.commit()
 
         flash("Profile created!")
-        return redirect(url_for("profiles"))
+        return redirect(url_for("my_profile"))
 
     @app.route("/edit_profile/<int:profile_id>", methods=["GET", "POST"])
+    @login_required
     def edit_profile(profile_id):
+        user = current_user()
         profile = Profile.query.get_or_404(profile_id)
+
+        if profile.user_id != user.id:
+            flash("You can only edit your own profile.")
+            return redirect(url_for("dashboard"))
 
         if request.method == "GET":
             return render_template("edit_profile.html", profile=profile)
@@ -162,7 +289,7 @@ def create_app():
         db.session.commit()
 
         flash("Profile updated!")
-        return redirect(url_for("profile_detail", profile_id=profile.id))
+        return redirect(url_for("my_profile"))
 
     @app.get("/performances")
     def performances():
@@ -175,8 +302,10 @@ def create_app():
         return render_template("performance_detail.html", perf=perf)
 
     @app.route("/upload_performance", methods=["GET", "POST"])
+    @login_required
     def upload_performance():
-        profiles = Profile.query.order_by(Profile.display_name.asc()).all()
+        user = current_user()
+        profiles = Profile.query.filter_by(user_id=user.id).order_by(Profile.display_name.asc()).all()
 
         if request.method == "GET":
             return render_template("upload_performance.html", profiles=profiles)
@@ -194,6 +323,11 @@ def create_app():
         except ValueError:
             flash("Choose a valid artist.")
             return redirect(url_for("upload_performance"))
+
+        profile = Profile.query.get_or_404(profile_id)
+        if profile.user_id != user.id:
+            flash("You can only upload to your own profile.")
+            return redirect(url_for("dashboard"))
 
         video = request.files.get("video")
         thumb = request.files.get("thumb")
@@ -228,7 +362,7 @@ def create_app():
         db.session.commit()
 
         flash("Performance uploaded!")
-        return redirect(url_for("performances"))
+        return redirect(url_for("dashboard"))
 
     @app.get("/inbox")
     def inbox():
