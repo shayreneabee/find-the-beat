@@ -1,7 +1,7 @@
 import os
+import sqlite3
 import secrets
 from pathlib import Path
-from datetime import datetime
 from functools import wraps
 
 from flask import (
@@ -11,434 +11,443 @@ from flask import (
     redirect,
     url_for,
     flash,
-    send_from_directory,
     session,
+    send_from_directory,
 )
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
 
-from extensions import db
-from models import User, Profile, Performance, Message
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash,
+)
+
+from werkzeug.utils import secure_filename
+
+
+# ---------------------------------------------------
+# APP CONFIG
+# ---------------------------------------------------
+
+app = Flask(__name__)
+app.secret_key = "super-secret-key"
 
 BASE_DIR = Path(__file__).resolve().parent
+INSTANCE_DIR = BASE_DIR / "instance"
+UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 
-ALLOWED_IMG = {"jpg", "jpeg", "png", "webp"}
-ALLOWED_VIDEO = {"mp4", "mov", "m4v", "webm"}
+INSTANCE_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+DB_PATH = INSTANCE_DIR / "find_the_beat_v2.db"
+
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "webm"}
+
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 
-def _ext_ok(filename: str, allowed: set[str]) -> bool:
-    return bool(filename) and "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
+# ---------------------------------------------------
+# DATABASE
+# ---------------------------------------------------
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
-def _save_upload(file_storage, folder: str) -> str:
+def init_db():
+    conn = get_db()
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+
+            display_name TEXT DEFAULT '',
+            role TEXT DEFAULT '',
+            genre TEXT DEFAULT '',
+            city TEXT DEFAULT '',
+            bio TEXT DEFAULT '',
+
+            tags_csv TEXT DEFAULT '',
+            instrument TEXT DEFAULT '',
+            services_csv TEXT DEFAULT '',
+
+            profile_pic TEXT DEFAULT '',
+            profile_video TEXT DEFAULT ''
+        )
+        """
+    )
+
+    conn.commit()
+    conn.close()
+
+
+# ---------------------------------------------------
+# HELPERS
+# ---------------------------------------------------
+
+def allowed_file(filename, allowed_extensions):
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in allowed_extensions
+    )
+
+
+def save_upload(file_storage, allowed_extensions):
+    if not file_storage or not file_storage.filename:
+        return ""
+
+    if not allowed_file(file_storage.filename, allowed_extensions):
+        raise ValueError("Invalid file type.")
+
     original = secure_filename(file_storage.filename)
     ext = original.rsplit(".", 1)[1].lower()
-    stored = f"{secrets.token_hex(16)}.{ext}"
-    os.makedirs(folder, exist_ok=True)
-    file_storage.save(os.path.join(folder, stored))
-    return stored
+
+    filename = f"{secrets.token_hex(12)}.{ext}"
+
+    file_storage.save(UPLOAD_DIR / filename)
+
+    return filename
 
 
-def create_app():
-    app = Flask(__name__)
-    app.config["SECRET_KEY"] = "dev"
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///find_the_beat_v2.db"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+def current_user():
+    user_id = session.get("user_id")
 
-    app.config["UPLOAD_PHOTOS"] = str(BASE_DIR / "static" / "uploads" / "photos")
-    app.config["UPLOAD_VIDEOS"] = str(BASE_DIR / "static" / "uploads" / "videos")
+    if not user_id:
+        return None
 
-    os.makedirs(app.config["UPLOAD_PHOTOS"], exist_ok=True)
-    os.makedirs(app.config["UPLOAD_VIDEOS"], exist_ok=True)
+    conn = get_db()
 
-    db.init_app(app)
+    user = conn.execute(
+        "SELECT * FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
 
-    with app.app_context():
-        db.create_all()
+    conn.close()
 
-    def current_user():
-        user_id = session.get("user_id")
-        if not user_id:
-            return None
-        return User.query.get(user_id)
+    return user
 
-    def login_required(view_func):
-        @wraps(view_func)
-        def wrapped(*args, **kwargs):
-            if not session.get("user_id"):
-                flash("Please log in first.")
-                return redirect(url_for("login"))
-            return view_func(*args, **kwargs)
-        return wrapped
 
-    @app.context_processor
-    def inject_user():
-        return {
-            "current_user": current_user()
-        }
-
-    @app.get("/")
-    def home():
-        return render_template("home.html")
-
-    @app.route("/signup", methods=["GET", "POST"])
-    def signup():
-        if request.method == "GET":
-            return render_template("signup.html")
-
-        email = request.form["email"].strip().lower()
-        password = request.form["password"].strip()
-
-        if not email or not password:
-            flash("Email and password are required.")
-            return redirect(url_for("signup"))
-
-        existing = User.query.filter_by(email=email).first()
-        if existing:
-            flash("That email is already registered.")
-            return redirect(url_for("signup"))
-
-        user = User(
-            email=email,
-            password_hash=generate_password_hash(password)
-        )
-        db.session.add(user)
-        db.session.commit()
-
-        session["user_id"] = user.id
-        flash("Account created!")
-        return redirect(url_for("dashboard"))
-
-    @app.route("/login", methods=["GET", "POST"])
-    def login():
-        if request.method == "GET":
-            return render_template("login.html")
-
-        email = request.form["email"].strip().lower()
-        password = request.form["password"].strip()
-
-        user = User.query.filter_by(email=email).first()
-
-        if not user or not check_password_hash(user.password_hash, password):
-            flash("Invalid email or password.")
+def login_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not current_user():
             return redirect(url_for("login"))
 
-        session["user_id"] = user.id
-        flash("Welcome back!")
-        return redirect(url_for("dashboard"))
+        return view(*args, **kwargs)
 
-    @app.get("/logout")
-    def logout():
-        session.clear()
-        flash("Logged out.")
-        return redirect(url_for("home"))
+    return wrapped_view
 
-    @app.get("/dashboard")
-    @login_required
-    def dashboard():
-        user = current_user()
-        my_profiles = Profile.query.filter_by(user_id=user.id).order_by(Profile.created_at.desc()).all()
 
-        profile_ids = [p.id for p in my_profiles]
-        my_performances = []
-        if profile_ids:
-            my_performances = (
-                Performance.query
-                .filter(Performance.profile_id.in_(profile_ids))
-                .order_by(Performance.created_at.desc())
-                .all()
+# ---------------------------------------------------
+# ROUTES
+# ---------------------------------------------------
+
+@app.route("/")
+def home():
+    return render_template(
+        "index.html",
+        user=current_user(),
+    )
+
+@app.route("/search")
+def search():
+    return redirect(url_for("profiles"))
+
+@app.route("/profiles")
+def profiles():
+    conn = get_db()
+
+    users = conn.execute(
+        """
+        SELECT *
+        FROM users
+        ORDER BY id DESC
+        """
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "profiles.html",
+        users=users,
+        user=current_user(),
+    )
+
+
+@app.route("/performances")
+def performances():
+    return render_template(
+        "performances.html",
+        user=current_user(),
+    )
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+
+    if request.method == "POST":
+
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        display_name = request.form.get("display_name", "").strip()
+
+        if not email or not password or not display_name:
+            flash("All fields are required.")
+            return redirect(url_for("signup"))
+
+        password_hash = generate_password_hash(password)
+
+        conn = get_db()
+
+        existing = conn.execute(
+            "SELECT id FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+
+        if existing:
+            conn.close()
+            flash("Account already exists.")
+            return redirect(url_for("signup"))
+
+        cursor = conn.execute(
+            """
+            INSERT INTO users (
+                email,
+                password_hash,
+                display_name
             )
-
-        return render_template(
-            "dashboard.html",
-            my_profiles=my_profiles,
-            my_performances=my_performances,
+            VALUES (?, ?, ?)
+            """,
+            (
+                email,
+                password_hash,
+                display_name,
+            ),
         )
 
-    @app.get("/my_profile")
-    @login_required
-    def my_profile():
-        user = current_user()
-        profile = Profile.query.filter_by(user_id=user.id).order_by(Profile.created_at.desc()).first()
+        conn.commit()
 
-        if not profile:
-            flash("Create your profile first.")
-            return redirect(url_for("create_profile"))
+        session["user_id"] = cursor.lastrowid
 
-        perfs = (
-            Performance.query
-            .filter_by(profile_id=profile.id)
-            .order_by(Performance.created_at.desc())
-            .all()
-        )
+        conn.close()
 
-        return render_template("my_profile.html", profile=profile, perfs=perfs)
+        return redirect(url_for("profile"))
 
-    @app.get("/search")
-    def search():
-        q = request.args.get("q", "").strip()
-        role = request.args.get("role", "").strip()
+    return render_template("signup.html")
 
-        query = Profile.query
 
-        if q:
-            like = f"%{q}%"
-            query = query.filter(
-                db.or_(
-                    Profile.display_name.ilike(like),
-                    Profile.bio.ilike(like),
-                    Profile.role.ilike(like),
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    if request.method == "POST":
+
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+
+        conn = get_db()
+
+        user = conn.execute(
+            "SELECT * FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+
+        conn.close()
+
+        if not user:
+            flash("Invalid credentials.")
+            return redirect(url_for("login"))
+
+        if not check_password_hash(
+            user["password_hash"],
+            password,
+        ):
+            flash("Invalid credentials.")
+            return redirect(url_for("login"))
+
+        session["user_id"] = user["id"]
+
+        return redirect(url_for("profile"))
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
+
+
+@app.route("/profile")
+@login_required
+def profile():
+    return render_template(
+        "profile.html",
+        user=current_user(),
+    )
+
+
+@app.route("/profile/edit", methods=["GET", "POST"])
+@login_required
+def edit_profile():
+
+    user = current_user()
+
+    if request.method == "POST":
+
+        display_name = request.form.get("display_name", "")
+        role = request.form.get("role", "")
+        genre = request.form.get("genre", "")
+        city = request.form.get("city", "")
+        bio = request.form.get("bio", "")
+        tags_csv = request.form.get("tags_csv", "")
+        instrument = request.form.get("instrument", "")
+        services_csv = request.form.get("services_csv", "")
+
+        profile_pic = user["profile_pic"]
+        profile_video = user["profile_video"]
+
+        # IMAGE
+        image_file = request.files.get("profile_pic")
+
+        if image_file and image_file.filename:
+            try:
+                profile_pic = save_upload(
+                    image_file,
+                    ALLOWED_IMAGE_EXTENSIONS,
                 )
-            )
+            except ValueError:
+                flash("Invalid image file.")
+                return redirect(url_for("edit_profile"))
 
-        if role:
-            query = query.filter(Profile.role.ilike(f"%{role}%"))
+        # VIDEO
+        video_file = request.files.get("profile_video")
 
-        results = query.order_by(Profile.created_at.desc()).all()
-        return render_template("search.html", q=q, role=role, results=results)
-
-    @app.get("/profiles")
-    def profiles():
-        items = Profile.query.order_by(Profile.created_at.desc()).all()
-        return render_template("profiles.html", profiles=items)
-
-    @app.get("/profile/<int:profile_id>")
-    def profile_detail(profile_id):
-        profile = Profile.query.get_or_404(profile_id)
-        perfs = (
-            Performance.query
-            .filter_by(profile_id=profile.id)
-            .order_by(Performance.created_at.desc())
-            .all()
-        )
-        return render_template("profile_detail.html", profile=profile, perfs=perfs)
-
-    @app.route("/create_profile", methods=["GET", "POST"])
-    @login_required
-    def create_profile():
-        user = current_user()
-
-        if request.method == "GET":
-            return render_template("create_profile.html")
-
-        display_name = request.form["display_name"].strip()
-        role = request.form["role"].strip()
-        bio = request.form["bio"].strip()
-
-        photo = request.files.get("photo")
-        photo_filename = None
-
-        if photo and photo.filename:
-            if _ext_ok(photo.filename, ALLOWED_IMG):
-                photo_filename = _save_upload(photo, app.config["UPLOAD_PHOTOS"])
-            else:
-                flash("Photo must be jpg, jpeg, png, or webp.")
-                return redirect(url_for("create_profile"))
-
-        if not display_name or not role:
-            flash("Display name and role are required.")
-            return redirect(url_for("create_profile"))
-
-        profile = Profile(
-            display_name=display_name,
-            role=role,
-            bio=bio,
-            photo_filename=photo_filename,
-            user_id=user.id,
-        )
-
-        db.session.add(profile)
-        db.session.commit()
-
-        flash("Profile created!")
-        return redirect(url_for("my_profile"))
-
-    @app.route("/edit_profile/<int:profile_id>", methods=["GET", "POST"])
-    @login_required
-    def edit_profile(profile_id):
-        user = current_user()
-        profile = Profile.query.get_or_404(profile_id)
-
-        if profile.user_id != user.id:
-            flash("You can only edit your own profile.")
-            return redirect(url_for("dashboard"))
-
-        if request.method == "GET":
-            return render_template("edit_profile.html", profile=profile)
-
-        display_name = request.form["display_name"].strip()
-        role = request.form["role"].strip()
-        bio = request.form["bio"].strip()
-
-        if not display_name or not role:
-            flash("Display name and role are required.")
-            return redirect(url_for("edit_profile", profile_id=profile.id))
-
-        profile.display_name = display_name
-        profile.role = role
-        profile.bio = bio
-
-        photo = request.files.get("photo")
-        if photo and photo.filename:
-            if _ext_ok(photo.filename, ALLOWED_IMG):
-                profile.photo_filename = _save_upload(photo, app.config["UPLOAD_PHOTOS"])
-            else:
-                flash("Photo must be jpg, jpeg, png, or webp.")
-                return redirect(url_for("edit_profile", profile_id=profile.id))
-
-        db.session.commit()
-
-        flash("Profile updated!")
-        return redirect(url_for("my_profile"))
-
-    @app.get("/performances")
-    def performances():
-        items = Performance.query.order_by(Performance.created_at.desc()).all()
-        return render_template("performances.html", performances=items)
-
-    @app.get("/performance/<int:perf_id>")
-    def performance_detail(perf_id):
-        perf = Performance.query.get_or_404(perf_id)
-        return render_template("performance_detail.html", perf=perf)
-
-    @app.route("/upload_performance", methods=["GET", "POST"])
-    @login_required
-    def upload_performance():
-        user = current_user()
-        profiles = Profile.query.filter_by(user_id=user.id).order_by(Profile.display_name.asc()).all()
-
-        if request.method == "GET":
-            return render_template("upload_performance.html", profiles=profiles)
-
-        title = request.form["title"].strip()
-        description = request.form["description"].strip()
-        profile_id = request.form["profile_id"].strip()
-
-        if not title or not profile_id:
-            flash("Title and artist are required.")
-            return redirect(url_for("upload_performance"))
-
-        try:
-            profile_id = int(profile_id)
-        except ValueError:
-            flash("Choose a valid artist.")
-            return redirect(url_for("upload_performance"))
-
-        profile = Profile.query.get_or_404(profile_id)
-        if profile.user_id != user.id:
-            flash("You can only upload to your own profile.")
-            return redirect(url_for("dashboard"))
-
-        video = request.files.get("video")
-        thumb = request.files.get("thumb")
-
-        video_filename = None
-        thumb_filename = None
-
-        if video and video.filename:
-            if _ext_ok(video.filename, ALLOWED_VIDEO):
-                video_filename = _save_upload(video, app.config["UPLOAD_VIDEOS"])
-            else:
-                flash("Video must be mp4, mov, m4v, or webm.")
-                return redirect(url_for("upload_performance"))
-
-        if thumb and thumb.filename:
-            if _ext_ok(thumb.filename, ALLOWED_IMG):
-                thumb_filename = _save_upload(thumb, app.config["UPLOAD_PHOTOS"])
-            else:
-                flash("Thumbnail must be jpg, jpeg, png, or webp.")
-                return redirect(url_for("upload_performance"))
-
-        perf = Performance(
-            title=title,
-            description=description,
-            profile_id=profile_id,
-            video_filename=video_filename,
-            thumb_filename=thumb_filename,
-            created_at=datetime.utcnow(),
-        )
-
-        db.session.add(perf)
-        db.session.commit()
-
-        flash("Performance uploaded!")
-        return redirect(url_for("dashboard"))
-
-    @app.get("/inbox")
-    def inbox():
-        msgs = Message.query.order_by(Message.created_at.desc()).all()
-        people = Profile.query.order_by(Profile.created_at.desc()).all()
-        return render_template("inbox.html", msgs=msgs, profiles=people)
-
-    @app.route("/new_message", methods=["GET", "POST"])
-    def new_message():
-        if request.method == "GET":
-            people = Profile.query.order_by(Profile.created_at.desc()).all()
-            return render_template("new_message.html", profiles=people)
-
-        sender_id = int(request.form["sender_id"])
-        recipient_id = int(request.form["recipient_id"])
-        body = request.form["body"].strip()
-
-        if not body:
-            flash("Message can't be empty.")
-            return redirect(url_for("new_message"))
-
-        msg = Message(
-            sender_id=sender_id,
-            recipient_id=recipient_id,
-            body=body,
-            created_at=datetime.utcnow(),
-        )
-        db.session.add(msg)
-        db.session.commit()
-
-        return redirect(url_for("thread", me=sender_id, other=recipient_id))
-
-    @app.post("/delete_message/<int:message_id>")
-    def delete_message(message_id):
-        msg = Message.query.get_or_404(message_id)
-        db.session.delete(msg)
-        db.session.commit()
-        flash("Message deleted.")
-        return redirect(url_for("inbox"))
-
-    @app.get("/thread")
-    def thread():
-        me = int(request.args.get("me"))
-        other = int(request.args.get("other"))
-
-        msgs = (
-            Message.query
-            .filter(
-                db.or_(
-                    db.and_(Message.sender_id == me, Message.recipient_id == other),
-                    db.and_(Message.sender_id == other, Message.recipient_id == me),
+        if video_file and video_file.filename:
+            try:
+                profile_video = save_upload(
+                    video_file,
+                    ALLOWED_VIDEO_EXTENSIONS,
                 )
-            )
-            .order_by(Message.created_at.asc())
-            .all()
+            except ValueError:
+                flash("Invalid video file.")
+                return redirect(url_for("edit_profile"))
+
+        conn = get_db()
+
+        conn.execute(
+            """
+            UPDATE users
+            SET
+                display_name = ?,
+                role = ?,
+                genre = ?,
+                city = ?,
+                bio = ?,
+                tags_csv = ?,
+                instrument = ?,
+                services_csv = ?,
+                profile_pic = ?,
+                profile_video = ?
+            WHERE id = ?
+            """,
+            (
+                display_name,
+                role,
+                genre,
+                city,
+                bio,
+                tags_csv,
+                instrument,
+                services_csv,
+                profile_pic,
+                profile_video,
+                user["id"],
+            ),
         )
 
-        me_profile = Profile.query.get_or_404(me)
-        other_profile = Profile.query.get_or_404(other)
+        conn.commit()
+        conn.close()
 
-        return render_template(
-            "thread.html",
-            msgs=msgs,
-            me=me_profile,
-            other=other_profile,
-        )
+        flash("Profile updated.")
 
-    @app.get("/uploads/photos/<path:filename>")
-    def uploaded_photo(filename):
-        return send_from_directory(app.config["UPLOAD_PHOTOS"], filename)
+        return redirect(url_for("profile"))
 
-    @app.get("/uploads/videos/<path:filename>")
-    def uploaded_video(filename):
-        return send_from_directory(app.config["UPLOAD_VIDEOS"], filename)
-
-    return app
+    return render_template(
+        "edit_profile.html",
+        user=user,
+    )
 
 
-app = create_app()
+@app.route("/profile/delete", methods=["POST"])
+@login_required
+def delete_profile():
+    user = current_user()
+
+    conn = get_db()
+    conn.execute("DELETE FROM users WHERE id = ?", (user["id"],))
+    conn.commit()
+    conn.close()
+
+    session.clear()
+    flash("Your profile has been deleted.")
+    return redirect(url_for("home"))
+
+
+@app.route("/profile/delete-photo", methods=["POST"])
+@login_required
+def delete_profile_photo():
+    user = current_user()
+
+    conn = get_db()
+    conn.execute(
+        "UPDATE users SET profile_pic = '' WHERE id = ?",
+        (user["id"],),
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Profile picture removed.")
+    return redirect(url_for("edit_profile"))
+
+
+@app.route("/profile/delete-video", methods=["POST"])
+@login_required
+def delete_profile_video():
+    user = current_user()
+
+    conn = get_db()
+    conn.execute(
+        "UPDATE users SET profile_video = '' WHERE id = ?",
+        (user["id"],),
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Profile video removed.")
+    return redirect(url_for("edit_profile"))
+
+@app.route("/uploads/<filename>")
+def uploaded_file(filename):
+    return send_from_directory(
+        UPLOAD_DIR,
+        filename,
+    )
+
+
+# ---------------------------------------------------
+# MAIN
+# ---------------------------------------------------
+
+if __name__ == "__main__":
+    init_db()
+
+    app.run(
+        debug=True,
+        host="0.0.0.0",
+        port=5001,
+    )

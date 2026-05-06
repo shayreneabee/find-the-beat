@@ -1,64 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Find The Beat{% endblock %}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>{% block title %}Find the Beat{% endblock %}</title>
+
+  <style>
+    :root {
+      --bg: #fff7f2;
+      --surface: rgba(255, 255, 255, 0.82);
+      --card: rgba(255, 255, 255, 0.92);
+      --text: #241814;
+      --muted: #74625b;
+      --line: rgba(226, 205, 194, 0.75);
+      --accent: #e4572e;
+      --accent-dark: #bf3e20;
+      --accent-soft: #ffe4d8;
+      --cream: #fffaf6;
+      --shadow: 0 18px 55px rgba(68, 34, 20, 0.10);
+      --max: 1120px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(228, 87, 46, 0.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 194, 153, 0.16), transparent 28%),
+        linear-gradient(180deg, #fffaf7 0%, var(--bg) 100%);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .shell {
+      width: min(var(--max), calc(100% - 2rem));
+      margin: 0 auto;
+    }
+
+    .topbar-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 247, 242, 0.78);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar {
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent), #f4a261);
+      color: white;
+      box-shadow: 0 12px 30px rgba(228, 87, 46, 0.24);
+      font-size: 1.1rem;
+    }
+
+    .brand-copy small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+    }
+
+    .brand-copy span {
+      display: block;
+      font-size: 1rem;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0 0.9rem;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 800;
+      border: 1px solid transparent;
+      transition: 0.2s ease;
+    }
+
+    .nav-pill:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.72);
+      border-color: var(--line);
+      transform: translateY(-1px);
+    }
+
+    .nav-pill.primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 10px 24px rgba(228, 87, 46, 0.22);
+    }
+
+    .nav-pill.primary:hover {
+      background: var(--accent-dark);
+      color: white;
+    }
+
+    .main {
+      padding: 3rem 0 5rem;
+    }
+
+    .flash-wrap {
+      display: grid;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .flash {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--accent);
+      border-radius: 18px;
+      padding: 1rem 1.1rem;
+      box-shadow: 0 10px 26px rgba(68, 34, 20, 0.06);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .page-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50px;
+      padding: 0 1.2rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 900;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button.primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 12px 26px rgba(228, 87, 46, 0.22);
+    }
+
+    .button.primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .button.secondary {
+      background: rgba(255, 255, 255, 0.76);
+      border-color: var(--line);
+      color: var(--text);
+    }
+
+    .button.secondary:hover {
+      background: white;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 2rem 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      font-weight: 800;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-dark);
+    }
+
+    @media (max-width: 780px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 1rem 0;
+      }
+
+      .nav {
+        width: 100%;
+      }
+
+      .nav-pill {
+        min-height: 38px;
+        padding: 0 0.75rem;
+      }
+
+      .main {
+        padding-top: 2rem;
+      }
+    }
+  </style>
+
+  {% block head %}{% endblock %}
 </head>
+
 <body>
+  <div class="topbar-wrap">
+    <header class="topbar shell">
+      <a href="{{ url_for('home') }}" class="brand">
+        <div class="brand-mark">♪</div>
+        <div class="brand-copy">
+          <small>Brent &amp; Co.</small>
+          <span>Find the Beat</span>
+        </div>
+      </a>
 
-<header class="site-header">
-    <div class="logo">
-        <span class="brand-small">BRENT & CO.</span>
-        <h1>Find The Beat</h1>
-        <p class="tagline">
-            Connect artists • showcase talent • build creative community
-        </p>
-    </div>
-
-    <nav class="main-nav">
-
-        <!-- ALWAYS -->
+      <nav class="nav" aria-label="Main navigation">
         <a href="{{ url_for('home') }}" class="nav-pill">Home</a>
         <a href="{{ url_for('search') }}" class="nav-pill">Search</a>
         <a href="{{ url_for('profiles') }}" class="nav-pill">Profiles</a>
         <a href="{{ url_for('performances') }}" class="nav-pill">Performances</a>
 
-        <!-- LOGGED IN -->
-        {% if current_user %}
-            <a href="{{ url_for('dashboard') }}" class="nav-pill">Dashboard</a>
-            <a href="{{ url_for('my_profile') }}" class="nav-pill">My Profile</a>
-            <a href="{{ url_for('upload_performance') }}" class="nav-pill highlight">Upload</a>
-            <a href="{{ url_for('inbox') }}" class="nav-pill">Inbox</a>
-            <a href="{{ url_for('logout') }}" class="nav-pill logout">Logout</a>
-
-        <!-- LOGGED OUT -->
+        {% if user %}
+          <a href="{{ url_for('profile') }}" class="nav-pill">My Profile</a>
+          <a href="{{ url_for('logout') }}" class="nav-pill">Logout</a>
         {% else %}
-            <a href="{{ url_for('signup') }}" class="nav-pill highlight">Sign Up</a>
-            <a href="{{ url_for('login') }}" class="nav-pill">Log In</a>
+          <a href="{{ url_for('login') }}" class="nav-pill">Login</a>
+          <a href="{{ url_for('signup') }}" class="nav-pill primary">Create Profile</a>
         {% endif %}
+      </nav>
+    </header>
+  </div>
 
-    </nav>
-</header>
-
-<main class="main-content">
-    {% with messages = get_flashed_messages() %}
+  <main class="main">
+    <div class="shell">
+      {% with messages = get_flashed_messages() %}
         {% if messages %}
-            <div class="flash-wrap">
-                {% for m in messages %}
-                    <div class="flash">{{ m }}</div>
-                {% endfor %}
-            </div>
+          <div class="flash-wrap">
+            {% for message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          </div>
         {% endif %}
-    {% endwith %}
+      {% endwith %}
 
-    {% block content %}{% endblock %}
-</main>
+      {% block content %}{% endblock %}
+    </div>
+  </main>
 
-<footer class="footer">
-    © 2026 Brent & Co. • Find The Beat
-</footer>
-
+  <footer class="footer">
+    <div class="shell footer-row">
+      <div>© Find the Beat • A Brent &amp; Co. experience</div>
+      <div class="footer-links">
+        <a href="{{ url_for('home') }}">Discover</a>
+        <a href="{{ url_for('signup') }}">Join</a>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

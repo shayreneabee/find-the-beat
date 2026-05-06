@@ -1,50 +1,221 @@
 {% extends "base.html" %}
-{% block title %}{{ profile.name }}{% endblock %}
+
+{% block title %}{{ user.display_name if user else "Profile" }} | Find the Beat{% endblock %}
 
 {% block content %}
-  <div class="profile-hero">
-    <div class="avatar">
-      {% if profile.photo_filename %}
-        <img src="{{ url_for('static', filename='uploads/photos/' ~ profile.photo_filename) }}" alt="Photo">
+<style>
+  .profile-hero {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 2rem;
+    align-items: center;
+    padding: 2rem;
+    border-radius: 36px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+  }
+
+  .profile-photo {
+    width: 200px;
+    height: 200px;
+    border-radius: 36px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--accent), #f4a261);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: 4rem;
+    font-weight: 900;
+  }
+
+  .profile-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-copy h1 {
+    font-size: clamp(2.6rem, 6vw, 5rem);
+    line-height: 0.95;
+    letter-spacing: -0.06em;
+    margin: 0 0 0.7rem;
+  }
+
+  .profile-meta {
+    color: var(--muted);
+    font-weight: 800;
+    margin-bottom: 1rem;
+  }
+
+  .profile-copy p {
+    color: var(--muted);
+    max-width: 720px;
+  }
+
+  .profile-actions {
+    display: flex;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .info-card {
+    padding: 1.4rem;
+    border-radius: 26px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: 0 14px 34px rgba(68,34,20,0.07);
+  }
+
+  .info-card small {
+    display: block;
+    color: var(--muted);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+
+  .info-card strong {
+    font-size: 1.2rem;
+  }
+
+  @media (max-width: 780px) {
+    .profile-hero,
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .profile-photo {
+      width: 150px;
+      height: 150px;
+      border-radius: 28px;
+    }
+  }
+</style>
+
+{% if user %}
+  <section class="profile-hero">
+    <div class="profile-photo">
+      {% if user.profile_pic %}
+        <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
       {% else %}
-        <div class="avatar-fallback">{{ profile.name[:1] }}</div>
+        {{ user.display_name[:1] }}
       {% endif %}
     </div>
 
-    <div class="profile-meta">
-      <h2>{{ profile.name }}</h2>
-      <div class="muted">
-        {{ profile.role }}
-        {% if profile.instrument %} • {{ profile.instrument }}{% endif %}
-        {% if profile.city %} • {{ profile.city }}{% endif %}
-      </div>
-      {% if profile.bio %}<p>{{ profile.bio }}</p>{% endif %}
+{% if user.profile_pic %}
+  <form method="POST" action="{{ url_for('delete_profile_photo') }}">
+    <button
+      type="submit"
+      class="button secondary"
+      onclick="return confirm('Remove your profile picture?');"
+    >
+      Delete Profile Picture
+    </button>
+  </form>
+{% endif %}
 
-      <div class="row">
-        <a class="btn" href="{{ url_for('edit_profile', profile_id=profile.id) }}">Edit</a>
-        <a class="btn" href="{{ url_for('new_performance') }}">Upload Performance</a>
-        <a class="btn" href="{{ url_for('new_message') }}">Message</a>
+{% if user.profile_video %}
+  <form method="POST" action="{{ url_for('delete_profile_video') }}">
+    <button
+      type="submit"
+      class="button secondary"
+      onclick="return confirm('Remove your profile video?');"
+    >
+      Delete Profile Video
+    </button>
+  </form>
+{% endif %}
+
+    <div class="profile-copy">
+      <h1>{{ user.display_name }}</h1>
+
+      <div class="profile-meta">
+        {{ user.role or "Creative" }}
+        {% if user.genre %} • {{ user.genre }}{% endif %}
+        {% if user.city %} • {{ user.city }}{% endif %}
+      </div>
+
+      <p>{{ user.bio or "This creative is building their profile. Check back soon for more details." }}</p>
+
+      <div class="profile-actions">
+        <a href="{{ url_for('home') }}" class="button primary">Discover More</a>
+        {% if session.get("user_id") == user.id %}
+          <a href="{{ url_for('edit_profile') }}" class="button secondary">Edit Profile</a>
+        {% endif %}
       </div>
     </div>
-  </div>
+  </section>
 
-  <hr>
+{% if session.get("user_id") == user.id %}
+  <a href="{{ url_for('edit_profile') }}" class="button secondary">Edit Profile</a>
 
-  <h3>Performances</h3>
-  {% if perfs|length == 0 %}
-    <p class="muted">No performances uploaded yet.</p>
-  {% else %}
-    <div class="grid">
-      {% for perf in perfs %}
-        <a class="card" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
-          <strong>{{ perf.title }}</strong>
-          {% if perf.thumb_filename %}
-            <img class="thumb" src="{{ url_for('static', filename='uploads/photos/' ~ perf.thumb_filename) }}" alt="thumb">
-          {% endif %}
-          <div class="muted">{{ perf.created_at.strftime("%b %d, %Y") }}</div>
-        </a>
-      {% endfor %}
+  <form method="POST" action="{{ url_for('delete_profile') }}" style="display:inline;">
+    <button
+      type="submit"
+      class="button secondary"
+      onclick="return confirm('Delete your profile? This cannot be undone.');"
+    >
+      Delete Profile
+    </button>
+  </form>
+{% endif %}
+
+
+{% if user.profile_video %}
+  <section class="page-card" style="padding:1.2rem; margin-bottom:1.5rem;">
+    <video controls style="width:100%; border-radius:24px; display:block;">
+      <source src="{{ url_for('uploaded_file', filename=user.profile_video) }}">
+      Your browser does not support video playback.
+    </video>
+  </section>
+{% endif %}
+
+  <section class="info-grid">
+    <div class="info-card">
+      <small>Role</small>
+      <strong>{{ user.role or "Not listed yet" }}</strong>
     </div>
-  {% endif %}
+
+    <div class="info-card">
+      <small>Genre</small>
+      <strong>{{ user.genre or "Open" }}</strong>
+    </div>
+
+    <div class="info-card">
+      <small>City</small>
+      <strong>{{ user.city or "Remote / open" }}</strong>
+    </div>
+
+    <div class="info-card">
+      <small>Instrument</small>
+      <strong>{{ user.instrument or "Not listed" }}</strong>
+    </div>
+
+    <div class="info-card">
+      <small>Services</small>
+      <strong>{{ user.services_csv or "Open to connect" }}</strong>
+    </div>
+
+    <div class="info-card">
+      <small>Tags</small>
+      <strong>{{ user.tags_csv or "Creative" }}</strong>
+    </div>
+  </section>
+{% else %}
+  <section class="page-card" style="padding:2rem;">
+    <h1>Profile not found</h1>
+    <p>This profile may have been removed or does not exist.</p>
+    <a href="{{ url_for('home') }}" class="button primary">Back Home</a>
+  </section>
+{% endif %}
 {% endblock %}
-

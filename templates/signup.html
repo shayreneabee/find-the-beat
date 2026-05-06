@@ -1,21 +1,201 @@
 {% extends "base.html" %}
 
-{% block title %}Sign Up{% endblock %}
+{% block title %}Create Profile | Find the Beat{% endblock %}
 
 {% block content %}
-<section class="form-card">
-    <h1>Sign Up</h1>
+<style>
+  .auth-layout {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 2rem;
+    align-items: start;
+  }
 
-    <form method="POST">
-        <label>Email</label>
-        <input type="email" name="email" required>
+  .pitch-card,
+  .form-card {
+    border-radius: 34px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    padding: 2rem;
+  }
 
-        <label>Password</label>
-        <input type="password" name="password" required>
+  .pitch-card {
+    position: sticky;
+    top: 110px;
+    background:
+      linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.08)),
+      linear-gradient(135deg, #e4572e, #2a1b18);
+    color: white;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
 
-        <div style="margin-top:16px;">
-            <button type="submit">Create Account</button>
+  .pitch-card h1 {
+    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    line-height: 0.95;
+    letter-spacing: -0.06em;
+    margin: 0 0 1rem;
+  }
+
+  .pitch-card p {
+    color: rgba(255,255,255,0.82);
+    font-size: 1.05rem;
+  }
+
+  .form-card h2 {
+    font-size: 2.2rem;
+    letter-spacing: -0.05em;
+    margin: 0 0 0.5rem;
+  }
+
+  .form-card > p {
+    color: var(--muted);
+    margin-bottom: 1.4rem;
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .two {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .field label {
+    display: block;
+    font-weight: 900;
+    margin-bottom: 0.45rem;
+  }
+
+  .field input,
+  .field textarea {
+    width: 100%;
+    min-height: 54px;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    padding: 0 1rem;
+    font-size: 1rem;
+    outline: none;
+    background: white;
+    font-family: inherit;
+  }
+
+  .field textarea {
+    min-height: 120px;
+    padding-top: 0.9rem;
+    resize: vertical;
+  }
+
+  .field input:focus,
+  .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 5px rgba(228, 87, 46, 0.12);
+  }
+
+  .note {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 900px) {
+    .auth-layout,
+    .two {
+      grid-template-columns: 1fr;
+    }
+
+    .pitch-card {
+      position: static;
+      min-height: 300px;
+    }
+  }
+</style>
+
+<section class="auth-layout">
+  <div class="pitch-card">
+    <h1>Put your name where the sound can find you.</h1>
+    <p>
+      Create a profile that shows your role, city, genre, services, and what kind of creative connections you’re looking for.
+    </p>
+  </div>
+
+  <div class="form-card">
+    <h2>Create your profile</h2>
+    <p>Start simple. You can always update your details later.</p>
+
+    <form method="POST" enctype="multipart/form-data" class="form-grid">
+      <div class="two">
+        <div class="field">
+          <label for="display_name">Display name</label>
+          <input id="display_name" name="display_name" required>
         </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="role">Role</label>
+          <input id="role" name="role" placeholder="Artist, producer, composer...">
+        </div>
+
+        <div class="field">
+          <label for="genre">Genre</label>
+          <input id="genre" name="genre" placeholder="R&B, gospel, trap, jazz...">
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" name="city" placeholder="Dallas, Atlanta, New Orleans...">
+        </div>
+
+        <div class="field">
+          <label for="instrument">Instrument</label>
+          <input id="instrument" name="instrument" placeholder="Voice, keys, drums...">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="services_csv">Services</label>
+        <input id="services_csv" name="services_csv" placeholder="Mixing, songwriting, beats, vocals...">
+      </div>
+
+      <div class="field">
+        <label for="tags_csv">Tags</label>
+        <input id="tags_csv" name="tags_csv" placeholder="studio, live, hooks, beats...">
+      </div>
+
+      <div class="field">
+        <label for="bio">Bio</label>
+        <textarea id="bio" name="bio" placeholder="Tell people what you do and who you want to connect with."></textarea>
+      </div>
+
+      <div class="field">
+        <label for="profile_pic">Profile picture</label>
+        <input id="profile_pic" name="profile_pic" type="file" accept="image/*">
+        <div class="note">Images only. Keep it clean and professional.</div>
+      </div>
+
+      <div>
+        <button class="button primary" type="submit">Create Profile</button>
+        <a class="button secondary" href="{{ url_for('login') }}">Already have one?</a>
+      </div>
     </form>
+  </div>
 </section>
 {% endblock %}

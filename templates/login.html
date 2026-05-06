@@ -1,21 +1,126 @@
 {% extends "base.html" %}
 
-{% block title %}Log In{% endblock %}
+{% block title %}Login | Find the Beat{% endblock %}
 
 {% block content %}
-<section class="form-card">
-    <h1>Log In</h1>
+<style>
+  .auth-wrap {
+    min-height: 68vh;
+    display: grid;
+    place-items: center;
+  }
 
-    <form method="POST">
-        <label>Email</label>
-        <input type="email" name="email" required>
+  .auth-card {
+    width: min(520px, 100%);
+    padding: 2.2rem;
+    border-radius: 34px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
 
-        <label>Password</label>
-        <input type="password" name="password" required>
+  .auth-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
 
-        <div style="margin-top:16px;">
-            <button type="submit">Log In</button>
-        </div>
+  .auth-card h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    line-height: 0.98;
+    letter-spacing: -0.05em;
+    margin: 0 0 0.8rem;
+  }
+
+  .auth-card p {
+    color: var(--muted);
+    margin: 0 0 1.5rem;
+    font-size: 1.05rem;
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .field label {
+    display: block;
+    font-weight: 900;
+    margin-bottom: 0.45rem;
+  }
+
+  .field input {
+    width: 100%;
+    min-height: 54px;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    padding: 0 1rem;
+    font-size: 1rem;
+    outline: none;
+    background: white;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 5px rgba(228, 87, 46, 0.12);
+  }
+
+  .auth-actions {
+    display: flex;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+  }
+
+  .auth-note {
+    margin-top: 1.2rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .auth-note a {
+    color: var(--accent-dark);
+    font-weight: 900;
+  }
+</style>
+
+<section class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-badge">Welcome back</div>
+
+    <h1>Log in and find your next connection.</h1>
+    <p>
+      Pick up where you left off, manage your profile, and keep building your creative network.
+    </p>
+
+    <form method="POST" class="form-grid">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required />
+      </div>
+
+      <div class="auth-actions">
+        <button type="submit" class="button primary">Log In</button>
+        <a href="{{ url_for('signup') }}" class="button secondary">Create Profile</a>
+      </div>
     </form>
+
+    <div class="auth-note">
+      New here? <a href="{{ url_for('signup') }}">Create your Find the Beat profile.</a>
+    </div>
+  </div>
 </section>
 {% endblock %}
