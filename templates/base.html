@@ -72,6 +72,28 @@
       z-index: 50;
     }
 
+    .ecosystem-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      min-height: 34px;
+      padding: 0.35rem 0.9rem;
+      background: rgba(255, 250, 238, 0.88);
+      border-bottom: 1px solid rgba(78, 47, 16, 0.12);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .ecosystem-strip a {
+      color: var(--accent-dark);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
     .topbar {
       min-height: 72px;
       display: flex;
@@ -355,6 +377,11 @@
         box-shadow: 0 8px 18px rgba(55, 31, 7, 0.14);
       }
 
+      .ecosystem-strip {
+        background: rgba(255, 250, 238, 0.92);
+        font-size: 0.8rem;
+      }
+
       .topbar {
         min-height: 84px;
         padding: 0 1.35rem;
@@ -465,6 +492,11 @@
 
 <body>
   <div class="topbar-wrap">
+    <div class="ecosystem-strip">
+      <span>A Brent &amp; Co. app</span>
+      <a href="{{ brent_co_url }}" rel="noopener">Back to Brent &amp; Co.</a>
+    </div>
+
     <header class="topbar shell">
       <a href="{{ url_for('home') }}" class="brand">
         <div class="brand-copy">

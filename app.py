@@ -30,6 +30,326 @@ DB_PATH = Path(os.getenv("DATABASE_PATH", INSTANCE_DIR / "find_the_beat_v2.db"))
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
+BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentco.netlify.app/")
+FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://findthebeatmusic.com")
+SECOND_CHANCE_URL = os.getenv(
+    "SECOND_CHANCE_URL",
+    "https://brentco.netlify.app/second-chance",
+)
+
+SECOND_CHANCE_CATEGORIES = [
+    {
+        "slug": "educational",
+        "title": "Educational",
+        "search_label": "College Courses",
+        "image": "educational-crop.png",
+        "hero": "educational-crop.png",
+        "resources": ["GED prep", "College applications", "Transcript help"],
+    },
+    {
+        "slug": "trade",
+        "title": "Trade",
+        "search_label": "Trade Search",
+        "image": "trade-crop.png",
+        "hero": "truck-crop.png",
+        "resources": ["CDL programs", "Welding", "Electrical apprenticeships"],
+    },
+    {
+        "slug": "life-skills",
+        "title": "Life Skills",
+        "search_label": "Life Skills",
+        "image": "life-crop.png",
+        "hero": "classroom-crop.png",
+        "resources": ["GED prep", "Interview skills", "Job prep"],
+    },
+    {
+        "slug": "occupational-license",
+        "title": "Occupational License",
+        "search_label": "Occupation Search",
+        "image": "occupational-crop.png",
+        "hero": "occupational-crop.png",
+        "resources": ["Healthcare licensing", "CDL support", "State board steps"],
+    },
+    {
+        "slug": "jobs",
+        "title": "Job Search",
+        "search_label": "Job Search",
+        "image": "jobs-crop.png",
+        "hero": "road-crop.png",
+        "resources": ["Remote work", "Local openings", "Resume-ready roles"],
+    },
+]
+
+SECOND_CHANCE_SEARCH_ITEMS = [
+    "Educational Search",
+    "Job Search",
+    "Trade Search",
+    "Remote Work",
+    "Life Skills",
+    "Occupational License",
+    "Apprenticeships",
+    "College Courses",
+]
+
+SECOND_CHANCE_SKILLS = [
+    "Active Listening",
+    "Communication",
+    "Computer Skills",
+    "Interpersonal Skills",
+    "Leadership",
+    "Management Skills",
+    "Problem Solving",
+    "Time Management",
+]
+
+SECOND_CHANCE_FEATURES = [
+    {
+        "title": "My Path Dashboard",
+        "body": "A simple step-by-step plan so each person can see what is done, what is next, and where they are gaining momentum.",
+    },
+    {
+        "title": "Resume Help",
+        "body": "Guidance for building a clean resume packet, explaining gaps, and presenting experience with confidence.",
+    },
+    {
+        "title": "Documents & ID Help",
+        "body": "A checklist for IDs, records, certificates, and work documents that can hold someone back if they are missing.",
+    },
+    {
+        "title": "Interview Prep",
+        "body": "Practice prompts, confidence builders, and language that helps people tell their story without shame.",
+    },
+    {
+        "title": "Career Services",
+        "body": "Connections to training, trade programs, occupational licensing help, and supportive career resources.",
+    },
+    {
+        "title": "Jobs & Opportunities",
+        "body": "Search paths for jobs, remote work, apprenticeships, college courses, and second-chance-friendly options.",
+    },
+]
+
+SECOND_CHANCE_CHECKLIST = [
+    {
+        "title": "Create your career profile",
+        "detail": "Tell us your goals, strengths, location, and what kind of support you need first.",
+    },
+    {
+        "title": "Choose your job path",
+        "detail": "Pick a direction: immediate work, training, trade, license support, or school.",
+    },
+    {
+        "title": "Build or update your resume",
+        "detail": "Create a resume packet that explains your experience clearly and confidently.",
+    },
+    {
+        "title": "Gather documents and ID",
+        "detail": "Track IDs, certificates, records, and work documents before applications slow down.",
+    },
+    {
+        "title": "Practice interview answers",
+        "detail": "Prepare honest, steady answers that help you tell your story without shame.",
+    },
+    {
+        "title": "Apply to ready-fit opportunities",
+        "detail": "Use the job finder to focus on roles, training, and employers that match your next step.",
+    },
+]
+
+SECOND_CHANCE_JOB_HELP = [
+    {
+        "title": "Second-chance-friendly jobs",
+        "type": "Job Search",
+        "body": "Search local roles where reliability, readiness, and a strong resume packet can help open the door.",
+        "cta": "Find Jobs",
+        "resource_slug": "job-search",
+    },
+    {
+        "title": "Remote work path",
+        "type": "Remote Work",
+        "body": "Explore entry-friendly remote roles, digital skills, and application steps for work-from-home options.",
+        "cta": "Search Remote",
+        "resource_slug": "job-search",
+    },
+    {
+        "title": "Trade and apprenticeship path",
+        "type": "Trade Search",
+        "body": "Look for CDL, construction, electrical, welding, manufacturing, and paid apprenticeship routes.",
+        "cta": "Find Training",
+        "resource_slug": "career-workforce",
+    },
+    {
+        "title": "Occupational license support",
+        "type": "Occupational License",
+        "body": "Get organized around license requirements, board steps, and documents needed for regulated careers.",
+        "cta": "Review Steps",
+        "resource_slug": "career-workforce",
+    },
+]
+
+SECOND_CHANCE_RESOURCE_GROUPS = [
+    {
+        "slug": "job-search",
+        "title": "Job Search",
+        "intro": "Start with familiar job boards, then bring promising roles back into your path dashboard.",
+        "items": [
+            {
+                "label": "Indeed",
+                "url": "https://www.indeed.com",
+                "note": "Search broad local and remote job listings.",
+                "icon": "⌕",
+            },
+            {
+                "label": "LinkedIn Jobs",
+                "url": "https://www.linkedin.com/jobs",
+                "note": "Search roles and follow companies that fit your next step.",
+                "icon": "in",
+            },
+            {
+                "label": "ZipRecruiter",
+                "url": "https://www.ziprecruiter.com",
+                "note": "Browse jobs and set alerts for new openings.",
+                "icon": "Z",
+            },
+            {
+                "label": "Glassdoor",
+                "url": "https://www.glassdoor.com/Job/index.htm",
+                "note": "Research job openings, companies, and salary ranges.",
+                "icon": "G",
+            },
+            {
+                "label": "Snagajob",
+                "url": "https://www.snagajob.com",
+                "note": "Find hourly, service, retail, and local opportunities.",
+                "icon": "S",
+            },
+        ],
+    },
+    {
+        "slug": "career-workforce",
+        "title": "Career & Workforce Resources",
+        "intro": "Use these when someone needs training, local workforce support, clothing, veteran services, or career counseling.",
+        "items": [
+            {
+                "label": "CareerOneStop",
+                "url": "https://www.careeronestop.org",
+                "note": "Official career, training, and job-search resources from the U.S. Department of Labor.",
+                "icon": "★",
+            },
+            {
+                "label": "American Job Center Finder",
+                "url": "https://www.careeronestop.org/LocalHelp/AmericanJobCenters/american-job-centers.aspx",
+                "note": "Find local workforce offices and employment support near you.",
+                "icon": "⌂",
+            },
+            {
+                "label": "Dress for Success",
+                "url": "https://dressforsuccess.org",
+                "note": "Career clothing, confidence support, and workforce development for women.",
+                "icon": "✓",
+            },
+            {
+                "label": "VA VR&E",
+                "url": "https://www.va.gov/careers-employment/vocational-rehabilitation/",
+                "note": "Veteran Readiness and Employment resources for eligible veterans and service members.",
+                "icon": "VA",
+            },
+        ],
+    },
+    {
+        "slug": "documents-id",
+        "title": "Documents & Identification",
+        "intro": "Documents can be the hidden barrier. These resources help people replace or track what they need.",
+        "items": [
+            {
+                "label": "Replace Social Security Card",
+                "url": "https://www.ssa.gov/number-card/replace-card",
+                "note": "Official Social Security Administration replacement card resource.",
+                "icon": "ID",
+            },
+            {
+                "label": "State DMV / ID Services",
+                "url": "https://www.usa.gov/state-motor-vehicle-services",
+                "note": "Find state motor vehicle agencies for IDs, licenses, and related records.",
+                "icon": "▣",
+            },
+            {
+                "label": "Birth Certificate Records",
+                "url": "https://www.cdc.gov/nchs/w2w/index.htm",
+                "note": "CDC directory for vital records offices by state and territory.",
+                "icon": "◎",
+            },
+            {
+                "label": "Replace Vital Documents",
+                "url": "https://www.usa.gov/replace-vital-documents",
+                "note": "USA.gov guide for replacing IDs, vital records, and federal documents.",
+                "icon": "☑",
+            },
+        ],
+    },
+    {
+        "slug": "resume-interview",
+        "title": "Interview & Resume Help",
+        "intro": "Use these to build the resume packet, prepare answers, and walk into interviews with more confidence.",
+        "items": [
+            {
+                "label": "CareerOneStop Resume Guide",
+                "url": "https://www.careeronestop.org/JobSearch/Resumes/resumes.aspx",
+                "note": "Resume guidance, examples, and practical job-search support.",
+                "icon": "R",
+            },
+            {
+                "label": "CareerOneStop Interview Tips",
+                "url": "https://www.careeronestop.org/JobSearch/Interview/interview.aspx",
+                "note": "Interview preparation, questions, and follow-up help.",
+                "icon": "Q",
+            },
+            {
+                "label": "Canva Resume Templates",
+                "url": "https://www.canva.com/resumes/templates/",
+                "note": "Clean resume templates for building a polished resume packet.",
+                "icon": "C",
+            },
+            {
+                "label": "Indeed Career Guide",
+                "url": "https://www.indeed.com/career-advice",
+                "note": "Resume, interview, and job-search articles for applicants.",
+                "icon": "i",
+            },
+        ],
+    },
+    {
+        "slug": "transport-support",
+        "title": "Transportation & Support",
+        "intro": "Transportation, food, clothing, and local assistance can decide whether someone can accept a job.",
+        "items": [
+            {
+                "label": "211",
+                "url": "https://www.211.org",
+                "note": "Local help for transportation, housing, food, utilities, and crisis support.",
+                "icon": "211",
+            },
+            {
+                "label": "FindHelp",
+                "url": "https://www.findhelp.org",
+                "note": "Search community assistance by ZIP code.",
+                "icon": "♥",
+            },
+            {
+                "label": "Lyft Up",
+                "url": "https://www.lyft.com/lyftup",
+                "note": "Lyft programs focused on access to transportation and opportunity.",
+                "icon": "L",
+            },
+            {
+                "label": "Public Transit Directions",
+                "url": "https://www.google.com/maps/dir/",
+                "note": "Plan public transit, walking, or driving routes to interviews and work.",
+                "icon": "↗",
+            },
+        ],
+    },
+]
 
 
 app = Flask(__name__)
@@ -323,7 +643,12 @@ def login_required(view):
 
 @app.context_processor
 def inject_user():
-    return {"user": current_user()}
+    return {
+        "user": current_user(),
+        "brent_co_url": BRENT_CO_URL,
+        "find_the_beat_url": FIND_THE_BEAT_URL,
+        "second_chance_url": SECOND_CHANCE_URL,
+    }
 
 
 @app.after_request
@@ -374,6 +699,20 @@ def search_profiles(q="", role="", genre="", city=""):
     with get_db() as conn:
         rows = conn.execute(sql, params).fetchall()
     return [row_to_profile(row) for row in rows]
+
+
+def second_chance_category(slug):
+    return next(
+        (category for category in SECOND_CHANCE_CATEGORIES if category["slug"] == slug),
+        None,
+    )
+
+
+def second_chance_resource_group(slug):
+    return next(
+        (group for group in SECOND_CHANCE_RESOURCE_GROUPS if group["slug"] == slug),
+        None,
+    )
 
 
 def get_performances(profile_id=None):
@@ -463,6 +802,134 @@ def get_thread_messages(user_id, other_id):
     ]
 
 
+@app.route("/second-chance")
+def second_chance_home():
+    return render_template(
+        "second_chance/home.html",
+        categories=SECOND_CHANCE_CATEGORIES,
+        search_items=SECOND_CHANCE_SEARCH_ITEMS[:5],
+        features=SECOND_CHANCE_FEATURES,
+        checklist=SECOND_CHANCE_CHECKLIST,
+    )
+
+
+@app.route("/my-path")
+@app.route("/second-chance/my-path")
+def second_chance_my_path():
+    return render_template(
+        "second_chance/my_path.html",
+        profile=current_user(),
+        checklist=SECOND_CHANCE_CHECKLIST,
+        job_help=SECOND_CHANCE_JOB_HELP,
+        features=SECOND_CHANCE_FEATURES,
+        resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
+    )
+
+
+@app.route("/second-chance/resources")
+def second_chance_resources():
+    return render_template(
+        "second_chance/resources.html",
+        groups=SECOND_CHANCE_RESOURCE_GROUPS,
+        active_group=None,
+    )
+
+
+@app.route("/second-chance/resources/<slug>")
+def second_chance_resource_page(slug):
+    group = second_chance_resource_group(slug)
+    if not group:
+        flash("That resource section was not found.")
+        return redirect(url_for("second_chance_resources"))
+    return render_template(
+        "second_chance/resources.html",
+        groups=SECOND_CHANCE_RESOURCE_GROUPS,
+        active_group=group,
+    )
+
+
+@app.route("/second-chance/search")
+def second_chance_search():
+    q = request.args.get("q", "").strip()
+    focus = request.args.get("focus", "").strip()
+    return render_template(
+        "second_chance/search.html",
+        search_items=SECOND_CHANCE_SEARCH_ITEMS,
+        job_help=SECOND_CHANCE_JOB_HELP,
+        resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
+        q=q,
+        focus=focus,
+    )
+
+
+@app.route("/second-chance/category/<slug>")
+def second_chance_category_page(slug):
+    category = second_chance_category(slug)
+    if not category:
+        flash("That Second Chance section was not found.")
+        return redirect(url_for("second_chance_home"))
+    return render_template("second_chance/category.html", category=category)
+
+
+@app.route("/second-chance/signup", methods=["GET", "POST"])
+def second_chance_signup():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        display_name = request.form.get("display_name", "").strip()
+
+        if not email or not password or not display_name:
+            flash("Name, email, and password are required.")
+            return redirect(url_for("second_chance_signup"))
+        if len(password) < 8:
+            flash("Please choose a password with at least 8 characters.")
+            return redirect(url_for("second_chance_signup"))
+        if confirm_password and password != confirm_password:
+            flash("Passwords do not match.")
+            return redirect(url_for("second_chance_signup"))
+
+        fields = {
+            "display_name": display_name,
+            "role": "Second Chance Member",
+            "genre": "Career readiness",
+            "city": request.form.get("city", "").strip(),
+            "bio": "Building a new career path with Second Chance Careers.",
+            "tags_csv": "resume, jobs, life skills",
+            "instrument": "",
+            "services_csv": ", ".join(request.form.getlist("skills")),
+        }
+
+        try:
+            profile_pic, _ = uploaded_profile_media()
+            user_id = create_user(email, password, fields, profile_pic)
+        except sqlite3.IntegrityError:
+            flash("An account with that email already exists. Please sign in.")
+            return redirect(url_for("login"))
+        except ValueError as exc:
+            flash(str(exc))
+            return redirect(url_for("second_chance_signup"))
+
+        session["user_id"] = user_id
+        flash("Welcome to Second Chance Careers.")
+        return redirect(url_for("second_chance_profile"))
+
+    return render_template("second_chance/signup.html")
+
+
+@app.route("/second-chance/profile")
+def second_chance_profile():
+    return render_template(
+        "second_chance/profile.html",
+        profile=current_user(),
+        skills=SECOND_CHANCE_SKILLS,
+        search_items=SECOND_CHANCE_SEARCH_ITEMS[:4],
+        checklist=SECOND_CHANCE_CHECKLIST,
+        job_help=SECOND_CHANCE_JOB_HELP,
+        resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
+    )
+
+
 @app.route("/")
 def home():
     q = request.args.get("q", "").strip()
@@ -534,9 +1001,9 @@ def user_detail(user_id):
     return profile_detail(user_id)
 
 
+@app.route("/perfomances")
 @app.route("/performance")
 @app.route("/performances")
-@app.route("/perfomances")
 def performances():
     return render_template("perfomances.html", performances=get_performances())
 
@@ -552,10 +1019,10 @@ def performance_detail(perf_id):
     return render_template("performance_detail.html", perf=perf)
 
 
+@app.route("/perfomances/upload", methods=["GET", "POST"])
 @app.route("/upload", methods=["GET", "POST"])
 @app.route("/upload-performance", methods=["GET", "POST"])
 @app.route("/performances/upload", methods=["GET", "POST"])
-@app.route("/perfomances/upload", methods=["GET", "POST"])
 def upload_performance():
     if request.method == "POST":
         title = request.form.get("title", "").strip()
