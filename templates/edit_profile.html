@@ -5,7 +5,7 @@
 {% block content %}
 <style>
   .form-card {
-    max-width: 820px;
+    max-width: 860px;
     margin: 0 auto;
     border-radius: 34px;
     background: var(--card);
@@ -44,7 +44,8 @@
   }
 
   .field input,
-  .field textarea {
+  .field textarea,
+  .field select {
     width: 100%;
     min-height: 54px;
     border-radius: 18px;
@@ -62,12 +63,6 @@
     resize: vertical;
   }
 
-  .field input:focus,
-  .field textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 5px rgba(228, 87, 46, 0.12);
-  }
-
   @media (max-width: 760px) {
     .two {
       grid-template-columns: 1fr;
@@ -83,58 +78,74 @@
     <div class="two">
       <div class="field">
         <label for="display_name">Display name</label>
-        <input id="display_name" name="display_name" value="{{ user.display_name or '' }}" required>
+        <input id="display_name" name="display_name" value="{{ profile.display_name or '' }}" required>
       </div>
 
       <div class="field">
         <label for="role">Role</label>
-        <input id="role" name="role" value="{{ user.role or '' }}">
+        <select id="role" name="role">
+          {% set roles = ["artist", "producer", "musician", "composer", "engineer", "songwriter", "DJ", "vocalist", "manager"] %}
+          <option value="">Choose a role</option>
+          {% for role in roles %}
+            <option value="{{ role }}" {% if profile.role == role %}selected{% endif %}>{{ role|title }}</option>
+          {% endfor %}
+        </select>
       </div>
     </div>
 
     <div class="two">
       <div class="field">
         <label for="genre">Genre</label>
-        <input id="genre" name="genre" value="{{ user.genre or '' }}">
+        <input id="genre" name="genre" value="{{ profile.genre or '' }}" placeholder="R&B, hip-hop, gospel, jazz...">
       </div>
 
       <div class="field">
         <label for="city">City</label>
-        <input id="city" name="city" value="{{ user.city or '' }}">
+        <input id="city" name="city" value="{{ profile.city or '' }}">
       </div>
     </div>
 
     <div class="two">
       <div class="field">
-        <label for="instrument">Instrument</label>
-        <input id="instrument" name="instrument" value="{{ user.instrument or '' }}">
+        <label for="state">State</label>
+        <input id="state" name="state" value="{{ profile.state or '' }}">
       </div>
 
       <div class="field">
-        <label for="services_csv">Services</label>
-        <input id="services_csv" name="services_csv" value="{{ user.services_csv or '' }}">
+        <label for="instrument">Instrument</label>
+        <input id="instrument" name="instrument" value="{{ profile.instrument or '' }}">
       </div>
     </div>
 
-    <div class="field">
-      <label for="tags_csv">Tags</label>
-      <input id="tags_csv" name="tags_csv" value="{{ user.tags_csv or '' }}">
+    <div class="two">
+      <div class="field">
+        <label for="services_csv">Services</label>
+        <input id="services_csv" name="services_csv" value="{{ profile.services_csv or '' }}" placeholder="mixing, hooks, beats">
+      </div>
+
+      <div class="field">
+        <label for="tags_csv">Tags</label>
+        <input id="tags_csv" name="tags_csv" value="{{ profile.tags_csv or '' }}" placeholder="live, studio, songwriter">
+      </div>
     </div>
 
     <div class="field">
       <label for="bio">Bio</label>
-      <textarea id="bio" name="bio">{{ user.bio or '' }}</textarea>
+      <textarea id="bio" name="bio">{{ profile.bio or '' }}</textarea>
     </div>
 
-    <div class="field">
-      <label for="profile_pic">Update profile picture</label>
-      <input id="profile_pic" name="profile_pic" type="file" accept="image/*">
+    <div class="two">
+      <div class="field">
+        <label for="profile_pic">Update profile picture</label>
+        <input id="profile_pic" name="profile_pic" type="file" accept="image/*">
+      </div>
+
+      <div class="field">
+        <label for="profile_video">Upload profile intro video</label>
+        <input id="profile_video" name="profile_video" type="file" accept="video/mp4,video/quicktime,video/webm">
+      </div>
     </div>
 
-<div class="field">
-  <label for="profile_video">Upload profile video</label>
-  <input id="profile_video" name="profile_video" type="file" accept="video/mp4,video/quicktime,video/webm">
-</div>
     <div>
       <button class="button primary" type="submit">Save Changes</button>
       <a href="{{ url_for('profile') }}" class="button secondary">Cancel</a>

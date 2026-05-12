@@ -1,37 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}{{ perf.title }}{% endblock %}
+{% block title %}{{ perf.title }} | Find the Beat{% endblock %}
 
 {% block content %}
-<section class="content-card" style="padding:24px;">
-    <h1 style="margin-top:0;">{{ perf.title }}</h1>
+<section class="page-card" style="padding:2rem;">
+  <h1 style="margin-top:0;">{{ perf.title }}</h1>
+  <p style="color:var(--muted); font-weight:800;">
+    <a href="{{ url_for('public_profile', user_id=perf.owner_id) }}">{{ perf.display_name }}</a>
+    {% if perf.role %} • {{ perf.role }}{% endif %}
+  </p>
 
-    {% if perf.profile %}
-        <p class="card-meta">
-            {{ perf.profile.display_name }} • {{ perf.profile.role }}
-        </p>
-    {% endif %}
+  {% if perf.description %}
+    <p>{{ perf.description }}</p>
+  {% endif %}
 
-    {% if perf.description %}
-        <p>{{ perf.description }}</p>
-    {% endif %}
+  {% if perf.video_filename %}
+    <video controls style="width:100%; border-radius:24px; display:block; margin-top:1rem;">
+      <source src="{{ url_for('uploaded_file', filename=perf.video_filename) }}">
+      Your browser does not support the video tag.
+    </video>
+  {% else %}
+    <div style="padding:2rem; border-radius:24px; background:var(--accent-soft); color:var(--muted); font-weight:900; margin-top:1rem;">
+      No video file was uploaded for this performance.
+    </div>
+  {% endif %}
 
-    {% if perf.video_filename %}
-        <video class="video-frame" controls style="margin-top:18px;">
-            <source src="{{ url_for('uploaded_video', filename=perf.video_filename) }}">
-            Your browser does not support the video tag.
-        </video>
-    {% endif %}
-
-    {% if perf.thumb_filename %}
-        <div style="margin-top:18px;">
-            <img
-                class="media-frame"
-                src="{{ url_for('uploaded_photo', filename=perf.thumb_filename) }}"
-                alt="{{ perf.title }}"
-                style="max-width:340px; height:auto;"
-            >
-        </div>
-    {% endif %}
+  {% if perf.thumb_filename %}
+    <img src="{{ url_for('uploaded_file', filename=perf.thumb_filename) }}" alt="{{ perf.title }}" style="max-width:340px; border-radius:20px; margin-top:1rem;">
+  {% endif %}
 </section>
 {% endblock %}

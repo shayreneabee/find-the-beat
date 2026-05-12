@@ -1,56 +1,122 @@
 {% extends "base.html" %}
 
-{% block title %}Profiles{% endblock %}
+{% block title %}Browse Profiles | Find the Beat{% endblock %}
 
 {% block content %}
-<section class="hero-card" style="padding:24px;">
-    <h1 style="margin:0 0 10px;">Artist Profiles</h1>
-    <p class="hero-subtitle" style="margin-bottom:0;">
-        Browse creative talent across the platform and connect with artists ready to move.
-    </p>
+<style>
+  .search-card,
+  .profile-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    box-shadow: 0 14px 34px rgba(68,34,20,0.07);
+  }
+
+  .search-card {
+    padding: 1.4rem;
+    margin: 1.2rem 0;
+  }
+
+  .search-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(130px, 1fr));
+    gap: .75rem;
+  }
+
+  .search-grid input {
+    min-height: 46px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 0 .9rem;
+    font: inherit;
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .profile-card {
+    overflow: hidden;
+  }
+
+  .profile-card figure {
+    height: 210px;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--muted);
+    font-weight: 900;
+    font-size: 2rem;
+  }
+
+  .profile-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-card div {
+    padding: 1.25rem;
+  }
+
+  @media (max-width: 900px) {
+    .search-grid,
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<section class="page-card" style="padding:2rem;">
+  <h1 style="margin:0 0 .5rem;">Browse Creative Profiles</h1>
+  <p style="margin:0; color:var(--muted);">Search by name, role, genre, city, service, instrument, or tag.</p>
 </section>
 
-<div class="grid-3" style="margin:20px 0 18px;">
-    <a class="card-link" href="{{ url_for('create_profile') }}">
-        <h3 class="card-title">+ Create Profile</h3>
-        <p class="card-meta">Add a new artist or creative profile.</p>
-    </a>
-</div>
+<form class="search-card" method="GET" action="{{ url_for('profiles') }}">
+  <div class="search-grid">
+    <input name="q" value="{{ filters.q }}" placeholder="Name or bio">
+    <input name="role" value="{{ filters.role }}" placeholder="Role">
+    <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
+    <input name="city" value="{{ filters.city }}" placeholder="City or state">
+    <input name="tag" value="{{ filters.tag }}" placeholder="Tag/service">
+  </div>
+  <div style="margin-top:1rem;">
+    <button class="button primary" type="submit">Search Profiles</button>
+    <a class="button secondary" href="{{ url_for('profiles') }}">Clear</a>
+  </div>
+</form>
 
 {% if profiles %}
-    <div class="grid-3">
-        {% for p in profiles %}
-            <a class="card-link" href="{{ url_for('profile_detail', profile_id=p.id) }}">
-                {% if p.photo_filename %}
-                    <img
-                        class="media-frame"
-                        src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}"
-                        alt="{{ p.display_name }}"
-                        style="height:220px; object-fit:cover;"
-                    >
-                {% else %}
-                    <div
-                        class="media-frame"
-                        style="height:220px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); color:#b8c7dd; font-weight:700;"
-                    >
-                        No Photo Yet
-                    </div>
-                {% endif %}
-
-                <h3 class="card-title" style="margin-top:14px;">{{ p.display_name }}</h3>
-                <p class="card-meta">{{ p.role }}</p>
-
-                {% if p.bio %}
-                    <p class="card-meta">{{ p.bio }}</p>
-                {% else %}
-                    <p class="card-meta">No bio yet.</p>
-                {% endif %}
-            </a>
-        {% endfor %}
-    </div>
+  <div class="profile-grid">
+    {% for p in profiles %}
+      <a class="profile-card" href="{{ url_for('public_profile', user_id=p.id) }}">
+        <figure>
+          {% if p.profile_pic %}
+            <img src="{{ url_for('uploaded_file', filename=p.profile_pic) }}" alt="{{ p.display_name }}">
+          {% else %}
+            {{ (p.display_name or "F")[:1] }}
+          {% endif %}
+        </figure>
+        <div>
+          <h3 style="margin:.1rem 0;">{{ p.display_name or "Find the Beat Member" }}</h3>
+          <p style="margin:.2rem 0; color:var(--muted); font-weight:800;">
+            {{ p.role or "Creative" }}
+            {% if p.genre %} • {{ p.genre }}{% endif %}
+          </p>
+          <p style="margin:.2rem 0; color:var(--muted);">
+            {% if p.city %}{{ p.city }}{% if p.state %}, {{ p.state }}{% endif %}{% else %}Remote / open{% endif %}
+          </p>
+          <p style="margin:.8rem 0 0; color:var(--muted);">{{ p.tags_csv or p.services_csv or "Open to connect" }}</p>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
 {% else %}
-    <section class="content-card" style="padding:24px;">
-        <p class="muted" style="margin:0;">No profiles yet. Create the first one!</p>
-    </section>
+  <section class="page-card" style="padding:1.5rem;">
+    <p style="margin:0; color:var(--muted);">No profiles match that search yet.</p>
+  </section>
 {% endif %}
 {% endblock %}

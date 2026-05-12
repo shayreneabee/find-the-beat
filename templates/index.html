@@ -246,7 +246,7 @@
 
           <p class="bio">{{ creator.bio or "Ready to connect and create." }}</p>
 
-          <a class="button secondary" href="{{ url_for('user_detail', user_id=creator.id) }}">View Profile</a>
+          <a class="button secondary" href="{{ url_for('public_profile', user_id=creator.id) }}">View Profile</a>
         </article>
       {% endfor %}
     </div>

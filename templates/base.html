@@ -286,6 +286,7 @@
 
         {% if user %}
           <a href="{{ url_for('profile') }}" class="nav-pill">My Profile</a>
+          <a href="{{ url_for('inbox') }}" class="nav-pill">Inbox</a>
           <a href="{{ url_for('logout') }}" class="nav-pill">Logout</a>
         {% else %}
           <a href="{{ url_for('login') }}" class="nav-pill">Login</a>
@@ -316,6 +317,8 @@
       <div>© Find the Beat • A Brent &amp; Co. experience</div>
       <div class="footer-links">
         <a href="{{ url_for('home') }}">Discover</a>
+        <a href="{{ url_for('profiles') }}">Profiles</a>
+        <a href="{{ url_for('performances') }}">Performances</a>
         <a href="{{ url_for('signup') }}">Join</a>
       </div>
     </div>

@@ -1,9 +1,6 @@
-from app import create_app
-from extensions import db
+from app import DB_PATH, init_db
 
-app = create_app()
 
-with app.app_context():
-    db.drop_all()
-    db.create_all()
-    print("✅ DB rebuilt.")
+if __name__ == "__main__":
+    init_db()
+    print(f"Database initialized at {DB_PATH}")

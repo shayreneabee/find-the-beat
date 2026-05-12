@@ -1,49 +1,39 @@
 {% extends "base.html" %}
 
-{% block title %}Inbox{% endblock %}
+{% block title %}Inbox | Find the Beat{% endblock %}
 
 {% block content %}
-<h1>Inbox</h1>
-
-<div class="grid-3" style="margin-bottom:18px;">
-    <a class="card-link" href="{{ url_for('new_message') }}">
-        <h3 class="card-title">+ New Message</h3>
-        <p class="card-meta">Start a new conversation with an artist or collaborator.</p>
-    </a>
-</div>
+<section class="page-card" style="padding:2rem; margin-bottom:1.25rem;">
+  <h1 style="margin:0 0 .5rem;">Inbox</h1>
+  <p style="margin:0; color:var(--muted);">Messages sent to and from your Find the Beat profile.</p>
+  <div style="margin-top:1rem;"><a class="button primary" href="{{ url_for('new_message') }}">New Message</a></div>
+</section>
 
 {% if msgs %}
-    <div class="grid-2">
-        {% for msg in msgs %}
-            <div class="message-item">
-                <a href="{{ url_for('thread', me=msg.sender_id, other=msg.recipient_id) }}">
-                    <h3 class="item-title">Conversation</h3>
-                    <p class="item-meta">
-                        From profile #{{ msg.sender_id }} → To profile #{{ msg.recipient_id }}
-                    </p>
-
-                    <p style="margin:10px 0 0;">{{ msg.body }}</p>
-
-                    {% if msg.created_at %}
-                        <p class="muted" style="margin-top:10px;">
-                            {{ msg.created_at.strftime("%b %d, %Y • %I:%M %p") }}
-                        </p>
-                    {% endif %}
-                </a>
-
-                <div style="margin-top:14px;">
-                    <form
-                        method="POST"
-                        action="{{ url_for('delete_message', message_id=msg.id) }}"
-                        class="inline-form"
-                    >
-                        <button type="submit" class="danger-btn">Delete</button>
-                    </form>
-                </div>
-            </div>
-        {% endfor %}
-    </div>
+  <div style="display:grid; gap:1rem;">
+    {% for msg in msgs %}
+      {% set other_id = msg.sender_id if user and msg.sender_id != user.id else msg.recipient_id %}
+      <article class="page-card" style="padding:1.3rem;">
+        <a href="{{ url_for('thread', other_id=other_id) }}">
+          <h3 style="margin:.1rem 0;">
+            {% if user and msg.sender_id == user.id %}
+              To {{ msg.recipient_name }}
+            {% else %}
+              From {{ msg.sender_name }}{% if not msg.is_read %} • Unread{% endif %}
+            {% endif %}
+          </h3>
+          <p style="margin:.5rem 0 0; color:var(--muted);">{{ msg.body }}</p>
+          <p style="margin:.7rem 0 0; color:var(--muted); font-size:.9rem;">{{ msg.created_at }}</p>
+        </a>
+        <form method="POST" action="{{ url_for('delete_message', message_id=msg.id) }}" style="margin-top:1rem;">
+          <button type="submit" class="button secondary">Delete</button>
+        </form>
+      </article>
+    {% endfor %}
+  </div>
 {% else %}
-    <p class="muted">No messages yet.</p>
+  <section class="page-card" style="padding:1.5rem;">
+    <p style="margin:0; color:var(--muted);">No messages yet.</p>
+  </section>
 {% endif %}
 {% endblock %}

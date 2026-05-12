@@ -1,35 +1,37 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Performance{% endblock %}
+{% block title %}Upload Performance | Find the Beat{% endblock %}
 
 {% block content %}
-<section class="form-card">
-    <h1>Upload Performance</h1>
+<section class="page-card" style="max-width:760px; margin:0 auto; padding:2rem;">
+  <h1 style="margin-top:0;">Upload Performance</h1>
+  <p style="color:var(--muted);">Add a video or clip to your public profile.</p>
 
-    <form method="POST" enctype="multipart/form-data">
-        <label>Title</label>
-        <input type="text" name="title" required>
+  <form method="POST" enctype="multipart/form-data" style="display:grid; gap:1rem;">
+    <label>
+      <strong>Title</strong>
+      <input type="text" name="title" required style="width:100%; min-height:52px; border-radius:16px; border:1px solid var(--line); padding:0 1rem; font:inherit;">
+    </label>
 
-        <label>Description</label>
-        <textarea name="description" placeholder="Tell us about this performance..."></textarea>
+    <label>
+      <strong>Description</strong>
+      <textarea name="description" placeholder="Tell us about this performance..." style="width:100%; min-height:120px; border-radius:16px; border:1px solid var(--line); padding:1rem; font:inherit;"></textarea>
+    </label>
 
-        <label>Artist Profile</label>
-        <select name="profile_id" required>
-            <option value="">Select an artist</option>
-            {% for p in profiles %}
-                <option value="{{ p.id }}">{{ p.display_name }} — {{ p.role }}</option>
-            {% endfor %}
-        </select>
+    <label>
+      <strong>Performance Video</strong>
+      <input type="file" name="video" accept=".mp4,.mov,.m4v,.webm">
+    </label>
 
-        <label>Performance Video</label>
-        <input type="file" name="video" accept=".mp4,.mov,.m4v,.webm">
+    <label>
+      <strong>Thumbnail Image</strong>
+      <input type="file" name="thumb" accept=".jpg,.jpeg,.png,.gif,.webp">
+    </label>
 
-        <label>Thumbnail Image</label>
-        <input type="file" name="thumb" accept=".jpg,.jpeg,.png,.webp">
-
-        <div style="margin-top:16px;">
-            <button type="submit">Upload Performance</button>
-        </div>
-    </form>
+    <div>
+      <button class="button primary" type="submit">Upload Performance</button>
+      <a class="button secondary" href="{{ url_for('profile') }}">Cancel</a>
+    </div>
+  </form>
 </section>
 {% endblock %}
