@@ -53,14 +53,19 @@ ROLE_ALIASES = {
     "beat maker": "producer",
     "beatmaker": "producer",
     "production": "producer",
+    "producers": "producer",
     "singer": "vocalist",
     "singer/songwriter": "songwriter",
     "song writer": "songwriter",
     "composer": "composer",
+    "composers": "composer",
     "producer": "producer",
     "artist": "artist",
+    "artists": "artist",
     "musician": "musician",
+    "musicians": "musician",
     "engineer": "engineer",
+    "engineers": "engineer",
     "manager": "manager",
 }
 
@@ -215,12 +220,18 @@ def login_required(view):
     return wrapped_view
 
 
-def profile_search_results(query="", role="", genre="", city="", tag=""):
+def profile_search_results(query="", role="", genre="", city="", tag="", instrument=""):
     filters = []
     values = []
     if query:
-        filters.append("(display_name LIKE ? OR bio LIKE ? OR email LIKE ? OR role LIKE ?)")
-        values.extend([f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"])
+        filters.append(
+            """
+            (display_name LIKE ? OR bio LIKE ? OR email LIKE ? OR role LIKE ?
+             OR genre LIKE ? OR city LIKE ? OR state LIKE ? OR tags_csv LIKE ?
+             OR services_csv LIKE ? OR instrument LIKE ?)
+            """
+        )
+        values.extend([f"%{query}%"] * 10)
     if role:
         filters.append("LOWER(role) LIKE ?")
         values.append(f"%{normalize_role(role)}%")
@@ -233,6 +244,9 @@ def profile_search_results(query="", role="", genre="", city="", tag=""):
     if tag:
         filters.append("(tags_csv LIKE ? OR services_csv LIKE ? OR instrument LIKE ?)")
         values.extend([f"%{tag}%", f"%{tag}%", f"%{tag}%"])
+    if instrument:
+        filters.append("LOWER(instrument) LIKE ?")
+        values.append(f"%{instrument.strip().lower()}%")
 
     where = f"WHERE {' AND '.join(filters)}" if filters else ""
     conn = get_db()
@@ -292,6 +306,7 @@ def home():
         "genre": request.args.get("genre", "").strip(),
         "city": request.args.get("city", "").strip(),
         "tag": request.args.get("q", "").strip(),
+        "instrument": request.args.get("instrument", "").strip(),
     }
     return render_template(
         "index.html",
@@ -485,6 +500,7 @@ def profiles():
         "genre": request.args.get("genre", "").strip(),
         "city": request.args.get("city", "").strip(),
         "tag": request.args.get("tag", "").strip(),
+        "instrument": request.args.get("instrument", "").strip(),
     }
     results = profile_search_results(
         query=filters["q"],
@@ -492,12 +508,14 @@ def profiles():
         genre=filters["genre"],
         city=filters["city"],
         tag=filters["tag"],
+        instrument=filters["instrument"],
     )
     return render_template(
         "profiles.html",
         profiles=results,
         filters=filters,
         active_role_label=role_label(filters["role"]),
+        active_instrument_label=filters["instrument"].title(),
     )
 
 
@@ -767,6 +785,8 @@ def seed_test_users_command():
         ("shay@example.com", "Shay", "artist", "R&B / Soul", "Atlanta", "GA", "Vocalist and curator building community through music.", "vocals, songwriter, live performance", "voice", "features, hooks, live sets"),
         ("rod@example.com", "Rod", "producer", "Hip-Hop / Gospel", "New Orleans", "LA", "Producer and musician sharing beats, keys, and live sessions.", "producer, keys, beatmaker", "keys", "production, mixing, performance"),
         ("casey@example.com", "Casey", "composer", "Film / R&B / Gospel", "Dallas", "TX", "Composer arranging hooks, cues, and live strings for artists and producers.", "composer, arranger, scoring", "keys", "composition, scoring, arrangements"),
+        ("mina@example.com", "Mina", "musician", "Funk / Soul", "Memphis", "TN", "Live drummer and band leader available for sessions, church sets, and showcases.", "drums, live band, session player", "drums", "live drums, band direction, showcases"),
+        ("eli@example.com", "Eli", "engineer", "Hip-Hop / R&B", "Houston", "TX", "Recording and mix engineer helping artists get clean vocals and polished releases.", "engineer, mixing, recording", "studio", "mixing, recording, vocal production"),
     ]
     conn = get_db()
     for row in users:

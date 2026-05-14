@@ -166,6 +166,35 @@
     letter-spacing: 0.04em;
   }
 
+  .instrument-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 0.5rem 0 1.4rem;
+  }
+
+  .instrument-pill {
+    display: grid;
+    min-height: 58px;
+    place-items: center;
+    border: 1px solid var(--mock-line);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff6e7, #ffd891);
+    box-shadow: var(--mock-shadow);
+    color: var(--mock-text);
+    font-size: 0.94rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-transform: uppercase;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .instrument-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 44px rgba(55, 31, 7, 0.2);
+  }
+
   @media (min-width: 560px) {
     .welcome-hero {
       min-height: 360px;
@@ -202,6 +231,10 @@
       grid-column: auto !important;
       width: auto !important;
       justify-self: stretch !important;
+    }
+
+    .instrument-strip {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
 </style>
@@ -253,6 +286,14 @@
       <img src="{{ url_for('static', filename='mockup_tiles/showcases.png') }}" alt="Showcases">
       <span>Showcases</span>
     </a>
+  </div>
+
+  <h2 class="home-section-title">Instruments:</h2>
+  <div class="instrument-strip" aria-label="Browse by instrument">
+    <a class="instrument-pill" href="{{ url_for('profiles', instrument='voice') }}">Voice</a>
+    <a class="instrument-pill" href="{{ url_for('profiles', instrument='keys') }}">Keys</a>
+    <a class="instrument-pill" href="{{ url_for('profiles', instrument='drums') }}">Drums</a>
+    <a class="instrument-pill" href="{{ url_for('profiles', instrument='guitar') }}">Guitar</a>
   </div>
 </div>
 {% endblock %}

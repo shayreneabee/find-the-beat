@@ -72,11 +72,19 @@
 
 <section class="page-card" style="padding:2rem;">
   <h1 style="margin:0 0 .5rem;">
-    {% if active_role_label %}{{ active_role_label }} Profiles{% else %}Browse Creative Profiles{% endif %}
+    {% if active_role_label %}
+      {{ active_role_label }} Profiles
+    {% elif active_instrument_label %}
+      {{ active_instrument_label }} Players
+    {% else %}
+      Browse Creative Profiles
+    {% endif %}
   </h1>
   <p style="margin:0; color:var(--muted);">
     {% if active_role_label %}
       Showing members listed as {{ active_role_label }}. Add more filters below to narrow the room.
+    {% elif active_instrument_label %}
+      Showing members who list {{ active_instrument_label }} as an instrument or creative tool.
     {% else %}
       Search by name, role, genre, city, service, instrument, or tag.
     {% endif %}
@@ -90,6 +98,7 @@
     <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
     <input name="city" value="{{ filters.city }}" placeholder="City or state">
     <input name="tag" value="{{ filters.tag }}" placeholder="Tag/service">
+    <input name="instrument" value="{{ filters.instrument }}" placeholder="Instrument">
   </div>
   <div style="margin-top:1rem;">
     <button class="button primary" type="submit">Search Profiles</button>
