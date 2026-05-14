@@ -71,14 +71,22 @@
 </style>
 
 <section class="page-card" style="padding:2rem;">
-  <h1 style="margin:0 0 .5rem;">Browse Creative Profiles</h1>
-  <p style="margin:0; color:var(--muted);">Search by name, role, genre, city, service, instrument, or tag.</p>
+  <h1 style="margin:0 0 .5rem;">
+    {% if active_role_label %}{{ active_role_label }} Profiles{% else %}Browse Creative Profiles{% endif %}
+  </h1>
+  <p style="margin:0; color:var(--muted);">
+    {% if active_role_label %}
+      Showing members listed as {{ active_role_label }}. Add more filters below to narrow the room.
+    {% else %}
+      Search by name, role, genre, city, service, instrument, or tag.
+    {% endif %}
+  </p>
 </section>
 
 <form class="search-card" method="GET" action="{{ url_for('profiles') }}">
   <div class="search-grid">
     <input name="q" value="{{ filters.q }}" placeholder="Name or bio">
-    <input name="role" value="{{ filters.role }}" placeholder="Role">
+    <input name="role" value="{{ filters.role }}" placeholder="Role or field">
     <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
     <input name="city" value="{{ filters.city }}" placeholder="City or state">
     <input name="tag" value="{{ filters.tag }}" placeholder="Tag/service">

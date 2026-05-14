@@ -34,10 +34,49 @@ app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", "100")) * 1024
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
+ROLE_OPTIONS = [
+    ("artist", "Artist"),
+    ("producer", "Producer"),
+    ("musician", "Musician"),
+    ("composer", "Composer"),
+    ("engineer", "Engineer"),
+    ("songwriter", "Songwriter"),
+    ("dj", "DJ"),
+    ("vocalist", "Vocalist"),
+    ("manager", "Manager"),
+]
+ROLE_LABELS = dict(ROLE_OPTIONS)
+ROLE_ALIASES = {
+    "d.j.": "dj",
+    "d.j": "dj",
+    "disc jockey": "dj",
+    "beat maker": "producer",
+    "beatmaker": "producer",
+    "production": "producer",
+    "singer": "vocalist",
+    "singer/songwriter": "songwriter",
+    "song writer": "songwriter",
+    "composer": "composer",
+    "producer": "producer",
+    "artist": "artist",
+    "musician": "musician",
+    "engineer": "engineer",
+    "manager": "manager",
+}
 
 
 def utc_now():
     return datetime.utcnow().isoformat(timespec="seconds")
+
+
+def normalize_role(value):
+    role = (value or "").strip().lower()
+    return ROLE_ALIASES.get(role, role)
+
+
+def role_label(value):
+    role = normalize_role(value)
+    return ROLE_LABELS.get(role, role.title() if role else "")
 
 
 def get_db():
@@ -180,11 +219,11 @@ def profile_search_results(query="", role="", genre="", city="", tag=""):
     filters = []
     values = []
     if query:
-        filters.append("(display_name LIKE ? OR bio LIKE ? OR email LIKE ?)")
-        values.extend([f"%{query}%", f"%{query}%", f"%{query}%"])
+        filters.append("(display_name LIKE ? OR bio LIKE ? OR email LIKE ? OR role LIKE ?)")
+        values.extend([f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"])
     if role:
-        filters.append("role LIKE ?")
-        values.append(f"%{role}%")
+        filters.append("LOWER(role) LIKE ?")
+        values.append(f"%{normalize_role(role)}%")
     if genre:
         filters.append("genre LIKE ?")
         values.append(f"%{genre}%")
@@ -270,7 +309,7 @@ def signup():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         display_name = request.form.get("display_name", "").strip()
-        role = request.form.get("role", "").strip()
+        role = normalize_role(request.form.get("role", ""))
         genre = request.form.get("genre", "").strip()
         city = request.form.get("city", "").strip()
         bio = request.form.get("bio", "").strip()
@@ -328,7 +367,7 @@ def signup():
         flash("Welcome to Find the Beat. Build your profile next.")
         return redirect(url_for("edit_profile"))
 
-    return render_template("signup.html")
+    return render_template("signup.html", role_options=ROLE_OPTIONS)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -379,7 +418,7 @@ def edit_profile():
     if request.method == "POST":
         fields = {
             "display_name": request.form.get("display_name", "").strip(),
-            "role": request.form.get("role", "").strip(),
+            "role": normalize_role(request.form.get("role", "")),
             "genre": request.form.get("genre", "").strip(),
             "city": request.form.get("city", "").strip(),
             "state": request.form.get("state", "").strip(),
@@ -435,7 +474,7 @@ def edit_profile():
         flash("Profile updated.")
         return redirect(url_for("profile"))
 
-    return render_template("edit_profile.html", profile=me)
+    return render_template("edit_profile.html", profile=me, role_options=ROLE_OPTIONS)
 
 
 @app.route("/profiles")
@@ -454,7 +493,12 @@ def profiles():
         city=filters["city"],
         tag=filters["tag"],
     )
-    return render_template("profiles.html", profiles=results, filters=filters)
+    return render_template(
+        "profiles.html",
+        profiles=results,
+        filters=filters,
+        active_role_label=role_label(filters["role"]),
+    )
 
 
 @app.route("/search")

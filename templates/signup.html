@@ -74,7 +74,8 @@
   }
 
   .field input,
-  .field textarea {
+  .field textarea,
+  .field select {
     width: 100%;
     min-height: 54px;
     border-radius: 18px;
@@ -93,7 +94,8 @@
   }
 
   .field input:focus,
-  .field textarea:focus {
+  .field textarea:focus,
+  .field select:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 5px rgba(228, 87, 46, 0.12);
   }
@@ -149,7 +151,12 @@
       <div class="two">
         <div class="field">
           <label for="role">Role</label>
-          <input id="role" name="role" placeholder="Artist, producer, composer...">
+          <select id="role" name="role">
+            <option value="">Choose your main field</option>
+            {% for value, label in role_options %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
         </div>
 
         <div class="field">
