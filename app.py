@@ -766,6 +766,7 @@ def seed_test_users_command():
     users = [
         ("shay@example.com", "Shay", "artist", "R&B / Soul", "Atlanta", "GA", "Vocalist and curator building community through music.", "vocals, songwriter, live performance", "voice", "features, hooks, live sets"),
         ("rod@example.com", "Rod", "producer", "Hip-Hop / Gospel", "New Orleans", "LA", "Producer and musician sharing beats, keys, and live sessions.", "producer, keys, beatmaker", "keys", "production, mixing, performance"),
+        ("casey@example.com", "Casey", "composer", "Film / R&B / Gospel", "Dallas", "TX", "Composer arranging hooks, cues, and live strings for artists and producers.", "composer, arranger, scoring", "keys", "composition, scoring, arrangements"),
     ]
     conn = get_db()
     for row in users:
