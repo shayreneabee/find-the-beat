@@ -354,7 +354,42 @@
     }
 
     .footer {
-      display: none;
+      display: grid;
+      gap: 0.85rem;
+      padding: 1.25rem 0.9rem 2rem;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .ecosystem-dock {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+
+    .ecosystem-dock a {
+      width: 58px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(78, 47, 16, 0.14);
+      border-radius: 18px;
+      background: rgba(255, 250, 238, 0.78);
+      color: var(--text);
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: var(--lift);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .ecosystem-dock a:hover {
+      transform: translateY(-2px);
+      background: var(--accent-soft);
+      box-shadow: var(--shadow);
     }
 
     @media (min-width: 560px) {
@@ -648,6 +683,13 @@
   </main>
 
   <footer class="footer shell">
+    <nav class="ecosystem-dock" aria-label="Brent and Co ecosystem quick links">
+      <a href="https://brentandco.org/" rel="noopener" aria-label="Brent & Co homepage">BC</a>
+      <a href="https://letscookyall.com/" rel="noopener" aria-label="Let's Cook Y'all">LC</a>
+      <a href="https://findthebeatmusic.com/" rel="noopener" aria-label="Find the Beat">FTB</a>
+      <a href="https://beutravel.org/" rel="noopener" aria-label="BEU">BEU</a>
+      <a href="https://secondchancecareers.org/" rel="noopener" aria-label="Second Chance Careers">SC</a>
+    </nav>
     <div>© Find the Beat • A Brent &amp; Co. experience</div>
   </footer>
 </body>
