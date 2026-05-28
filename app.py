@@ -34,7 +34,7 @@ BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentandco.org/")
 FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://findthebeatmusic.com")
 SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
-    "https://brentandco.org/second-chance",
+    "https://secondchancecareers.org/",
 )
 
 SECOND_CHANCE_CATEGORIES = [
