@@ -4,6 +4,7 @@ import sqlite3
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.parse import urlparse
 
 from flask import (
     Flask,
@@ -404,6 +405,7 @@ def init_db():
                 description TEXT DEFAULT '',
                 video_filename TEXT DEFAULT '',
                 thumb_filename TEXT DEFAULT '',
+                external_url TEXT DEFAULT '',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(profile_id) REFERENCES users(id) ON DELETE CASCADE
             )
@@ -435,6 +437,12 @@ def init_db():
         }.items():
             if column not in existing_columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
+
+        performance_columns = {
+            row["name"] for row in conn.execute("PRAGMA table_info(performances)").fetchall()
+        }
+        if "external_url" not in performance_columns:
+            conn.execute("ALTER TABLE performances ADD COLUMN external_url TEXT DEFAULT ''")
 
 
 def allowed_file(filename, allowed_extensions):
@@ -561,15 +569,15 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
         )
 
 
-def create_performance(profile_id, title, description, video_filename, thumb_filename):
+def create_performance(profile_id, title, description, video_filename, thumb_filename, external_url=""):
     with get_db() as conn:
         cursor = conn.execute(
             """
             INSERT INTO performances
-                (profile_id, title, description, video_filename, thumb_filename)
-            VALUES (?, ?, ?, ?, ?)
+                (profile_id, title, description, video_filename, thumb_filename, external_url)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (profile_id, title, description, video_filename, thumb_filename),
+            (profile_id, title, description, video_filename, thumb_filename, external_url),
         )
         return cursor.lastrowid
 
@@ -586,6 +594,17 @@ def create_message(sender_id, recipient_id, body):
         return cursor.lastrowid
 
 
+def split_csv(value):
+    return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def valid_media_url(value):
+    if not value:
+        return True
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
 def row_to_profile(row):
     if row is None:
         return None
@@ -598,6 +617,13 @@ def row_to_profile(row):
     data["photo_filename"] = data.get("profile_pic") or ""
     data["video_filename"] = data.get("profile_video") or ""
     data["name"] = data.get("display_name") or ""
+    data["tags"] = split_csv(data.get("tags_csv", ""))
+    data["services"] = split_csv(data.get("services_csv", ""))
+    data["badges"] = [
+        item
+        for item in [data.get("role"), data.get("instrument"), *data["tags"][:3]]
+        if item
+    ]
     return SimpleNamespace(**data)
 
 
@@ -605,6 +631,7 @@ def row_to_performance(row, profile=None):
     if row is None:
         return None
     data = dict(row)
+    data.setdefault("external_url", "")
     data["profile"] = profile
     return SimpleNamespace(**data)
 
@@ -669,7 +696,7 @@ def get_profile(profile_id):
     return row_to_profile(row)
 
 
-def search_profiles(q="", role="", genre="", city=""):
+def search_profiles(q="", role="", genre="", city="", instrument="", tags=""):
     clauses = []
     params = []
     if q:
@@ -690,6 +717,12 @@ def search_profiles(q="", role="", genre="", city=""):
     if city:
         clauses.append("city LIKE ?")
         params.append(f"%{city}%")
+    if instrument:
+        clauses.append("(instrument LIKE ? OR services_csv LIKE ?)")
+        params.extend([f"%{instrument}%", f"%{instrument}%"])
+    if tags:
+        clauses.append("(tags_csv LIKE ? OR services_csv LIKE ? OR role LIKE ?)")
+        params.extend([f"%{tags}%", f"%{tags}%", f"%{tags}%"])
 
     sql = "SELECT * FROM users"
     if clauses:
@@ -699,6 +732,81 @@ def search_profiles(q="", role="", genre="", city=""):
     with get_db() as conn:
         rows = conn.execute(sql, params).fetchall()
     return [row_to_profile(row) for row in rows]
+
+
+def seed_demo_profiles_if_empty():
+    demo_profiles = [
+        {
+            "email": "sample.producer.dallas@example.com",
+            "display_name": "Sample Dallas Producer",
+            "role": "Producer",
+            "genre": "Hip-Hop, R&B",
+            "city": "Dallas, TX",
+            "bio": "Sample profile only: a Dallas producer looking for artists, songwriters, and engineers to build polished records.",
+            "tags_csv": "Sample Data, Available for Collabs, Producer",
+            "instrument": "Keys, Beat Production",
+            "services_csv": "Production, Arrangement, Mixing Prep",
+        },
+        {
+            "email": "sample.vocalist.atlanta@example.com",
+            "display_name": "Sample Atlanta Vocalist",
+            "role": "Vocalist",
+            "genre": "Soul, Pop, Gospel",
+            "city": "Atlanta, GA",
+            "bio": "Sample profile only: a vocalist with warm tone, harmony skills, and interest in studio sessions or live features.",
+            "tags_csv": "Sample Data, Vocalist, Available for Collabs",
+            "instrument": "Voice",
+            "services_csv": "Hooks, Background Vocals, Live Performance",
+        },
+        {
+            "email": "sample.drummer.houston@example.com",
+            "display_name": "Sample Houston Drummer",
+            "role": "Musician",
+            "genre": "Funk, Gospel, Live Band",
+            "city": "Houston, TX",
+            "bio": "Sample profile only: a drummer available for live shows, rehearsals, and studio tracking.",
+            "tags_csv": "Sample Data, Drummer, Live Ready",
+            "instrument": "Drums",
+            "services_csv": "Live Drums, Studio Tracking, Rehearsals",
+        },
+        {
+            "email": "sample.songwriter.memphis@example.com",
+            "display_name": "Sample Memphis Songwriter",
+            "role": "Songwriter",
+            "genre": "Country Soul, R&B",
+            "city": "Memphis, TN",
+            "bio": "Sample profile only: a songwriter focused on hooks, storytelling, and artist development sessions.",
+            "tags_csv": "Sample Data, Songwriter, Available for Collabs",
+            "instrument": "Lyrics, Melody",
+            "services_csv": "Topline Writing, Lyrics, Song Concepts",
+        },
+    ]
+    with get_db() as conn:
+        count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        if count:
+            return
+        for profile in demo_profiles:
+            conn.execute(
+                """
+                INSERT INTO users (
+                    email, password_hash, display_name, role, genre, city, bio,
+                    tags_csv, instrument, services_csv
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    profile["email"],
+                    generate_password_hash(secrets.token_urlsafe(24)),
+                    profile["display_name"],
+                    profile["role"],
+                    profile["genre"],
+                    profile["city"],
+                    profile["bio"],
+                    profile["tags_csv"],
+                    profile["instrument"],
+                    profile["services_csv"],
+                ),
+            )
 
 
 def second_chance_category(slug):
@@ -936,7 +1044,7 @@ def home():
     role = request.args.get("role", "").strip()
     genre = request.args.get("genre", "").strip()
     city = request.args.get("city", "").strip()
-    creators = search_profiles(q, role, genre, city)
+    creators = search_profiles(q, role, genre, city)[:4]
     return render_template(
         "index.html",
         creators=creators,
@@ -956,8 +1064,21 @@ def healthz():
 def search():
     q = request.args.get("q", "").strip()
     role = request.args.get("role", "").strip()
-    results = search_profiles(q=q, role=role)
-    return render_template("search.html", results=results, q=q, role=role)
+    genre = request.args.get("genre", "").strip()
+    city = request.args.get("city", "").strip()
+    instrument = request.args.get("instrument", "").strip()
+    tags = request.args.get("tags", "").strip()
+    results = search_profiles(q=q, role=role, genre=genre, city=city, instrument=instrument, tags=tags)
+    return render_template(
+        "search.html",
+        results=results,
+        q=q,
+        role=role,
+        genre=genre,
+        city=city,
+        instrument=instrument,
+        tags=tags,
+    )
 
 
 @app.route("/profiles")
@@ -966,9 +1087,17 @@ def profiles():
     role = request.args.get("role", "").strip()
     genre = request.args.get("genre", "").strip()
     city = request.args.get("city", "").strip()
+    instrument = request.args.get("instrument", "").strip()
+    tags = request.args.get("tags", "").strip()
     return render_template(
         "profiles.html",
-        profiles=search_profiles(q=q, role=role, genre=genre, city=city),
+        profiles=search_profiles(q=q, role=role, genre=genre, city=city, instrument=instrument, tags=tags),
+        q=q,
+        role=role,
+        genre=genre,
+        city=city,
+        instrument=instrument,
+        tags=tags,
     )
 
 
@@ -1023,18 +1152,27 @@ def performance_detail(perf_id):
 @app.route("/upload", methods=["GET", "POST"])
 @app.route("/upload-performance", methods=["GET", "POST"])
 @app.route("/performances/upload", methods=["GET", "POST"])
+@login_required
 def upload_performance():
+    user = current_user()
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         description = request.form.get("description", "").strip()
-        profile_id = request.form.get("profile_id", "").strip()
+        external_url = request.form.get("external_url", "").strip()
+        profile_id = request.form.get("profile_id", str(user.id)).strip()
         if not title or not profile_id:
             flash("Title and artist profile are required.")
+            return redirect(url_for("upload_performance"))
+        if not valid_media_url(external_url):
+            flash("Use a full media link that starts with http:// or https://.")
             return redirect(url_for("upload_performance"))
 
         profile = get_profile(profile_id)
         if not profile:
             flash("Please choose a valid profile.")
+            return redirect(url_for("upload_performance"))
+        if profile.id != user.id:
+            flash("You can only add performances to your own profile.")
             return redirect(url_for("upload_performance"))
 
         try:
@@ -1051,6 +1189,9 @@ def upload_performance():
         except ValueError as exc:
             flash(str(exc))
             return redirect(url_for("upload_performance"))
+        if not video_filename and not external_url:
+            flash("Add a performance video file or a media link.")
+            return redirect(url_for("upload_performance"))
 
         perf_id = create_performance(
             profile.id,
@@ -1058,11 +1199,12 @@ def upload_performance():
             description,
             video_filename,
             thumb_filename,
+            external_url,
         )
         flash("Performance uploaded.")
         return redirect(url_for("performance_detail", perf_id=perf_id))
 
-    return render_template("upload_performance.html", profiles=search_profiles())
+    return render_template("upload_performance.html", profiles=[user])
 
 
 @app.route("/performances/new")
@@ -1409,6 +1551,7 @@ def handle_not_found(error):
 
 
 init_db()
+seed_demo_profiles_if_empty()
 
 
 if __name__ == "__main__":

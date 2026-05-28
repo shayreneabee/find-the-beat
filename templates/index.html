@@ -4,163 +4,154 @@
 
 {% block content %}
 <style>
-  .welcome-hero {
-    margin-top: 6.2rem;
-    background: var(--accent);
-    padding: 1.6rem 1.25rem 1.8rem;
-    text-align: center;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
-  }
-
-  .welcome-icon {
-    width: 112px;
-    height: 88px;
-    margin: 0 auto 0.75rem;
+  .flagship-hero {
     display: grid;
-    place-items: center;
-    border: 8px solid var(--text);
-    border-radius: 9px;
-    font-size: 4rem;
-    line-height: 1;
+    gap: 1.15rem;
+    padding: clamp(1.35rem, 5vw, 3rem);
+    background:
+      linear-gradient(135deg, rgba(245, 138, 0, 0.24), rgba(255, 250, 238, 0.96)),
+      var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
   }
 
-  .welcome-hero h1 {
+  .hero-kicker {
     margin: 0;
-    font-size: clamp(2rem, 10vw, 3rem);
-    line-height: 0.95;
-    letter-spacing: 0.06em;
-    text-transform: lowercase;
-    font-weight: 400;
-  }
-
-  .home-actions {
-    display: grid;
-    gap: 0.85rem;
-    padding: 2rem 1.5rem 1rem;
-  }
-
-  .home-actions .button {
-    width: 100%;
-    font-size: 1.35rem;
-    letter-spacing: 0.04em;
-    text-transform: lowercase;
-  }
-
-  .quick-search {
-    padding: 1rem;
-  }
-
-  .quick-search form {
-    display: grid;
-    gap: 0.7rem;
-  }
-
-  .quick-search input {
-    width: 100%;
-    min-height: 52px;
-    border: 0;
-    border-radius: 0;
-    padding: 0 1rem;
-    background: var(--cream);
-    color: var(--text);
-    box-shadow: inset 0 -1px 0 rgba(55, 31, 7, 0.14);
-    font-size: 1rem;
-  }
-
-  .home-section-title {
-    text-align: center;
-    margin: 1.2rem 0 0.1rem;
-    color: var(--text);
-    font-size: 1.55rem;
-    letter-spacing: 0.05em;
-    font-weight: 400;
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
   }
 
-  @media (min-width: 560px) {
-    .welcome-hero {
-      margin-top: 0;
-      min-height: 360px;
-      display: grid;
-      place-items: center;
-      border-radius: 0 0 22px 22px;
-    }
+  .flagship-hero h1 {
+    max-width: 850px;
+    margin: 0;
+    font-size: clamp(2.35rem, 7vw, 5.2rem);
+    line-height: 0.98;
+  }
 
-    .welcome-icon {
-      width: 128px;
-      height: 96px;
-    }
+  .flagship-hero p {
+    max-width: 760px;
+    margin: 0;
+    color: var(--muted);
+    font-size: clamp(1rem, 2vw, 1.2rem);
+  }
 
-    .welcome-hero h1 {
-      font-size: clamp(3rem, 5.4vw, 5rem);
-    }
+  .hero-actions,
+  .creator-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 
-    .home-actions {
+  .creator-strip {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .creator-card {
+    display: grid;
+    grid-template-columns: 86px 1fr;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--lift);
+  }
+
+  .creator-photo,
+  .creator-initial {
+    width: 86px;
+    height: 86px;
+    overflow: hidden;
+    background: var(--accent);
+    box-shadow: var(--lift);
+  }
+
+  .creator-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .creator-initial {
+    display: grid;
+    place-items: center;
+    font-size: 2.25rem;
+    font-weight: 900;
+  }
+
+  .creator-card h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1.1;
+  }
+
+  .creator-card p {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+  }
+
+  .badge-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+  }
+
+  .badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  @media (min-width: 760px) {
+    .creator-strip {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      max-width: 640px;
-      margin: 0 auto;
-    }
-
-    .quick-search {
-      max-width: 760px;
-      margin: 0 auto;
-    }
-
-    .quick-search form {
-      grid-template-columns: 1fr auto;
-    }
-
-    .tile-grid .image-tile[style] {
-      grid-column: auto !important;
-      width: auto !important;
-      justify-self: stretch !important;
     }
   }
 </style>
 
-<section class="welcome-hero">
-  <div class="welcome-icon">♪</div>
-  <h1>welcome<br>to<br>find the beat</h1>
+<section class="flagship-hero">
+  <p class="hero-kicker">Music networking for real collaborators</p>
+  <h1>Find musicians, producers, and collaborators near you.</h1>
+  <p>Create a profile, upload performances, browse artists by role or city, and message the people you want to build with.</p>
+  <div class="hero-actions">
+    <a class="button primary" href="{{ url_for('signup') }}">Join the Network</a>
+    <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
+    <a class="button secondary" href="{{ url_for('login') }}">Sign In</a>
+  </div>
 </section>
 
-<div class="home-actions">
-  {% if user %}
-    <a href="{{ url_for('profile') }}" class="button primary">my profile</a>
-    <a href="{{ url_for('upload_performance') }}" class="button secondary">upload performance</a>
-  {% else %}
-    <a href="{{ url_for('login') }}" class="button primary">sign-in</a>
-    <a href="{{ url_for('signup') }}" class="button secondary">create profile</a>
-  {% endif %}
-</div>
-
-<section class="app-panel quick-search">
-  <form method="GET" action="{{ url_for('search') }}">
-    <input name="q" placeholder="email address, artist, role, or city">
-    <button class="button primary" type="submit">search</button>
-  </form>
-</section>
-
-<h2 class="home-section-title">I’m looking for:</h2>
-<div class="tile-grid">
-  <a class="image-tile" href="{{ url_for('production') }}">
-    <img src="{{ url_for('static', filename='mockup_tiles/production.png') }}" alt="Production">
-    <span>Production</span>
-  </a>
-  <a class="image-tile" href="{{ url_for('composers') }}">
-    <img src="{{ url_for('static', filename='mockup_tiles/composers.png') }}" alt="Composers">
-    <span>Composers</span>
-  </a>
-  <a class="image-tile" href="{{ url_for('artists') }}">
-    <img src="{{ url_for('static', filename='mockup_tiles/artists.png') }}" alt="Artists">
-    <span>Artist</span>
-  </a>
-  <a class="image-tile" href="{{ url_for('musicians') }}">
-    <img src="{{ url_for('static', filename='mockup_tiles/musicians.png') }}" alt="Musicians">
-    <span>Musicians</span>
-  </a>
-  <a class="image-tile" href="{{ url_for('performances') }}" style="grid-column:1 / -1; width:72%; justify-self:center;">
-    <img src="{{ url_for('static', filename='mockup_tiles/showcases.png') }}" alt="Showcases">
-    <span>Showcases</span>
-  </a>
-</div>
+{% if creators %}
+  <h2 class="section-band">featured creators</h2>
+  <section class="creator-strip">
+    {% for p in creators %}
+      <a class="creator-card" href="{{ url_for('profile_detail', profile_id=p.id) }}">
+        {% if p.photo_filename %}
+          <span class="creator-photo"><img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}"></span>
+        {% else %}
+          <span class="creator-initial">{{ (p.display_name or "F")[:1] }}</span>
+        {% endif %}
+        <span>
+          <h3>{{ p.display_name }}</h3>
+          <p>{{ p.role or "Creative" }}{% if p.city %} • {{ p.city }}{% endif %}</p>
+          <span class="badge-line">
+            {% for badge in p.badges[:3] %}
+              <span class="badge">{{ badge }}</span>
+            {% endfor %}
+          </span>
+        </span>
+      </a>
+    {% endfor %}
+  </section>
+{% endif %}
 {% endblock %}

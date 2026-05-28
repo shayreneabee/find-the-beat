@@ -1,54 +1,205 @@
 {% extends "base.html" %}
 
-{% block title %}Profiles{% endblock %}
+{% block title %}Browse Creators{% endblock %}
 
 {% block content %}
 <style>
-  .profiles-note {
-    padding: 0 1.15rem 1rem;
-    text-align: center;
+  .browse-intro {
+    display: grid;
+    gap: 0.6rem;
+    padding: 1.25rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--lift);
+  }
+
+  .browse-intro h1 {
+    margin: 0;
+    font-size: clamp(2rem, 6vw, 3.4rem);
+    line-height: 1;
+  }
+
+  .browse-intro p {
+    margin: 0;
     color: var(--muted);
   }
 
-  .profile-create {
-    margin: 0 1rem 1rem;
-    width: calc(100% - 2rem);
+  .hero-kicker {
+    color: var(--accent-dark) !important;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
-  .profile-empty {
-    margin: 1rem;
-    padding: 1.4rem;
+  .filter-panel {
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .filter-grid input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--cream);
+    color: var(--text);
+  }
+
+  .creator-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .creator-card {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--lift);
+  }
+
+  .creator-head {
+    display: grid;
+    grid-template-columns: 86px 1fr;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .creator-photo,
+  .creator-initial {
+    width: 86px;
+    height: 86px;
+    overflow: hidden;
+    background: var(--accent);
+    box-shadow: var(--lift);
+  }
+
+  .creator-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .creator-initial {
+    display: grid;
+    place-items: center;
+    font-size: 2.2rem;
+    font-weight: 900;
+  }
+
+  .creator-card h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    line-height: 1.1;
+  }
+
+  .creator-meta,
+  .creator-bio {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+  }
+
+  .badge-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .badge {
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  .empty-browse {
+    margin-top: 1rem;
+    padding: 1.5rem;
     text-align: center;
+  }
+
+  @media (min-width: 760px) {
+    .filter-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: center;
+    }
+
+    .creator-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 </style>
 
-<div class="section-band">profiles</div>
-<p class="profiles-note">Browse creative talent across the platform and connect with artists ready to move.</p>
+<section class="browse-intro">
+  <p class="hero-kicker">Creator discovery</p>
+  <h1>Browse creators</h1>
+  <p>Search musicians, producers, vocalists, engineers, composers, and collaborators by role, genre, city, instrument, service, or tag.</p>
+</section>
 
-<a class="button primary profile-create" href="{{ url_for('create_profile') }}">Create Profile</a>
+<section class="app-panel filter-panel">
+  <form class="filter-grid" method="GET" action="{{ url_for('profiles') }}">
+    <input name="q" value="{{ q }}" placeholder="Name, keyword, or bio">
+    <input name="role" value="{{ role }}" placeholder="Role: producer, vocalist">
+    <input name="genre" value="{{ genre }}" placeholder="Genre: R&B, hip-hop">
+    <input name="city" value="{{ city }}" placeholder="City or state">
+    <input name="instrument" value="{{ instrument }}" placeholder="Instrument or service">
+    <input name="tags" value="{{ tags }}" placeholder="Tags: available, sample">
+    <button class="button primary" type="submit">Filter</button>
+    <a class="button secondary" href="{{ url_for('profiles') }}">Clear</a>
+    {% if user %}
+      <a class="button secondary" href="{{ url_for('profile') }}">My Profile</a>
+    {% else %}
+      <a class="button secondary" href="{{ url_for('signup') }}">Join</a>
+    {% endif %}
+  </form>
+</section>
 
 {% if profiles %}
-  <section class="app-panel">
+  <section class="creator-grid">
     {% for p in profiles %}
-      <a class="list-card" href="{{ url_for('profile_detail', profile_id=p.id) }}">
-        {% if p.photo_filename %}
-          <img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}">
-        {% else %}
-          <div class="list-thumb"></div>
-        {% endif %}
-        <div>
-          <h3>{{ p.display_name }}</h3>
-          <div class="muted">
-            {{ p.role or "Creative" }}{% if p.city %}, {{ p.city }}{% endif %}
+      <article class="creator-card">
+        <div class="creator-head">
+          {% if p.photo_filename %}
+            <a class="creator-photo" href="{{ url_for('profile_detail', profile_id=p.id) }}">
+              <img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}">
+            </a>
+          {% else %}
+            <a class="creator-initial" href="{{ url_for('profile_detail', profile_id=p.id) }}">{{ (p.display_name or "F")[:1] }}</a>
+          {% endif %}
+          <div>
+            <h2>{{ p.display_name }}</h2>
+            <p class="creator-meta">{{ p.role or "Creative" }}{% if p.city %} • {{ p.city }}{% endif %}</p>
+            <p class="creator-meta">{{ p.genre or "Open genre" }}{% if p.instrument %} • {{ p.instrument }}{% endif %}</p>
           </div>
         </div>
-      </a>
+        <p class="creator-bio">{{ p.bio or "This creator is building their portfolio." }}</p>
+        <div class="badge-line">
+          {% for badge in p.badges[:5] %}
+            <span class="badge">{{ badge }}</span>
+          {% endfor %}
+        </div>
+        <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
+      </article>
     {% endfor %}
   </section>
 {% else %}
-  <section class="app-panel profile-empty">
-    <strong>No profiles yet.</strong>
-    <div class="muted">Create the first profile and start the room.</div>
+  <section class="app-panel empty-browse">
+    <h2>No matching creators yet.</h2>
+    <p class="muted">Try clearing a filter or searching for a broader role.</p>
+    <a class="button primary" href="{{ url_for('profiles') }}">Show All Creators</a>
   </section>
 {% endif %}
 {% endblock %}

@@ -177,6 +177,8 @@
                         </video>
                     {% elif perf.thumb_filename %}
                         <img src="{{ url_for('uploaded_photo', filename=perf.thumb_filename) }}" alt="{{ perf.title }}">
+                    {% elif perf.external_url %}
+                        <div class="performance-placeholder">Media Link</div>
                     {% else %}
                         <div class="performance-placeholder">No Media Yet</div>
                     {% endif %}
@@ -193,6 +195,9 @@
                 </p>
                 <div class="performance-links">
                     <a href="{{ url_for('performance_detail', perf_id=perf.id) }}">Open</a>
+                    {% if perf.external_url %}
+                        <a href="{{ perf.external_url }}" target="_blank" rel="noopener">Media</a>
+                    {% endif %}
                     {% if perf.profile %}
                         <a href="{{ url_for('profile_detail', profile_id=perf.profile.id) }}">Artist</a>
                     {% endif %}
