@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.display_name if user else "Profile" }} | Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .profile-greeting,
+  .profile-line {
+    background: var(--accent);
+    text-align: center;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.35rem;
+    line-height: 1.15;
+  }
+
+  .profile-photo-wrap {
+    display: grid;
+    place-items: center;
+    padding: 0.75rem 1rem 1rem;
+  }
+
+  .profile-photo {
+    width: min(248px, 78vw);
+    aspect-ratio: 1.62 / 1;
+    overflow: hidden;
+    background: var(--cream);
+    box-shadow: var(--lift);
+  }
+
+  .profile-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-initial {
+    height: 100%;
+    display: grid;
+    place-items: center;
+    background:
+      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.16) 0 4px, transparent 4px 12px),
+      radial-gradient(circle at 25% 20%, rgba(255, 224, 181, 0.78), transparent 38%),
+      linear-gradient(135deg, #f58a00, #ffe0b5);
+    font-size: 4rem;
+    font-weight: 800;
+  }
+
+  .completion-card {
+    display: grid;
+    gap: 0.8rem;
+    margin: 0 1rem 1rem;
+    padding: 1rem;
+  }
+
+  .completion-meter {
+    height: 0.72rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(111, 86, 56, 0.18);
+  }
+
+  .completion-meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent), #2f1e0d);
+  }
+
+  .completion-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .completion-list span {
+    padding: 0.35rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(255, 224, 181, 0.62);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  .completion-list .done {
+    background: rgba(47, 30, 13, 0.12);
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+
+  .profile-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    padding: 1.2rem 1rem;
+    text-align: center;
+  }
+
+  .profile-action {
+    min-height: 118px;
+    display: grid;
+    place-items: center;
+    color: var(--text);
+  }
+
+  .profile-action span {
+    display: block;
+    font-size: 2.65rem;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+
+  .profile-action strong {
+    font-size: 1.1rem;
+    line-height: 1.12;
+    font-weight: 500;
+  }
+
+  .profile-video,
+  .profile-details,
+  .danger-actions {
+    margin: 0 1rem 1rem;
+  }
+
+  .profile-video video {
+    width: 100%;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(55, 31, 7, 0.12);
+  }
+
+  .detail-row small {
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .danger-actions {
+    display: grid;
+    gap: 0.65rem;
+  }
+</style>
+
+{% if user %}
+  <div class="section-band">my profile</div>
+  <div class="profile-greeting">Hi {{ user.display_name }}!</div>
+
+  <div class="profile-photo-wrap">
+    <div class="profile-photo">
+      {% if user.profile_pic %}
+        <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
+      {% else %}
+        <div class="profile-initial">{{ user.display_name[:1] }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="profile-line">{{ user.city or "Add your city" }}</div>
+  <div class="profile-line">{{ user.role or "Add talent" }}{% if user.instrument %} • {{ user.instrument }}{% endif %}</div>
+
+  <section class="app-panel completion-card">
+    <strong>Profile {{ completion.percent }}% complete</strong>
+    <p class="muted">Complete your profile to help other creators find you. You can still skip and browse anytime.</p>
+    <div class="completion-meter" aria-label="Profile completion"><span style="width: {{ completion.percent }}%;"></span></div>
+    <div class="completion-list">
+      {% for label, done in completion.items %}
+        <span class="{{ 'done' if done else '' }}">{{ label }}</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="profile-actions-grid">
+    <a class="profile-action" href="{{ url_for('upload_performance') }}">
+      <span>✦</span>
+      <strong>Upload a<br>Performance</strong>
+    </a>
+    <a class="profile-action" href="{{ url_for('inbox') }}">
+      <span>▭</span>
+      <strong>Inbox{% if unread_count %}<br>{{ unread_count }} new{% endif %}</strong>
+    </a>
+    <a class="profile-action" href="{{ url_for('edit_profile') }}">
+      <span>◉</span>
+      <strong>Edit<br>Profile</strong>
+    </a>
+    <a class="profile-action" href="{{ url_for('profiles') }}">
+      <span>⌕</span>
+      <strong>Find<br>Creatives</strong>
+    </a>
+  </section>
+
+  {% if user.profile_video %}
+    <section class="app-panel profile-video">
+      <video controls>
+        <source src="{{ url_for('uploaded_file', filename=user.profile_video) }}">
+        Your browser does not support video playback.
+      </video>
+    </section>
+  {% endif %}
+
+  <section class="app-panel profile-details">
+    <div class="detail-row"><small>Genre</small><strong>{{ user.genre or "Add genre" }}</strong></div>
+    <div class="detail-row"><small>Services</small><strong>{{ user.services_csv or "Add services" }}</strong></div>
+    <div class="detail-row"><small>Tags</small><strong>{{ user.tags_csv or "Add tags" }}</strong></div>
+    <div class="detail-row"><small>Social</small><strong>{{ "Added" if user.social_links else "Add social links" }}</strong></div>
+    <div class="detail-row"><small>Bio</small><strong>{{ user.bio or "Add bio" }}</strong></div>
+  </section>
+
+  <section class="danger-actions">
+    <a class="button primary" href="{{ url_for('logout') }}">Logout</a>
+    {% if user.profile_pic %}
+      <form method="POST" action="{{ url_for('delete_profile_photo') }}">
+        <button type="submit" class="button secondary" onclick="return confirm('Remove your profile picture?');">Delete Profile Picture</button>
+      </form>
+    {% endif %}
+    {% if user.profile_video %}
+      <form method="POST" action="{{ url_for('delete_profile_video') }}">
+        <button type="submit" class="button secondary" onclick="return confirm('Remove your profile video?');">Delete Profile Video</button>
+      </form>
+    {% endif %}
+    <form method="POST" action="{{ url_for('delete_profile') }}">
+      <button type="submit" class="button secondary" onclick="return confirm('Delete your profile? This cannot be undone.');">Delete Profile</button>
+    </form>
+  </section>
+{% else %}
+  <section class="app-panel" style="margin:1rem; padding:1.4rem; text-align:center;">
+    <h1>Profile not found</h1>
+    <a href="{{ url_for('home') }}" class="button primary">Back Home</a>
+  </section>
+{% endif %}
+{% endblock %}
