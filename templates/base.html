@@ -8,18 +8,19 @@
 
   <style>
     :root {
-      --bg: #fff7f2;
-      --surface: rgba(255, 255, 255, 0.82);
-      --card: rgba(255, 255, 255, 0.92);
-      --text: #241814;
-      --muted: #74625b;
-      --line: rgba(226, 205, 194, 0.75);
-      --accent: #e4572e;
-      --accent-dark: #bf3e20;
-      --accent-soft: #ffe4d8;
-      --cream: #fffaf6;
-      --shadow: 0 18px 55px rgba(68, 34, 20, 0.10);
-      --max: 1120px;
+      --bg: #f2ecd9;
+      --surface: rgba(255, 249, 235, 0.86);
+      --card: rgba(255, 250, 238, 0.96);
+      --text: #2f1e0d;
+      --muted: #6f5638;
+      --line: rgba(78, 47, 16, 0.16);
+      --accent: #f58a00;
+      --accent-dark: #9a4d00;
+      --accent-soft: #ffe0b5;
+      --cream: #fbf4de;
+      --shadow: 0 14px 30px rgba(55, 31, 7, 0.18);
+      --lift: 0 4px 10px rgba(55, 31, 7, 0.24);
+      --max: 430px;
     }
 
     * {
@@ -32,14 +33,14 @@
 
     body {
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 94px;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(228, 87, 46, 0.14), transparent 28%),
-        radial-gradient(circle at top right, rgba(255, 194, 153, 0.16), transparent 28%),
-        linear-gradient(180deg, #fffaf7 0%, var(--bg) 100%);
-      line-height: 1.6;
-      min-height: 100vh;
+        linear-gradient(90deg, rgba(0, 0, 0, 0.04), transparent 20%, transparent 80%, rgba(0, 0, 0, 0.04)),
+        var(--bg);
+      font-family: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.5;
     }
 
     a {
@@ -47,13 +48,21 @@
       text-decoration: none;
     }
 
-    img {
+    img,
+    video {
       max-width: 100%;
       display: block;
     }
 
+    input,
+    textarea,
+    select,
+    button {
+      font: inherit;
+    }
+
     .shell {
-      width: min(var(--max), calc(100% - 2rem));
+      width: min(var(--max), 100%);
       margin: 0 auto;
     }
 
@@ -61,132 +70,183 @@
       position: sticky;
       top: 0;
       z-index: 50;
-      background: rgba(255, 247, 242, 0.78);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--line);
+    }
+
+    .ecosystem-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      min-height: 34px;
+      padding: 0.35rem 0.9rem;
+      background: rgba(255, 250, 238, 0.88);
+      border-bottom: 1px solid rgba(78, 47, 16, 0.12);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .ecosystem-strip a {
+      color: var(--accent-dark);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
 
     .topbar {
-      min-height: 76px;
+      min-height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 0.7rem;
+      padding: 0 0.9rem;
+      background: var(--accent);
+      border-bottom: 6px solid var(--cream);
+      box-shadow: 0 6px 14px rgba(55, 31, 7, 0.14);
     }
 
     .brand {
+      min-width: 0;
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 0.55rem;
+      color: var(--text);
       font-weight: 900;
-      letter-spacing: -0.02em;
     }
 
     .brand-mark {
-      width: 44px;
-      height: 44px;
-      border-radius: 16px;
+      width: 36px;
+      height: 52px;
       display: grid;
       place-items: center;
-      background: linear-gradient(135deg, var(--accent), #f4a261);
-      color: white;
-      box-shadow: 0 12px 30px rgba(228, 87, 46, 0.24);
-      font-size: 1.1rem;
+      font-size: 2.25rem;
+      line-height: 1;
     }
 
     .brand-copy small {
-      display: block;
-      color: var(--muted);
-      font-size: 0.74rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 800;
+      display: none;
     }
 
     .brand-copy span {
       display: block;
-      font-size: 1rem;
+      color: var(--text);
+      font-size: clamp(1.45rem, 7vw, 2.05rem);
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: -0.06em;
+      white-space: nowrap;
+      text-shadow: 1px 1px 0 rgba(255, 232, 172, 0.5);
     }
 
     .nav {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      z-index: 60;
+      width: min(var(--max), 100%);
+      min-height: 78px;
+      transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 0.65rem;
-      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 0;
+      padding: 0.35rem 0.25rem 0.55rem;
+      background: var(--accent);
+      border-top: 1px solid rgba(82, 45, 5, 0.22);
+      box-shadow: 0 -10px 24px rgba(55, 31, 7, 0.15);
     }
 
     .nav-pill {
+      min-width: 66px;
+      min-height: 62px;
       display: inline-flex;
       align-items: center;
-      min-height: 40px;
-      padding: 0 0.9rem;
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: 0.92rem;
-      font-weight: 800;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0.05rem;
+      padding: 0.25rem 0.4rem;
       border: 1px solid transparent;
+      border-radius: 20px;
+      color: var(--text);
+      font-size: 0.84rem;
+      font-weight: 700;
       transition: 0.2s ease;
     }
 
+    .nav-pill::before {
+      display: block;
+      font-size: 1.9rem;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .nav-pill.home-link::before { content: "⌂"; }
+    .nav-pill.search-link::before,
+    .nav-pill.browse-link::before { content: "⌕"; }
+    .nav-pill.performances-link::before { content: "✦"; }
+    .nav-pill.inbox-link::before { content: "▭"; }
+    .nav-pill.profile-link::before,
+    .nav-pill.login-link::before { content: "◉"; }
+    .nav-pill.logout-link::before { content: "↗"; }
+    .nav-pill.brent-link::before { content: "&"; }
+
     .nav-pill:hover {
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.72);
-      border-color: var(--line);
+      background: rgba(255, 245, 219, 0.34);
+      border-color: rgba(82, 45, 5, 0.15);
       transform: translateY(-1px);
     }
 
     .nav-pill.primary {
-      background: var(--accent);
-      color: white;
-      box-shadow: 0 10px 24px rgba(228, 87, 46, 0.22);
-    }
-
-    .nav-pill.primary:hover {
-      background: var(--accent-dark);
-      color: white;
+      display: none;
     }
 
     .main {
-      padding: 3rem 0 5rem;
+      min-height: calc(100vh - 72px);
+      padding: 1.25rem 0 7rem;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent 34%),
+        var(--bg);
     }
 
     .flash-wrap {
       display: grid;
       gap: 0.75rem;
-      margin-bottom: 1.25rem;
+      margin: 0 0.9rem 1rem;
     }
 
     .flash {
+      padding: 1rem 1.1rem;
       background: var(--card);
       border: 1px solid var(--line);
-      border-left: 5px solid var(--accent);
-      border-radius: 18px;
-      padding: 1rem 1.1rem;
-      box-shadow: 0 10px 26px rgba(68, 34, 20, 0.06);
+      border-left: 6px solid var(--accent);
+      border-radius: 14px;
+      box-shadow: var(--lift);
       color: var(--text);
       font-weight: 700;
     }
 
-    .page-card {
+    .page-card,
+    .app-panel {
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 30px;
-      box-shadow: var(--shadow);
+      border-radius: 18px;
+      box-shadow: var(--lift);
+      overflow: hidden;
     }
 
     .button {
+      min-height: 54px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 50px;
-      padding: 0 1.2rem;
-      border-radius: 999px;
+      padding: 0 1.25rem;
+      border-radius: 6px;
       border: 1px solid transparent;
       font-weight: 900;
       cursor: pointer;
       transition: 0.2s ease;
       font-size: 0.95rem;
-      font-family: inherit;
     }
 
     .button:hover {
@@ -195,71 +255,379 @@
 
     .button.primary {
       background: var(--accent);
-      color: white;
-      box-shadow: 0 12px 26px rgba(228, 87, 46, 0.22);
+      color: var(--text);
+      box-shadow: var(--lift);
     }
 
     .button.primary:hover {
-      background: var(--accent-dark);
+      background: #ff9a12;
     }
 
     .button.secondary {
-      background: rgba(255, 255, 255, 0.76);
-      border-color: var(--line);
+      background: rgba(255, 250, 238, 0.8);
+      border-color: rgba(76, 46, 13, 0.2);
+      color: var(--text);
+      box-shadow: 0 4px 8px rgba(55, 31, 7, 0.10);
+    }
+
+    .section-band {
+      width: 100%;
+      margin: 0.55rem 0 0.9rem;
+      padding: 0.82rem 1rem;
+      background: var(--accent);
+      color: var(--text);
+      text-align: center;
+      font-size: clamp(1.75rem, 9vw, 2.35rem);
+      line-height: 1.08;
+      letter-spacing: 0.04em;
+      text-transform: lowercase;
+      font-weight: 400;
+    }
+
+    .tile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .image-tile {
+      display: block;
+      overflow: hidden;
+      background: var(--card);
+      border: 1px solid rgba(73, 45, 13, 0.22);
+      box-shadow: var(--lift);
+      color: var(--text);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .image-tile:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .image-tile img {
+      width: 100%;
+      aspect-ratio: 1.55 / 1;
+      object-fit: cover;
+    }
+
+    .image-tile span {
+      min-height: 38px;
+      display: block;
+      padding: 0.35rem 0.45rem;
+      text-align: center;
+      font-size: 1.1rem;
+      line-height: 1.1;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .list-card {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      border-bottom: 6px solid rgba(55, 31, 7, 0.78);
       color: var(--text);
     }
 
-    .button.secondary:hover {
-      background: white;
+    .list-card img,
+    .list-thumb {
+      width: 92px;
+      height: 92px;
+      object-fit: cover;
+      background: var(--cream);
+      box-shadow: var(--lift);
+    }
+
+    .list-card h3 {
+      margin: 0;
+      font-size: 1.35rem;
+      line-height: 1.15;
+      font-weight: 500;
+    }
+
+    .muted {
+      color: var(--muted);
     }
 
     .footer {
-      border-top: 1px solid var(--line);
-      padding: 2rem 0;
+      display: grid;
+      gap: 0.85rem;
+      padding: 1.25rem 0.9rem 2rem;
       color: var(--muted);
+      text-align: center;
       font-size: 0.92rem;
+      font-weight: 700;
     }
 
-    .footer-row {
+    .ecosystem-dock {
       display: flex;
-      justify-content: space-between;
-      gap: 1rem;
+      justify-content: center;
       flex-wrap: wrap;
-      align-items: center;
+      gap: 0.65rem;
     }
 
-    .footer-links {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
+    .ecosystem-dock a {
+      width: 58px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(78, 47, 16, 0.14);
+      border-radius: 18px;
+      background: rgba(255, 250, 238, 0.78);
+      color: var(--text);
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: var(--lift);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
 
-    .footer-links a {
-      font-weight: 800;
+    .ecosystem-dock a:hover {
+      transform: translateY(-2px);
+      background: var(--accent-soft);
+      box-shadow: var(--shadow);
     }
 
-    .footer-links a:hover {
-      color: var(--accent-dark);
-    }
+    @media (min-width: 560px) {
+      :root {
+        --max: 1120px;
+      }
 
-    @media (max-width: 780px) {
+      body {
+        padding-bottom: 0;
+        background:
+          radial-gradient(circle at top left, rgba(245, 138, 0, 0.18), transparent 28%),
+          linear-gradient(90deg, rgba(55, 31, 7, 0.06), transparent 16%, transparent 84%, rgba(55, 31, 7, 0.06)),
+          var(--bg);
+      }
+
+      .shell {
+        width: min(var(--max), calc(100% - 2rem));
+      }
+
+      .topbar-wrap {
+        background: var(--accent);
+        box-shadow: 0 8px 18px rgba(55, 31, 7, 0.14);
+      }
+
+      .ecosystem-strip {
+        background: rgba(255, 250, 238, 0.92);
+        font-size: 0.8rem;
+      }
+
       .topbar {
-        align-items: flex-start;
+        min-height: 84px;
+        padding: 0 1.35rem;
+        border-bottom-width: 8px;
+        box-shadow: none;
         flex-direction: column;
-        padding: 1rem 0;
+        align-items: stretch;
+        justify-content: center;
+        padding-top: 0.65rem;
+        padding-bottom: 0.55rem;
+      }
+
+      .brand-copy span {
+        font-size: clamp(1.9rem, 3.2vw, 3rem);
+      }
+
+      .brand {
+        justify-content: center;
+      }
+
+      .brand-mark {
+        font-size: 2.6rem;
       }
 
       .nav {
+        position: static;
         width: 100%;
+        min-height: 0;
+        transform: none;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0;
+        background: transparent;
+        border-top: 0;
+        box-shadow: none;
       }
 
       .nav-pill {
-        min-height: 38px;
-        padding: 0 0.75rem;
+        min-width: 74px;
+        min-height: 54px;
+        padding: 0.35rem 0.7rem;
+        border-radius: 16px;
+        font-size: 0.84rem;
+      }
+
+      .nav-pill::before {
+        font-size: 1.25rem;
+      }
+
+      .nav-pill.primary {
+        display: inline-flex;
       }
 
       .main {
-        padding-top: 2rem;
+        padding: 2rem 0 5rem;
+      }
+
+      .section-band {
+        margin-top: 0;
+        border-radius: 0 0 18px 18px;
+        font-size: clamp(2rem, 4vw, 3.25rem);
+      }
+
+      .tile-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: start;
+        gap: 1.15rem;
+      }
+
+      .image-tile span {
+        font-size: 1rem;
+      }
+
+      .list-card {
+        grid-template-columns: 112px 1fr;
+        min-height: 132px;
+      }
+
+      .list-card img,
+      .list-thumb {
+        width: 112px;
+        height: 112px;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .topbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+
+      .brand {
+        justify-content: flex-start;
+      }
+
+      .nav {
+        width: auto;
+        justify-content: flex-end;
+      }
+    }
+
+    /* Brent & Co ecosystem visual system */
+    :root {
+      --bc-radius: 28px;
+      --bc-radius-sm: 18px;
+      --bc-card: rgba(255, 250, 238, 0.88);
+      --bc-shadow: 0 22px 60px rgba(55, 31, 7, 0.14);
+      --bc-lift: 0 14px 34px rgba(55, 31, 7, 0.10);
+      --bc-ease: 180ms ease;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 16% 4%, rgba(245, 138, 0, 0.26), transparent 28rem),
+        linear-gradient(180deg, #fff6e8 0%, #f2ecd9 54%, #fffaf0 100%);
+    }
+
+    .topbar-wrap {
+      backdrop-filter: blur(22px);
+    }
+
+    .ecosystem-strip,
+    .topbar {
+      background: rgba(255, 250, 238, 0.82);
+      color: var(--text);
+    }
+
+    .nav-pill,
+    .button,
+    .flash,
+    .page-card,
+    .app-panel,
+    .list-card,
+    .image-tile {
+      transition: transform var(--bc-ease), box-shadow var(--bc-ease), background var(--bc-ease);
+    }
+
+    .page-card,
+    .app-panel,
+    .list-card,
+    .image-tile {
+      border: 1px solid rgba(255, 255, 255, 0.74);
+      border-radius: var(--bc-radius);
+      background: var(--bc-card);
+      box-shadow: var(--bc-lift);
+    }
+
+    .list-card:hover,
+    .image-tile:hover,
+    .app-panel:hover,
+    .page-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--bc-shadow);
+    }
+
+    .button {
+      border-radius: 999px;
+    }
+
+    .button.primary {
+      background: linear-gradient(180deg, #ffb05c, #f58a00);
+      box-shadow: 0 14px 30px rgba(245, 138, 0, 0.22);
+    }
+
+    .section-band {
+      border-radius: var(--bc-radius);
+      background: linear-gradient(135deg, rgba(245, 138, 0, 0.95), rgba(255, 206, 132, 0.9));
+      box-shadow: var(--bc-lift);
+      letter-spacing: 0;
+    }
+
+    .flagship-hero,
+    .artist-hero,
+    .browse-intro,
+    .upload-hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .flagship-hero::after,
+    .artist-hero::after,
+    .browse-intro::after,
+    .upload-hero::after {
+      content: "";
+      position: absolute;
+      right: 1.1rem;
+      bottom: 1rem;
+      width: min(14rem, 42vw);
+      aspect-ratio: 0.72;
+      z-index: -1;
+      border-radius: 2rem;
+      background:
+        linear-gradient(180deg, rgba(255, 250, 238, 0.96), rgba(255, 215, 165, 0.76)),
+        radial-gradient(circle at 40% 20%, rgba(245, 138, 0, 0.26), transparent 8rem);
+      box-shadow: 0 24px 60px rgba(55, 31, 7, 0.16);
+      transform: rotate(5deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
       }
     }
   </style>
@@ -269,60 +637,60 @@
 
 <body>
   <div class="topbar-wrap">
+    <div class="ecosystem-strip">
+      <span>A Brent &amp; Co. app</span>
+      <a href="https://brentandco.org/" rel="noopener">Back to Brent &amp; Co.</a>
+    </div>
+
     <header class="topbar shell">
-      <a href="{{ brent_co_url }}" class="brand" target="_blank" rel="noreferrer" aria-label="Back to Brent & Co homepage">
-        <div class="brand-mark">♪</div>
+      <a href="{{ url_for('home') }}" class="brand">
         <div class="brand-copy">
           <small>Brent &amp; Co.</small>
           <span>Find the Beat</span>
         </div>
+        <div class="brand-mark">♪</div>
       </a>
 
       <nav class="nav" aria-label="Main navigation">
-        <a href="{{ url_for('home') }}" class="nav-pill">Home</a>
-        <a href="{{ url_for('search') }}" class="nav-pill">Search</a>
-        <a href="{{ url_for('profiles') }}" class="nav-pill">Profiles</a>
-        <a href="{{ url_for('performances') }}" class="nav-pill">Performances</a>
-        <a href="{{ brent_co_url }}" class="nav-pill" target="_blank" rel="noreferrer">Brent &amp; Co.</a>
+        <a href="{{ url_for('home') }}" class="nav-pill home-link">Home</a>
+        <a href="{{ url_for('profiles') }}" class="nav-pill browse-link">Browse</a>
 
         {% if user %}
-          <a href="{{ url_for('profile') }}" class="nav-pill">My Profile</a>
-          <a href="{{ url_for('inbox') }}" class="nav-pill">Inbox</a>
-          <a href="{{ url_for('logout') }}" class="nav-pill">Logout</a>
+          <a href="{{ url_for('profile') }}" class="nav-pill profile-link">My Profile</a>
+          <a href="{{ url_for('inbox') }}" class="nav-pill inbox-link">Inbox</a>
+          <a href="{{ url_for('logout') }}" class="nav-pill logout-link">Logout</a>
         {% else %}
-          <a href="{{ url_for('login') }}" class="nav-pill">Login</a>
-          <a href="{{ url_for('signup') }}" class="nav-pill primary">Create Profile</a>
+          <a href="{{ url_for('login') }}" class="nav-pill login-link">Login</a>
+          <a href="{{ url_for('signup') }}" class="nav-pill primary">Join</a>
         {% endif %}
+        <a href="https://brentandco.org/" class="nav-pill brent-link" rel="noopener">Brent &amp; Co</a>
       </nav>
     </header>
   </div>
 
-  <main class="main">
-    <div class="shell">
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="flash-wrap">
-            {% for message in messages %}
-              <div class="flash">{{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
+  <main class="main shell">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-wrap">
+          {% for message in messages %}
+            <div class="flash">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
-      {% block content %}{% endblock %}
-    </div>
+    {% block content %}{% endblock %}
   </main>
 
-  <footer class="footer">
-    <div class="shell footer-row">
-      <div>© Find the Beat • A Brent &amp; Co. experience</div>
-      <div class="footer-links">
-        <a href="{{ url_for('home') }}">Discover</a>
-        <a href="{{ url_for('profiles') }}">Profiles</a>
-        <a href="{{ url_for('performances') }}">Performances</a>
-        <a href="{{ url_for('signup') }}">Join</a>
-      </div>
-    </div>
+  <footer class="footer shell">
+    <nav class="ecosystem-dock" aria-label="Brent and Co ecosystem quick links">
+      <a href="https://brentandco.org/" rel="noopener" aria-label="Brent & Co homepage">BC</a>
+      <a href="https://letscookyall.com/" rel="noopener" aria-label="Let's Cook Y'all">LC</a>
+      <a href="https://findthebeatmusic.com/" rel="noopener" aria-label="Find the Beat">FTB</a>
+      <a href="https://beutravel.org/" rel="noopener" aria-label="BEU">BEU</a>
+      <a href="https://secondchancecareers.org/" rel="noopener" aria-label="Second Chance Careers">SC</a>
+    </nav>
+    <div>© Find the Beat • A Brent &amp; Co. experience</div>
   </footer>
 </body>
 </html>
