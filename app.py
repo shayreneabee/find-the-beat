@@ -25,6 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent
 INSTANCE_DIR = Path(os.getenv("INSTANCE_DIR", BASE_DIR / "instance"))
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", BASE_DIR / "static" / "uploads"))
 DB_PATH = Path(os.getenv("DATABASE_PATH", INSTANCE_DIR / "find_the_beat_v2.db"))
+BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentandco.org/")
 
 INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -295,7 +296,7 @@ def all_performances():
 
 @app.context_processor
 def inject_user():
-    return {"user": current_user()}
+    return {"user": current_user(), "brent_co_url": BRENT_CO_URL}
 
 
 @app.route("/")

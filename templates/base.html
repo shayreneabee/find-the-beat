@@ -270,7 +270,7 @@
 <body>
   <div class="topbar-wrap">
     <header class="topbar shell">
-      <a href="{{ url_for('home') }}" class="brand">
+      <a href="{{ brent_co_url }}" class="brand" target="_blank" rel="noreferrer" aria-label="Back to Brent & Co homepage">
         <div class="brand-mark">♪</div>
         <div class="brand-copy">
           <small>Brent &amp; Co.</small>
@@ -283,6 +283,7 @@
         <a href="{{ url_for('search') }}" class="nav-pill">Search</a>
         <a href="{{ url_for('profiles') }}" class="nav-pill">Profiles</a>
         <a href="{{ url_for('performances') }}" class="nav-pill">Performances</a>
+        <a href="{{ brent_co_url }}" class="nav-pill" target="_blank" rel="noreferrer">Brent &amp; Co.</a>
 
         {% if user %}
           <a href="{{ url_for('profile') }}" class="nav-pill">My Profile</a>
