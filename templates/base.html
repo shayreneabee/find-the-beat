@@ -487,6 +487,114 @@
         justify-content: flex-end;
       }
     }
+
+    /* Brent & Co ecosystem visual system */
+    :root {
+      --bc-radius: 28px;
+      --bc-radius-sm: 18px;
+      --bc-card: rgba(255, 250, 238, 0.88);
+      --bc-shadow: 0 22px 60px rgba(55, 31, 7, 0.14);
+      --bc-lift: 0 14px 34px rgba(55, 31, 7, 0.10);
+      --bc-ease: 180ms ease;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 16% 4%, rgba(245, 138, 0, 0.26), transparent 28rem),
+        linear-gradient(180deg, #fff6e8 0%, #f2ecd9 54%, #fffaf0 100%);
+    }
+
+    .topbar-wrap {
+      backdrop-filter: blur(22px);
+    }
+
+    .ecosystem-strip,
+    .topbar {
+      background: rgba(255, 250, 238, 0.82);
+      color: var(--text);
+    }
+
+    .nav-pill,
+    .button,
+    .flash,
+    .page-card,
+    .app-panel,
+    .list-card,
+    .image-tile {
+      transition: transform var(--bc-ease), box-shadow var(--bc-ease), background var(--bc-ease);
+    }
+
+    .page-card,
+    .app-panel,
+    .list-card,
+    .image-tile {
+      border: 1px solid rgba(255, 255, 255, 0.74);
+      border-radius: var(--bc-radius);
+      background: var(--bc-card);
+      box-shadow: var(--bc-lift);
+    }
+
+    .list-card:hover,
+    .image-tile:hover,
+    .app-panel:hover,
+    .page-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--bc-shadow);
+    }
+
+    .button {
+      border-radius: 999px;
+    }
+
+    .button.primary {
+      background: linear-gradient(180deg, #ffb05c, #f58a00);
+      box-shadow: 0 14px 30px rgba(245, 138, 0, 0.22);
+    }
+
+    .section-band {
+      border-radius: var(--bc-radius);
+      background: linear-gradient(135deg, rgba(245, 138, 0, 0.95), rgba(255, 206, 132, 0.9));
+      box-shadow: var(--bc-lift);
+      letter-spacing: 0;
+    }
+
+    .flagship-hero,
+    .artist-hero,
+    .browse-intro,
+    .upload-hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .flagship-hero::after,
+    .artist-hero::after,
+    .browse-intro::after,
+    .upload-hero::after {
+      content: "";
+      position: absolute;
+      right: 1.1rem;
+      bottom: 1rem;
+      width: min(14rem, 42vw);
+      aspect-ratio: 0.72;
+      z-index: -1;
+      border-radius: 2rem;
+      background:
+        linear-gradient(180deg, rgba(255, 250, 238, 0.96), rgba(255, 215, 165, 0.76)),
+        radial-gradient(circle at 40% 20%, rgba(245, 138, 0, 0.26), transparent 8rem);
+      box-shadow: 0 24px 60px rgba(55, 31, 7, 0.16);
+      transform: rotate(5deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
   </style>
 
   {% block head %}{% endblock %}
