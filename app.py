@@ -1,3 +1,4 @@
+import hashlib
 import os
 import secrets
 import sqlite3
@@ -9,6 +10,7 @@ from urllib.parse import urlparse
 from flask import (
     Flask,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -37,6 +39,7 @@ SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
     "https://secondchancecareers.org/",
 )
+AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 
 SECOND_CHANCE_CATEGORIES = [
     {
@@ -397,7 +400,9 @@ def init_db():
                 tiktok_url TEXT DEFAULT '',
                 youtube_url TEXT DEFAULT '',
                 spotify_url TEXT DEFAULT '',
-                linkedin_url TEXT DEFAULT ''
+                linkedin_url TEXT DEFAULT '',
+                brent_account_id TEXT DEFAULT '',
+                auth_provider TEXT DEFAULT 'local'
             )
             """
         )
@@ -444,6 +449,8 @@ def init_db():
             "youtube_url": "TEXT DEFAULT ''",
             "spotify_url": "TEXT DEFAULT ''",
             "linkedin_url": "TEXT DEFAULT ''",
+            "brent_account_id": "TEXT DEFAULT ''",
+            "auth_provider": "TEXT DEFAULT 'local'",
         }.items():
             if column not in existing_columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
@@ -489,6 +496,12 @@ def remove_upload(filename):
         path = folder / filename
         if path.exists() and path.is_file():
             path.unlink()
+
+
+def brent_account_id(email):
+    normalized = (email or "").strip().lower()
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:24]
+    return f"brent-local-{digest}"
 
 
 def profile_form_fields():
@@ -538,9 +551,10 @@ def create_user(email, password, fields, profile_pic):
             INSERT INTO users (
                 email, password_hash, display_name, role, genre, city, bio,
                 tags_csv, instrument, services_csv, profile_pic,
-                instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url
+                instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url,
+                brent_account_id, auth_provider
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 email,
@@ -559,6 +573,8 @@ def create_user(email, password, fields, profile_pic):
                 fields.get("youtube_url", ""),
                 fields.get("spotify_url", ""),
                 fields.get("linkedin_url", ""),
+                brent_account_id(email),
+                AUTH_PROVIDER,
             ),
         )
         return cursor.lastrowid
@@ -662,6 +678,10 @@ def row_to_profile(row):
     data.setdefault("tags_csv", "")
     data.setdefault("instrument", "")
     data.setdefault("services_csv", "")
+    data.setdefault("brent_account_id", "")
+    data.setdefault("auth_provider", AUTH_PROVIDER)
+    data["brent_account_id"] = data["brent_account_id"] or brent_account_id(data.get("email", ""))
+    data["auth_provider"] = data["auth_provider"] or AUTH_PROVIDER
     data["photo_filename"] = data.get("profile_pic") or ""
     data["video_filename"] = data.get("profile_video") or ""
     data["name"] = data.get("display_name") or ""
@@ -1392,6 +1412,11 @@ def login():
 
         session.clear()
         session["user_id"] = row["id"]
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE users SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?), auth_provider = COALESCE(NULLIF(auth_provider, ''), ?) WHERE id = ?",
+                (brent_account_id(row["email"]), AUTH_PROVIDER, row["id"]),
+            )
         count = unread_message_count(row["id"])
         flash("You have new messages." if count else "You are logged in.")
         return redirect(url_for("profile"))
@@ -1563,6 +1588,20 @@ def new_message(recipient_id=None):
 def inbox():
     user = current_user()
     return render_template("inbox.html", msgs=get_inbox_messages(user.id))
+
+
+@app.route("/api/messages/unread-count")
+@login_required
+def api_unread_count():
+    user = current_user()
+    return jsonify({
+        "unreadCount": unread_message_count(user.id),
+        "futureNotifications": {
+            "email": False,
+            "push": False,
+            "note": "This endpoint supports future live badge refresh, push, and email notifications.",
+        },
+    })
 
 
 @app.route("/showcase")

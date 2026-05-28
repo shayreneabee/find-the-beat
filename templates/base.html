@@ -675,7 +675,7 @@
 
         {% if user %}
           <a href="{{ url_for('profile') }}" class="nav-pill profile-link">My Profile</a>
-          <a href="{{ url_for('inbox') }}" class="nav-pill inbox-link">Inbox{% if unread_count %}<span class="nav-badge">{{ unread_count if unread_count < 10 else "9+" }}</span>{% endif %}</a>
+          <a href="{{ url_for('inbox') }}" class="nav-pill inbox-link">Inbox<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
           <a href="{{ url_for('logout') }}" class="nav-pill logout-link">Logout</a>
         {% else %}
           <a href="{{ url_for('login') }}" class="nav-pill login-link">Login</a>
@@ -710,5 +710,20 @@
     </nav>
     <div>© Find the Beat • A Brent &amp; Co. experience</div>
   </footer>
+  {% if user %}
+    <script>
+      fetch("{{ url_for('api_unread_count') }}", { cache: "no-store" })
+        .then((response) => response.ok ? response.json() : null)
+        .then((data) => {
+          if (!data) return;
+          document.querySelectorAll("[data-unread-badge]").forEach((badge) => {
+            const count = Number(data.unreadCount || 0);
+            badge.hidden = count === 0;
+            badge.textContent = count > 9 ? "9+" : String(count || "");
+          });
+        })
+        .catch(() => {});
+    </script>
+  {% endif %}
 </body>
 </html>

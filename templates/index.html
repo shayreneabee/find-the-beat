@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .flagship-hero {
+    display: grid;
+    gap: 1.15rem;
+    padding: clamp(1.35rem, 5vw, 3rem);
+    background:
+      linear-gradient(135deg, rgba(245, 138, 0, 0.24), rgba(255, 250, 238, 0.96)),
+      var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .hero-kicker {
+    margin: 0;
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .flagship-hero h1 {
+    max-width: 850px;
+    margin: 0;
+    font-size: clamp(2.35rem, 7vw, 5.2rem);
+    line-height: 0.98;
+  }
+
+  .flagship-hero p {
+    max-width: 760px;
+    margin: 0;
+    color: var(--muted);
+    font-size: clamp(1rem, 2vw, 1.2rem);
+  }
+
+  .hero-actions,
+  .creator-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .creator-strip {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .creator-card {
+    display: grid;
+    grid-template-columns: 86px 1fr;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--lift);
+  }
+
+  .creator-photo,
+  .creator-initial {
+    width: 86px;
+    height: 86px;
+    overflow: hidden;
+    background: var(--accent);
+    box-shadow: var(--lift);
+  }
+
+  .creator-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .creator-initial {
+    display: grid;
+    place-items: center;
+    font-size: 2.25rem;
+    font-weight: 900;
+  }
+
+  .creator-card h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1.1;
+  }
+
+  .creator-card p {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+  }
+
+  .badge-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+  }
+
+  .badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  @media (min-width: 760px) {
+    .creator-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<section class="flagship-hero">
+  <p class="hero-kicker">Music networking for real collaborators</p>
+  <h1>Find musicians, producers, and collaborators near you.</h1>
+  <p>Create a profile, upload performances, browse artists by role or city, and message the people you want to build with.</p>
+  <div class="hero-actions">
+    <a class="button primary" href="{{ url_for('signup') }}">Join the Network</a>
+    <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
+    <a class="button secondary" href="{{ url_for('login') }}">Sign In</a>
+  </div>
+</section>
+
+{% if creators %}
+  <h2 class="section-band">featured creators</h2>
+  <section class="creator-strip">
+    {% for p in creators %}
+      <a class="creator-card" href="{{ url_for('profile_detail', profile_id=p.id) }}">
+        {% if p.photo_filename %}
+          <span class="creator-photo"><img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}"></span>
+        {% else %}
+          <span class="creator-initial">{{ (p.display_name or "F")[:1] }}</span>
+        {% endif %}
+        <span>
+          <h3>{{ p.display_name }}</h3>
+          <p>{{ p.role or "Creative" }}{% if p.city %} • {{ p.city }}{% endif %}</p>
+          <span class="badge-line">
+            {% for badge in p.badges[:3] %}
+              <span class="badge">{{ badge }}</span>
+            {% endfor %}
+          </span>
+        </span>
+      </a>
+    {% endfor %}
+  </section>
+{% endif %}
+{% endblock %}

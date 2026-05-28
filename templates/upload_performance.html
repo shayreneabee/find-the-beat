@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Performance • Find the Beat{% endblock %}
+
+{% block head %}
+<style>
+  .upload-shell {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .upload-hero,
+  .upload-panel,
+  .upload-tips {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .upload-hero {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1.25rem, 4vw, 2.4rem);
+    background:
+      linear-gradient(135deg, rgba(228, 87, 46, 0.16), rgba(255, 255, 255, 0.82)),
+      var(--card);
+  }
+
+  .upload-eyebrow {
+    margin: 0;
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .upload-hero h1,
+  .upload-panel h2,
+  .upload-tips h2 {
+    margin: 0;
+    line-height: 1.08;
+  }
+
+  .upload-hero h1 {
+    max-width: 820px;
+    font-size: clamp(2rem, 6vw, 4.2rem);
+  }
+
+  .upload-hero p {
+    max-width: 720px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+  }
+
+  .upload-layout {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .upload-panel,
+  .upload-tips {
+    padding: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .upload-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.1rem;
+  }
+
+  .field-group {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .field-group label {
+    font-weight: 900;
+  }
+
+  .field-group small {
+    color: var(--muted);
+    line-height: 1.35;
+  }
+
+  .upload-form input,
+  .upload-form textarea,
+  .upload-form select {
+    width: 100%;
+    min-height: 52px;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.86);
+    color: var(--text);
+  }
+
+  .upload-form textarea {
+    min-height: 132px;
+    resize: vertical;
+  }
+
+  .file-drop {
+    border: 1px dashed rgba(228, 87, 46, 0.46);
+    background: rgba(255, 228, 216, 0.32);
+  }
+
+  .upload-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 0.4rem;
+  }
+
+  .upload-actions .button {
+    border-radius: 999px;
+  }
+
+  .tip-list {
+    display: grid;
+    gap: 0.8rem;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tip-list li {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.58);
+  }
+
+  .tip-list strong {
+    color: var(--accent-dark);
+  }
+
+  .tip-list span {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  @media (min-width: 860px) {
+    .upload-layout {
+      grid-template-columns: minmax(0, 1fr) 340px;
+      align-items: start;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="upload-shell">
+  <div class="upload-hero">
+    <p class="upload-eyebrow">Find the Beat showcase</p>
+    <h1>Upload a performance people can actually discover.</h1>
+    <p>Add the video, connect it to the right artist profile, and give listeners enough context to know what they are about to watch.</p>
+  </div>
+
+  <div class="upload-layout">
+    <section class="upload-panel">
+      <p class="upload-eyebrow">Performance details</p>
+      <h2>Tell the story clearly</h2>
+
+      <form class="upload-form" method="POST" enctype="multipart/form-data">
+        <div class="field-group">
+          <label for="title">Performance title</label>
+          <input id="title" type="text" name="title" placeholder="Example: Live keys at Sunday showcase" required>
+          <small>Use a title that sounds good on a profile card or search result.</small>
+        </div>
+
+        <div class="field-group">
+          <label for="profile_id">Artist profile</label>
+          <select id="profile_id" name="profile_id" required>
+            <option value="">Choose the artist or creative</option>
+            {% for p in profiles %}
+              <option value="{{ p.id }}">{{ p.display_name }} — {{ p.role }}</option>
+            {% endfor %}
+          </select>
+          <small>This connects the performance to the right public profile.</small>
+        </div>
+
+        <div class="field-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" placeholder="What should people know about this clip, song, session, event, or creative moment?"></textarea>
+          <small>Mention the genre, location, collaborators, or what kind of opportunities you want from this performance.</small>
+        </div>
+
+        <div class="field-group">
+          <label for="external_url">Media link</label>
+          <input id="external_url" type="url" name="external_url" placeholder="https://youtube.com/... or https://vimeo.com/...">
+          <small>Use this when the performance already lives on YouTube, Vimeo, TikTok, Instagram, or another public media page.</small>
+        </div>
+
+        <div class="field-group">
+          <label for="video">Performance video</label>
+          <input class="file-drop" id="video" type="file" name="video" accept=".mp4,.mov,.m4v,.webm">
+          <small>Accepted formats: MP4, MOV, M4V, or WEBM. Add either a video file or a media link.</small>
+        </div>
+
+        <div class="field-group">
+          <label for="thumb">Thumbnail image</label>
+          <input class="file-drop" id="thumb" type="file" name="thumb" accept=".jpg,.jpeg,.png,.webp">
+          <small>A clear thumbnail helps the performance feel polished before anyone presses play.</small>
+        </div>
+
+        <div class="upload-actions">
+          <button class="button primary" type="submit">Upload Performance</button>
+          <a class="button secondary" href="{{ url_for('performances') }}">View Performances</a>
+        </div>
+      </form>
+    </section>
+
+    <aside class="upload-tips">
+      <p class="upload-eyebrow">Before you post</p>
+      <h2>Quick polish check</h2>
+      <ul class="tip-list">
+        <li><strong>Pick the right profile</strong><span>The upload becomes part of that artist or creative's public presence.</span></li>
+        <li><strong>Lead with the moment</strong><span>Titles like "Studio session" are okay, but specifics help people remember you.</span></li>
+        <li><strong>Use a clean thumbnail</strong><span>Faces, instruments, stages, or studio shots usually work better than dark frames.</span></li>
+        <li><strong>Keep the clip useful</strong><span>Upload something that shows skill, sound, stage presence, or collaboration potential.</span></li>
+      </ul>
+    </aside>
+  </div>
+</section>
+{% endblock %}
