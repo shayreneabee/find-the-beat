@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.display_name }}{% endblock %}
+
+{% block content %}
+<style>
+  .artist-portfolio {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .artist-hero,
+  .artist-section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--lift);
+  }
+
+  .artist-hero {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .artist-photo,
+  .artist-placeholder {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--accent);
+    box-shadow: var(--lift);
+  }
+
+  .artist-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .artist-placeholder {
+    display: grid;
+    place-items: center;
+    background:
+      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.14) 0 5px, transparent 5px 14px),
+      radial-gradient(circle at 22% 18%, rgba(255, 224, 181, 0.82), transparent 38%),
+      linear-gradient(135deg, #f58a00, #ffd9a3);
+    font-size: 5rem;
+    font-weight: 900;
+  }
+
+  .artist-copy {
+    display: grid;
+    gap: 0.75rem;
+    align-content: center;
+  }
+
+  .artist-copy h1 {
+    margin: 0;
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    line-height: 0.98;
+  }
+
+  .artist-meta,
+  .artist-copy p,
+  .artist-section p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .badge-line,
+  .artist-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.82rem;
+    font-weight: 900;
+  }
+
+  .artist-section {
+    padding: 1rem;
+  }
+
+  .social-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .social-row a {
+    padding: 0.38rem 0.62rem;
+    border-radius: 999px;
+    background: rgba(255, 224, 181, 0.62);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 950;
+  }
+
+  .featured-media {
+    margin-top: 0.9rem;
+    overflow: hidden;
+    background: #2f1e0d;
+    border-radius: 14px;
+  }
+
+  .featured-media video,
+  .featured-media img,
+  .featured-empty {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .featured-empty {
+    display: grid;
+    place-items: center;
+    color: var(--cream);
+    font-weight: 900;
+  }
+
+  .performance-grid {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 0.9rem;
+  }
+
+  .performance-card {
+    padding: 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(255, 250, 238, 0.72);
+  }
+
+  .performance-card h3 {
+    margin: 0 0 0.25rem;
+  }
+
+  @media (min-width: 780px) {
+    .artist-hero {
+      grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.25fr);
+      padding: 1.25rem;
+    }
+
+    .performance-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<div class="artist-portfolio">
+  <section class="artist-hero">
+    {% if profile.photo_filename %}
+      <div class="artist-photo">
+        <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
+      </div>
+    {% else %}
+      <div class="artist-placeholder">{{ (profile.display_name or "F")[:1] }}</div>
+    {% endif %}
+
+    <div class="artist-copy">
+      <div>
+        <p class="artist-meta">{{ profile.role or "Add talent" }} • {{ profile.city or "Add city" }}</p>
+        <h1>{{ profile.display_name }}</h1>
+      </div>
+      <p>{{ profile.bio or "Add bio" }}</p>
+      <div class="badge-line">
+        {% for badge in profile.badges[:6] %}
+          <span class="badge">{{ badge }}</span>
+        {% endfor %}
+        {% if not profile.badges %}
+          <span class="badge">Available for Collabs</span>
+          <span class="badge">Add genre</span>
+        {% endif %}
+      </div>
+      {% if profile.social_links %}
+        <div class="social-row" aria-label="Social links">
+          {% for label, url in profile.social_links %}
+            <a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="social-row"><span class="badge">Add social links</span></div>
+      {% endif %}
+      <div class="artist-actions">
+        {% if user and user.id == profile.id %}
+          <a class="button primary" href="{{ url_for('profile') }}">My Profile</a>
+          <a class="button secondary" href="{{ url_for('upload_performance') }}">Upload Performance</a>
+        {% else %}
+          <a class="button primary" href="{{ url_for('new_message', recipient_id=profile.id) }}">Message</a>
+        {% endif %}
+        <a class="button secondary" href="{{ url_for('profiles') }}">Browse More</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="artist-section">
+    <h2>Creative Details</h2>
+    <p><strong>Genres:</strong> {{ profile.genre or "Add genre" }}</p>
+    <p><strong>Instruments/services:</strong> {{ profile.instrument or "Add talent" }}{% if profile.services_csv %} • {{ profile.services_csv }}{% endif %}</p>
+    <p><strong>Tags:</strong> {{ profile.tags_csv or "Available for Collabs" }}</p>
+  </section>
+
+  <section class="artist-section">
+    <h2>Featured Performance</h2>
+    {% if perfs %}
+      {% set featured = perfs[0] %}
+      <h3>{{ featured.title }}</h3>
+      <p>{{ featured.description or "A featured performance from this creator." }}</p>
+      <div class="featured-media">
+        {% if featured.video_filename %}
+          <video controls preload="metadata">
+            <source src="{{ url_for('uploaded_video', filename=featured.video_filename) }}">
+            Your browser does not support the video tag.
+          </video>
+        {% elif featured.thumb_filename %}
+          <img src="{{ url_for('uploaded_photo', filename=featured.thumb_filename) }}" alt="{{ featured.title }}">
+        {% else %}
+          <div class="featured-empty">Media Link</div>
+        {% endif %}
+      </div>
+      {% if featured.external_url %}
+        <p style="margin-top:0.75rem;"><a class="button secondary" href="{{ featured.external_url }}" rel="noopener" target="_blank">Open Media Link</a></p>
+      {% endif %}
+    {% else %}
+      <div class="featured-media"><div class="featured-empty">No Performances Yet</div></div>
+      <p style="margin-top:0.75rem;">Performances will appear here after this creator uploads a video or media link.</p>
+    {% endif %}
+  </section>
+
+  {% if perfs|length > 1 %}
+    <section class="artist-section">
+      <h2>More Performances</h2>
+      <div class="performance-grid">
+        {% for perf in perfs[1:] %}
+          <a class="performance-card" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+            <h3>{{ perf.title }}</h3>
+            <p>{{ perf.description or "Open this performance." }}</p>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

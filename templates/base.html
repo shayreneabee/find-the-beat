@@ -158,6 +158,7 @@
     }
 
     .nav-pill {
+      position: relative;
       min-width: 66px;
       min-height: 62px;
       display: inline-flex;
@@ -190,6 +191,23 @@
     .nav-pill.login-link::before { content: "◉"; }
     .nav-pill.logout-link::before { content: "↗"; }
     .nav-pill.brent-link::before { content: "&"; }
+
+    .nav-badge {
+      position: absolute;
+      top: 0.2rem;
+      right: 0.35rem;
+      min-width: 1.2rem;
+      min-height: 1.2rem;
+      display: grid;
+      place-items: center;
+      padding: 0 0.28rem;
+      border-radius: 999px;
+      background: #2f1e0d;
+      color: #fff7e8;
+      font-size: 0.68rem;
+      font-weight: 950;
+      box-shadow: 0 4px 10px rgba(47, 30, 13, 0.24);
+    }
 
     .nav-pill:hover {
       background: rgba(255, 245, 219, 0.34);
@@ -657,7 +675,7 @@
 
         {% if user %}
           <a href="{{ url_for('profile') }}" class="nav-pill profile-link">My Profile</a>
-          <a href="{{ url_for('inbox') }}" class="nav-pill inbox-link">Inbox</a>
+          <a href="{{ url_for('inbox') }}" class="nav-pill inbox-link">Inbox{% if unread_count %}<span class="nav-badge">{{ unread_count if unread_count < 10 else "9+" }}</span>{% endif %}</a>
           <a href="{{ url_for('logout') }}" class="nav-pill logout-link">Logout</a>
         {% else %}
           <a href="{{ url_for('login') }}" class="nav-pill login-link">Login</a>
