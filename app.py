@@ -40,13 +40,18 @@ SECOND_CHANCE_URL = os.getenv(
     "https://secondchancecareers.org/",
 )
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
-OWNER_EMAIL = os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower()
-OWNER_DISPLAY_NAME = os.getenv(
-    "BRENT_OWNER_DISPLAY_NAME",
-    "Shay / Brent & Co Founder",
-)
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
+FOUNDER_PROFILES = [
+    {
+        "email": os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower(),
+        "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay / Brent & Co Founder"),
+    },
+    {
+        "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
+        "display_name": os.getenv("BRENT_COFOUNDER_DISPLAY_NAME", "Jerod / Brent & Co Founder"),
+    },
+]
 OWNER_BIO = (
     "Official Brent & Co founder profile for ecosystem updates, creator support, "
     "and community connection."
@@ -957,60 +962,62 @@ def seed_demo_profiles_if_empty():
 
 
 def seed_founder_profile():
-    if not OWNER_EMAIL:
-        return
-    owner_values = {
-        "email": OWNER_EMAIL,
-        "display_name": OWNER_DISPLAY_NAME,
-        "role": "admin",
-        "genre": "Brent & Co Ecosystem",
-        "city": "Brent & Co",
-        "bio": OWNER_BIO,
-        "tags_csv": "Founder, Brent & Co, Verified",
-        "instrument": "Ecosystem Builder",
-        "services_csv": "Creator connection, community support, app ecosystem",
-        "brent_account_id": brent_account_id(OWNER_EMAIL),
-        "auth_provider": OWNER_AUTH_PROVIDER,
-    }
     with get_db() as conn:
-        existing = conn.execute(
-            "SELECT * FROM users WHERE lower(email) = lower(?)",
-            (OWNER_EMAIL,),
-        ).fetchone()
-        if existing:
+        for founder in FOUNDER_PROFILES:
+            email = founder["email"]
+            if not email:
+                continue
+            owner_values = {
+                "email": email,
+                "display_name": founder["display_name"],
+                "role": "admin",
+                "genre": "Brent & Co Ecosystem",
+                "city": "Brent & Co",
+                "bio": OWNER_BIO,
+                "tags_csv": "Founder, Brent & Co, Verified",
+                "instrument": "Ecosystem Builder",
+                "services_csv": "Creator connection, community support, app ecosystem",
+                "brent_account_id": brent_account_id(email),
+                "auth_provider": OWNER_AUTH_PROVIDER,
+            }
+            existing = conn.execute(
+                "SELECT * FROM users WHERE lower(email) = lower(?)",
+                (email,),
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    """
+                    UPDATE users
+                    SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                        tags_csv = ?, instrument = ?, services_csv = ?,
+                        brent_account_id = ?, auth_provider = ?,
+                        is_admin = 1, is_founder = 1, is_verified = 1
+                    WHERE id = ?
+                    """,
+                    (
+                        owner_values["display_name"],
+                        owner_values["role"],
+                        owner_values["genre"],
+                        owner_values["city"],
+                        owner_values["bio"],
+                        owner_values["tags_csv"],
+                        owner_values["instrument"],
+                        owner_values["services_csv"],
+                        owner_values["brent_account_id"],
+                        owner_values["auth_provider"],
+                        existing["id"],
+                    ),
+                )
+                continue
             conn.execute(
                 """
-                UPDATE users
-                SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
-                    tags_csv = ?, instrument = ?, services_csv = ?,
-                    brent_account_id = ?, auth_provider = ?,
-                    is_admin = 1, is_founder = 1, is_verified = 1
-                WHERE id = ?
+                INSERT INTO users (
+                    email, password_hash, display_name, role, genre, city, bio,
+                    tags_csv, instrument, services_csv, brent_account_id,
+                    auth_provider, is_admin, is_founder, is_verified
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
                 """,
-                (
-                    owner_values["display_name"],
-                    owner_values["role"],
-                    owner_values["genre"],
-                    owner_values["city"],
-                    owner_values["bio"],
-                    owner_values["tags_csv"],
-                    owner_values["instrument"],
-                    owner_values["services_csv"],
-                    owner_values["brent_account_id"],
-                    owner_values["auth_provider"],
-                    existing["id"],
-                ),
-            )
-            return
-        conn.execute(
-            """
-            INSERT INTO users (
-                email, password_hash, display_name, role, genre, city, bio,
-                tags_csv, instrument, services_csv, brent_account_id,
-                auth_provider, is_admin, is_founder, is_verified
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
-            """,
                 (
                     owner_values["email"],
                     generate_password_hash(
@@ -1027,7 +1034,7 @@ def seed_founder_profile():
                 owner_values["brent_account_id"],
                 owner_values["auth_provider"],
             ),
-        )
+            )
 
 
 def second_chance_category(slug):
