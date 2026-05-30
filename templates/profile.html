@@ -144,6 +144,24 @@
     display: grid;
     gap: 0.65rem;
   }
+
+  .founder-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0 1rem 0.85rem;
+  }
+
+  .founder-badges span {
+    border-radius: 999px;
+    padding: 0.32rem 0.7rem;
+    background: linear-gradient(135deg, #fff4d6, #ffd36d);
+    color: #3b2618;
+    font-size: 0.78rem;
+    font-weight: 900;
+    box-shadow: 0 10px 22px rgba(242, 138, 46, 0.16);
+  }
 </style>
 
 {% if user %}
@@ -162,6 +180,13 @@
 
   <div class="profile-line">{{ user.city or "Add your city" }}</div>
   <div class="profile-line">{{ user.role or "Add talent" }}{% if user.instrument %} • {{ user.instrument }}{% endif %}</div>
+  {% if user.official_badges %}
+    <div class="founder-badges">
+      {% for badge in user.official_badges %}
+        <span>{{ badge }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   <section class="app-panel completion-card">
     <strong>Profile {{ completion.percent }}% complete</strong>

@@ -40,6 +40,17 @@ SECOND_CHANCE_URL = os.getenv(
     "https://secondchancecareers.org/",
 )
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
+OWNER_EMAIL = os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower()
+OWNER_DISPLAY_NAME = os.getenv(
+    "BRENT_OWNER_DISPLAY_NAME",
+    "Shay / Brent & Co Founder",
+)
+OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
+OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
+OWNER_BIO = (
+    "Official Brent & Co founder profile for ecosystem updates, creator support, "
+    "and community connection."
+)
 
 SECOND_CHANCE_CATEGORIES = [
     {
@@ -402,7 +413,10 @@ def init_db():
                 spotify_url TEXT DEFAULT '',
                 linkedin_url TEXT DEFAULT '',
                 brent_account_id TEXT DEFAULT '',
-                auth_provider TEXT DEFAULT 'local'
+                auth_provider TEXT DEFAULT 'local',
+                is_admin INTEGER DEFAULT 0,
+                is_founder INTEGER DEFAULT 0,
+                is_verified INTEGER DEFAULT 0
             )
             """
         )
@@ -451,6 +465,9 @@ def init_db():
             "linkedin_url": "TEXT DEFAULT ''",
             "brent_account_id": "TEXT DEFAULT ''",
             "auth_provider": "TEXT DEFAULT 'local'",
+            "is_admin": "INTEGER DEFAULT 0",
+            "is_founder": "INTEGER DEFAULT 0",
+            "is_verified": "INTEGER DEFAULT 0",
         }.items():
             if column not in existing_columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
@@ -680,8 +697,14 @@ def row_to_profile(row):
     data.setdefault("services_csv", "")
     data.setdefault("brent_account_id", "")
     data.setdefault("auth_provider", AUTH_PROVIDER)
+    data.setdefault("is_admin", 0)
+    data.setdefault("is_founder", 0)
+    data.setdefault("is_verified", 0)
     data["brent_account_id"] = data["brent_account_id"] or brent_account_id(data.get("email", ""))
     data["auth_provider"] = data["auth_provider"] or AUTH_PROVIDER
+    data["is_admin"] = bool(data.get("is_admin"))
+    data["is_founder"] = bool(data.get("is_founder"))
+    data["is_verified"] = bool(data.get("is_verified"))
     data["photo_filename"] = data.get("profile_pic") or ""
     data["video_filename"] = data.get("profile_video") or ""
     data["name"] = data.get("display_name") or ""
@@ -697,11 +720,18 @@ def row_to_profile(row):
         ("LinkedIn", data["linkedin_url"]),
     ]
     data["social_links"] = [(label, url) for label, url in data["social_links"] if url]
-    data["badges"] = [
+    official_badges = []
+    if data["is_founder"]:
+        official_badges.extend(["Founder", "Brent & Co"])
+    if data["is_verified"]:
+        official_badges.append("Verified")
+    profile_badges = [
         item
         for item in [data.get("role"), data.get("instrument"), *data["tags"][:3]]
         if item
     ]
+    data["official_badges"] = list(dict.fromkeys(official_badges))
+    data["badges"] = list(dict.fromkeys([*official_badges, *profile_badges]))
     return SimpleNamespace(**data)
 
 
@@ -844,7 +874,7 @@ def search_profiles(q="", role="", genre="", city="", instrument="", tags=""):
     sql = "SELECT * FROM users"
     if clauses:
         sql += " WHERE " + " AND ".join(clauses)
-    sql += " ORDER BY id DESC"
+    sql += " ORDER BY is_founder DESC, is_verified DESC, id DESC"
 
     with get_db() as conn:
         rows = conn.execute(sql, params).fetchall()
@@ -924,6 +954,80 @@ def seed_demo_profiles_if_empty():
                     profile["services_csv"],
                 ),
             )
+
+
+def seed_founder_profile():
+    if not OWNER_EMAIL:
+        return
+    owner_values = {
+        "email": OWNER_EMAIL,
+        "display_name": OWNER_DISPLAY_NAME,
+        "role": "admin",
+        "genre": "Brent & Co Ecosystem",
+        "city": "Brent & Co",
+        "bio": OWNER_BIO,
+        "tags_csv": "Founder, Brent & Co, Verified",
+        "instrument": "Ecosystem Builder",
+        "services_csv": "Creator connection, community support, app ecosystem",
+        "brent_account_id": brent_account_id(OWNER_EMAIL),
+        "auth_provider": OWNER_AUTH_PROVIDER,
+    }
+    with get_db() as conn:
+        existing = conn.execute(
+            "SELECT * FROM users WHERE lower(email) = lower(?)",
+            (OWNER_EMAIL,),
+        ).fetchone()
+        if existing:
+            conn.execute(
+                """
+                UPDATE users
+                SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                    tags_csv = ?, instrument = ?, services_csv = ?,
+                    brent_account_id = ?, auth_provider = ?,
+                    is_admin = 1, is_founder = 1, is_verified = 1
+                WHERE id = ?
+                """,
+                (
+                    owner_values["display_name"],
+                    owner_values["role"],
+                    owner_values["genre"],
+                    owner_values["city"],
+                    owner_values["bio"],
+                    owner_values["tags_csv"],
+                    owner_values["instrument"],
+                    owner_values["services_csv"],
+                    owner_values["brent_account_id"],
+                    owner_values["auth_provider"],
+                    existing["id"],
+                ),
+            )
+            return
+        conn.execute(
+            """
+            INSERT INTO users (
+                email, password_hash, display_name, role, genre, city, bio,
+                tags_csv, instrument, services_csv, brent_account_id,
+                auth_provider, is_admin, is_founder, is_verified
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+            """,
+                (
+                    owner_values["email"],
+                    generate_password_hash(
+                        OWNER_INITIAL_PASSWORD or secrets.token_urlsafe(32)
+                    ),
+                owner_values["display_name"],
+                owner_values["role"],
+                owner_values["genre"],
+                owner_values["city"],
+                owner_values["bio"],
+                owner_values["tags_csv"],
+                owner_values["instrument"],
+                owner_values["services_csv"],
+                owner_values["brent_account_id"],
+                owner_values["auth_provider"],
+            ),
+        )
 
 
 def second_chance_category(slug):
@@ -1698,6 +1802,7 @@ def handle_not_found(error):
 
 init_db()
 seed_demo_profiles_if_empty()
+seed_founder_profile()
 
 
 if __name__ == "__main__":

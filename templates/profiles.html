@@ -128,6 +128,13 @@
     font-weight: 900;
   }
 
+  .badge.official {
+    background: linear-gradient(135deg, #fff4d6, #ffd36d);
+    border: 1px solid rgba(68, 38, 10, 0.16);
+    color: #3b2618;
+    box-shadow: 0 10px 22px rgba(242, 138, 46, 0.18);
+  }
+
   .social-icons {
     display: flex;
     flex-wrap: wrap;
@@ -215,8 +222,8 @@
           </div>
         {% endif %}
         <div class="badge-line">
-          {% for badge in p.badges[:5] %}
-            <span class="badge">{{ badge }}</span>
+          {% for badge in p.badges[:8] %}
+            <span class="badge {{ 'official' if badge in p.official_badges else '' }}">{{ badge }}</span>
           {% endfor %}
         </div>
         <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
