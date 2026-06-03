@@ -574,6 +574,19 @@ def brent_account_id(email):
     return f"brent-local-{digest}"
 
 
+def normalize_profile_role(role):
+    role_key = (role or "").strip().lower()
+    role_map = {
+        "production": "Producer",
+        "producer": "Producer",
+        "composition": "Composer",
+        "composer": "Composer",
+        "artist": "Artist",
+        "musician": "Musician",
+    }
+    return role_map.get(role_key, (role or "").strip())
+
+
 def profile_form_fields():
     social_fields = {
         key: normalize_social_url(request.form.get(key, "").strip())
@@ -588,7 +601,7 @@ def profile_form_fields():
     instruments = [*selected_instruments, *split_csv(manual_instrument)]
     return {
         "display_name": request.form.get("display_name", "").strip(),
-        "role": request.form.get("role", "").strip(),
+        "role": normalize_profile_role(request.form.get("role", "")),
         "genre": request.form.get("genre", "").strip(),
         "city": request.form.get("city", "").strip(),
         "state": request.form.get("state", "").strip(),
@@ -776,26 +789,27 @@ INSTRUMENT_OPTIONS = [
     "Piano",
     "Keyboard",
     "Violin",
+    "Viola",
+    "Cello",
+    "Banjo",
+    "Mandolin",
+    "Harmonica",
     "Saxophone",
     "Trumpet",
+    "Trombone",
+    "Clarinet",
     "Flute",
     "Percussion",
     "Tambourine",
-    "Vocals",
-    "Producer",
     "DJ",
-    "Songwriter",
-    "Composer",
-    "Engineer",
+    "Other",
 ]
-CATEGORY_TILES = [
-    {"slug": "musicians", "title": "Musicians", "terms": ["musician", "instrumentalist", "band", "live"]},
-    {"slug": "producers", "title": "Producers", "terms": ["producer", "production", "beats", "beat production"]},
+SEARCH_CATEGORIES = [
+    {"slug": "production", "title": "Production", "terms": ["producer", "production", "beats", "beat production", "engineer", "mixing", "mastering"]},
     {"slug": "composers", "title": "Composers", "terms": ["composer", "composition", "score", "arrangement"]},
-    {"slug": "artists", "title": "Artists", "terms": ["artist", "rapper", "singer", "performer"]},
-    {"slug": "vocalists", "title": "Vocalists", "terms": ["vocalist", "vocals", "voice", "singer"]},
-    {"slug": "engineers", "title": "Engineers", "terms": ["engineer", "mixing", "mastering", "recording"]},
-    {"slug": "songwriters", "title": "Songwriters", "terms": ["songwriter", "songwriting", "lyrics", "topline"]},
+    {"slug": "artists", "title": "Artists", "terms": ["artist", "rapper", "singer", "performer", "vocalist"]},
+    {"slug": "musicians", "title": "Musicians", "terms": ["musician", "instrumentalist", "band", "live", "guitar", "bass", "drums", "piano", "keyboard", "violin", "tambourine"]},
+    {"slug": "showcases", "title": "Showcases", "terms": []},
 ]
 INSTRUMENT_CATEGORY_REDIRECTS = {
     "guitar-players": "Guitar",
@@ -821,7 +835,7 @@ STATE_ALIASES = {
 
 
 def category_by_slug(slug):
-    return next((category for category in CATEGORY_TILES if category["slug"] == slug), None)
+    return next((category for category in SEARCH_CATEGORIES if category["slug"] == slug), None)
 
 
 def location_terms(value):
@@ -1361,56 +1375,24 @@ def showcase_context():
         key=lambda perf: (perf.views, perf.likes, perf.id),
         reverse=True,
     )[:8]
-    trending_profiles = sorted(
-        profiles,
-        key=lambda profile: (
-            bool(profile.is_founder),
-            bool(profile.is_verified),
-            len(profile.badges or []),
-            profile.id,
-        ),
-        reverse=True,
-    )[:8]
 
     def role_profiles(role):
         return search_profiles(role=role)[:6]
 
-    def wants_collab(profile):
-        text = " ".join(
-            [
-                profile.tags_csv or "",
-                profile.services_csv or "",
-                profile.bio or "",
-                profile.genre or "",
-            ]
-        ).lower()
-        return any(
-            phrase in text
-            for phrase in ("collab", "collaboration", "available", "feature", "session")
-        )
-
-    open_collaborations = [profile for profile in profiles if wants_collab(profile)][:8]
+    local_spotlight = [
+        perf
+        for perf in performances
+        if perf.profile and (perf.profile.city or perf.profile.state)
+    ][:8] or performances[:8]
     featured_artists = role_profiles("artist")
-    featured_producers = role_profiles("producer")
-    featured_musicians = role_profiles("musician")
-    featured_composers = role_profiles("composer")
 
     return {
+        "this_week_showcases": featured_performances,
         "featured_performances": featured_performances,
         "trending_performances": trending_performances,
-        "trending_profiles": trending_profiles,
+        "new_uploads": performances[:8],
+        "local_spotlight": local_spotlight,
         "featured_artists": featured_artists,
-        "featured_producers": featured_producers,
-        "featured_musicians": featured_musicians,
-        "featured_composers": featured_composers,
-        "role_sections": [
-            {"title": "Featured Artists", "profiles": featured_artists, "endpoint": "artists"},
-            {"title": "Featured Producers", "profiles": featured_producers, "endpoint": "producers"},
-            {"title": "Featured Musicians", "profiles": featured_musicians, "endpoint": "musicians"},
-            {"title": "Featured Composers", "profiles": featured_composers, "endpoint": "composers"},
-        ],
-        "open_collaborations": open_collaborations,
-        "new_this_week": performances[:8],
     }
 
 
@@ -1620,7 +1602,7 @@ def home():
         "index.html",
         creators=creators,
         featured_showcase=get_showcase_tiles(limit=6),
-        category_tiles=CATEGORY_TILES,
+        category_tiles=SEARCH_CATEGORIES,
         q=q,
         role_filter=role,
         genre_filter=genre,
@@ -1635,26 +1617,64 @@ def healthz():
 
 @app.route("/search")
 def search():
-    q = request.args.get("q", "").strip()
-    role = request.args.get("role", "").strip()
-    genre = request.args.get("genre", "").strip()
-    city = request.args.get("city", "").strip()
-    state = request.args.get("state", "").strip()
-    instrument = request.args.get("instrument", "").strip()
-    services = request.args.get("services", "").strip()
-    tags = request.args.get("tags", "").strip()
-    results = search_profiles(q=q, role=role, genre=genre, city=city, state=state, instrument=instrument, services=services, tags=tags)
     return render_template(
         "search.html",
-        results=results,
-        q=q,
-        role=role,
-        genre=genre,
-        city=city,
-        state=state,
-        instrument=instrument,
-        services=services,
-        tags=tags,
+        categories=SEARCH_CATEGORIES,
+    )
+
+
+@app.route("/search/<slug>")
+def search_directory(slug):
+    if slug == "showcases":
+        return redirect(url_for("showcase"))
+    category = category_by_slug(slug)
+    if not category:
+        flash("Directory not found.")
+        return redirect(url_for("search"))
+    filters = {
+        "q": request.args.get("q", "").strip(),
+        "state": request.args.get("state", "").strip(),
+        "city": request.args.get("city", "").strip(),
+        "genre": request.args.get("genre", "").strip(),
+        "instrument": request.args.get("instrument", "").strip(),
+        "role": request.args.get("role", "").strip(),
+        "services": request.args.get("services", "").strip(),
+        "availability": request.args.get("availability", "").strip(),
+        "country": request.args.get("country", "").strip(),
+    }
+    selected_instruments = [
+        item.strip()
+        for item in request.args.getlist("instruments")
+        if item.strip()
+    ]
+    match_mode = request.args.get("match", "any")
+    if slug == "musicians" and selected_instruments:
+        filters["instrument"] = ""
+    results = search_category_profiles(category, filters)
+    if filters["availability"]:
+        availability = filters["availability"].lower()
+        results = [
+            profile for profile in results
+            if availability in f"{profile.tags_csv} {profile.services_csv} {profile.bio}".lower()
+        ]
+    if slug == "musicians" and selected_instruments:
+        needles = [item.lower() for item in selected_instruments]
+
+        def instrument_match(profile):
+            haystack = f"{profile.instrument} {profile.services_csv} {profile.tags_csv}".lower()
+            hits = [needle in haystack for needle in needles]
+            return all(hits) if match_mode == "all" else any(hits)
+
+        results = [profile for profile in results if instrument_match(profile)]
+    return render_template(
+        "directory.html",
+        category=category,
+        profiles=results,
+        filters=filters,
+        selected_instruments=selected_instruments,
+        match_mode=match_mode,
+        instrument_options=INSTRUMENT_OPTIONS,
+        is_musicians=slug == "musicians",
     )
 
 
@@ -1686,6 +1706,12 @@ def profiles():
 
 @app.route("/browse/<slug>")
 def browse_category(slug):
+    if slug in {"production", "producers"}:
+        return redirect(url_for("search_directory", slug="production", **request.args))
+    if slug in {"composers", "artists", "musicians"}:
+        return redirect(url_for("search_directory", slug=slug, **request.args))
+    if slug == "showcases":
+        return redirect(url_for("showcase"))
     category = category_by_slug(slug)
     if not category:
         instrument = INSTRUMENT_CATEGORY_REDIRECTS.get(slug)
@@ -1717,7 +1743,7 @@ def browse_category(slug):
         profiles=results,
         showcase_items=showcase_items,
         filters=filters,
-        category_tiles=CATEGORY_TILES,
+        category_tiles=SEARCH_CATEGORIES,
         instrument_options=INSTRUMENT_OPTIONS,
         location_label=location_label,
     )
@@ -2198,27 +2224,27 @@ def showcase():
 
 @app.route("/production")
 def production():
-    return redirect(url_for("browse_category", slug="producers"))
+    return redirect(url_for("search_directory", slug="production"))
 
 
 @app.route("/producers")
 def producers():
-    return redirect(url_for("browse_category", slug="producers"))
+    return redirect(url_for("search_directory", slug="production"))
 
 
 @app.route("/artists")
 def artists():
-    return redirect(url_for("browse_category", slug="artists"))
+    return redirect(url_for("search_directory", slug="artists"))
 
 
 @app.route("/musicians")
 def musicians():
-    return redirect(url_for("browse_category", slug="musicians"))
+    return redirect(url_for("search_directory", slug="musicians"))
 
 
 @app.route("/composers")
 def composers():
-    return redirect(url_for("browse_category", slug="composers"))
+    return redirect(url_for("search_directory", slug="composers"))
 
 
 @app.route("/thread")

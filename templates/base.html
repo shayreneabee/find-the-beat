@@ -228,6 +228,24 @@
       transform: translateY(-1px);
     }
 
+    .nav-pill.showcase-link {
+      min-width: 76px;
+      background: rgba(47, 30, 13, 0.12);
+      border-color: rgba(47, 30, 13, 0.14);
+      box-shadow: inset 0 0 0 2px rgba(255, 250, 238, 0.36);
+    }
+
+    .nav-pill.showcase-link::before {
+      width: 2.45rem;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #2f1e0d;
+      color: #fff7e8;
+      box-shadow: 0 8px 16px rgba(47, 30, 13, 0.22);
+    }
+
     .nav-pill.primary {
       display: none;
     }
@@ -868,14 +886,12 @@
 
       <nav class="nav" aria-label="Main navigation">
         <a href="{{ url_for('home') }}" class="nav-pill home-link">Home</a>
-        <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link">Showcase</a>
-        <a href="{{ url_for('profiles') }}" class="nav-pill browse-link">Browse</a>
-        <a href="{{ url_for('instruments') }}" class="nav-pill instruments-link">Instruments</a>
+        <a href="{{ url_for('search') }}" class="nav-pill search-link">Search</a>
+        <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link">Showcases</a>
 
         {% if user %}
           <a href="{{ url_for('inbox') }}" class="nav-pill messages-link">Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
           <a href="{{ url_for('profile') }}" class="nav-pill profile-link">Profile</a>
-          <a href="{{ url_for('logout') }}" class="nav-pill logout-link">Logout</a>
         {% else %}
           <a href="{{ url_for('login') }}" class="nav-pill messages-link">Messages</a>
           <a href="{{ url_for('login') }}" class="nav-pill profile-link">Profile</a>

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.title }} Directory • Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .directory-page {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .directory-hero,
+  .directory-filter,
+  .directory-empty {
+    padding: clamp(1rem, 3vw, 1.35rem);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--card);
+    box-shadow: var(--lift);
+  }
+
+  .directory-hero h1 {
+    margin: 0;
+    font-size: clamp(2.35rem, 7vw, 4.5rem);
+    line-height: 0.98;
+  }
+
+  .directory-hero p,
+  .directory-card p,
+  .directory-empty p {
+    margin: 0.35rem 0 0;
+    color: var(--muted);
+  }
+
+  .directory-filter form,
+  .directory-grid {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .filter-row {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .filter-row input,
+  .filter-row select {
+    min-height: 48px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--cream);
+    color: var(--text);
+  }
+
+  .instrument-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .instrument-pills label {
+    cursor: pointer;
+  }
+
+  .instrument-pills span {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.78);
+    font-weight: 900;
+  }
+
+  .instrument-pills input:checked + span {
+    background: var(--accent);
+    color: var(--text);
+  }
+
+  .directory-card {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+    border: 1px solid rgba(78, 47, 16, 0.14);
+    border-radius: 22px;
+    background: rgba(255, 250, 238, 0.92);
+    box-shadow: var(--bc-lift, var(--lift));
+  }
+
+  .directory-head {
+    display: grid;
+    grid-template-columns: 82px 1fr;
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .directory-photo {
+    width: 82px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 22px;
+    background:
+      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.12) 0 4px, transparent 4px 11px),
+      linear-gradient(135deg, #ffd9a3, #f58a00);
+    display: grid;
+    place-items: center;
+    font-size: 1.55rem;
+    font-weight: 950;
+  }
+
+  .directory-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .directory-card h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    line-height: 1.12;
+  }
+
+  .directory-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .directory-actions .button {
+    min-height: 44px;
+  }
+
+  @media (min-width: 760px) {
+    .filter-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: end;
+    }
+
+    .directory-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<section class="directory-page">
+  <header class="directory-hero">
+    <p class="showcase-kicker">Search directory</p>
+    <h1>{{ category.title }}</h1>
+    <p>{{ "Filter musicians by state, city, instrument, genre, and availability." if is_musicians else "Filter this people database by location, genre, role, and services." }}</p>
+  </header>
+
+  <section class="directory-filter">
+    <form method="GET" action="{{ url_for('search_directory', slug=category.slug) }}">
+      {% if is_musicians %}
+        <div class="instrument-pills">
+          {% for option in instrument_options %}
+            <label>
+              <input type="checkbox" name="instruments" value="{{ option }}" hidden {% if option in selected_instruments %}checked{% endif %}>
+              <span>{{ option }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+      <div class="filter-row">
+        {% if is_musicians %}
+          <select name="match">
+            <option value="any" {% if match_mode != "all" %}selected{% endif %}>Match any selected instrument</option>
+            <option value="all" {% if match_mode == "all" %}selected{% endif %}>Match all selected instruments</option>
+          </select>
+        {% endif %}
+        <input name="state" value="{{ filters.state }}" placeholder="State: Mississippi or MS">
+        <input name="city" value="{{ filters.city }}" placeholder="City: Jackson, Atlanta">
+        {% if not is_musicians %}
+          <input name="role" value="{{ filters.role }}" placeholder="Role">
+        {% endif %}
+        <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
+        <input name="instrument" value="{{ filters.instrument }}" placeholder="Instrument">
+        <input name="services" value="{{ filters.services }}" placeholder="Services">
+        {% if is_musicians %}
+          <input name="availability" value="{{ filters.availability }}" placeholder="Availability: available, collabs, live">
+        {% endif %}
+        <button class="button primary" type="submit">Search</button>
+        <a class="button secondary" href="{{ url_for('search_directory', slug=category.slug) }}">Clear</a>
+      </div>
+    </form>
+  </section>
+
+  {% if profiles %}
+    <section class="directory-grid">
+      {% for p in profiles %}
+        <article class="directory-card">
+          <div class="directory-head">
+            <a class="directory-photo" href="{{ url_for('profile_detail', profile_id=p.id) }}">
+              {% if p.photo_filename %}
+                <img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}">
+              {% else %}
+                {{ p.initials }}
+              {% endif %}
+            </a>
+            <div>
+              <h2>{{ p.display_name }}</h2>
+              <p>{{ p.role or "Creative" }}{% if p.instrument %} • {{ p.instrument }}{% endif %}</p>
+              <p>{{ p.genre or "Add genre" }}{% if p.city or p.state %} • {{ p.city }}{% if p.city and p.state %}, {% endif %}{{ p.state }}{% endif %}</p>
+            </div>
+          </div>
+          <p>{{ p.bio or "This creator is still building out their profile." }}</p>
+          <div class="directory-actions">
+            <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
+            <a class="button secondary" href="{{ url_for('new_message', recipient_id=p.id) }}">Message</a>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <section class="directory-empty">
+      {% if is_musicians and selected_instruments and (filters.state or filters.city) %}
+        <h2>No {{ selected_instruments|join(", ") }} players found in {{ filters.city or filters.state }} yet.</h2>
+        <p>Try another state or invite someone to join Find The Beat.</p>
+      {% else %}
+        <h2>No {{ category.title|lower }} found yet.</h2>
+        <p>Try another state, city, genre, instrument, or availability filter, or invite someone to join Find The Beat.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

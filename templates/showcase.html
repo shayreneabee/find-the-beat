@@ -210,6 +210,21 @@
     font-weight: 900;
   }
 
+  .play-dot {
+    position: absolute;
+    right: 0.8rem;
+    bottom: 0.8rem;
+    width: 3.1rem;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #f58a00;
+    color: #2f1e0d;
+    box-shadow: 0 10px 22px rgba(47, 30, 13, 0.28);
+    font-weight: 950;
+  }
+
   .creator-card {
     display: grid;
     grid-template-columns: 76px 1fr;
@@ -308,19 +323,20 @@
         <div class="performance-placeholder">Media Link</div>
       {% endif %}
       <span class="media-pill">{{ perf.media_type }}</span>
+      <span class="play-dot" aria-hidden="true">▶</span>
     </div>
     <div class="performance-copy">
       <h3>{{ perf.title }}</h3>
       {% if perf.profile %}
-        <p>{{ perf.profile.display_name }}{% if perf.profile.city %} • {{ perf.profile.city }}{% endif %}</p>
-        <p>{{ perf.profile.genre or "Genre coming soon" }}{% if perf.profile.instrument %} • {{ perf.profile.instrument }}{% endif %}</p>
+        <p>{{ perf.profile.display_name }} • {{ perf.profile.role or "Creator" }}{% if perf.profile.instrument %} / {{ perf.profile.instrument }}{% endif %}</p>
+        <p>{{ perf.profile.city or "City coming soon" }}{% if perf.profile.state %}, {{ perf.profile.state }}{% endif %}{% if perf.genre %} • {{ perf.genre }}{% elif perf.profile.genre %} • {{ perf.profile.genre }}{% endif %}</p>
       {% endif %}
       <div class="performance-stats">
         <span class="stat-pill">{{ perf.views }} views</span>
         <span class="stat-pill">{{ perf.likes }} likes</span>
       </div>
       <div class="performance-links">
-        <a class="button primary" href="{{ url_for('performance_detail', perf_id=perf.id) }}">Play</a>
+        <a class="button primary" href="{{ url_for('performance_detail', perf_id=perf.id) }}">Watch Performance</a>
         {% if perf.profile %}
           <a class="button secondary" href="{{ url_for('profile_detail', profile_id=perf.profile.id) }}">Profile</a>
         {% endif %}
@@ -340,7 +356,8 @@
     </div>
     <div class="creator-copy">
       <h3>{{ profile.display_name }}</h3>
-      <p>{{ profile.role or "Creator" }}{% if profile.city %} • {{ profile.city }}{% endif %}</p>
+      <p>{{ profile.role or "Creator" }}{% if profile.instrument %} • {{ profile.instrument }}{% endif %}</p>
+      <p>{{ profile.city or "City coming soon" }}{% if profile.state %}, {{ profile.state }}{% endif %}</p>
       <p>{{ profile.genre or profile.instrument or "Open to discovery" }}</p>
     </div>
   </a>
@@ -351,11 +368,11 @@
   <header class="showcase-hero">
     <div class="showcase-hero-copy">
       <p class="showcase-eyebrow">Find the Beat Showcase</p>
-      <h1>Discover the performances, profiles, and collabs moving the network.</h1>
-      <p>Watch featured videos, hear audio demos, browse rising talent, and find the next artist, producer, musician, or composer to build with.</p>
+      <h1>Performance feed for the talent moving the network.</h1>
+      <p>Showcases is where videos, audio demos, live clips, and featured creative moments live. Search finds people. Showcases displays performances.</p>
       <div class="showcase-actions">
         <a class="button primary" href="{{ url_for('upload_performance') }}">Upload Performance</a>
-        <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
+        <a class="button secondary" href="{{ url_for('search') }}">Search People</a>
       </div>
     </div>
   </header>
@@ -363,14 +380,14 @@
   <section class="showcase-section">
     <div class="section-head">
       <div>
-        <p class="showcase-eyebrow">Featured Showcase</p>
-        <h2>Performances to press play on first.</h2>
+        <p class="showcase-eyebrow">This Week in Showcases</p>
+        <h2>Performances to watch first.</h2>
       </div>
       <a href="{{ url_for('performances') }}">All performances</a>
     </div>
-    {% if featured_performances %}
+    {% if this_week_showcases %}
       <div class="performance-row featured-row">
-        {% for perf in featured_performances %}
+        {% for perf in this_week_showcases %}
           {{ performance_card(perf, loop.first) }}
         {% endfor %}
       </div>
@@ -382,8 +399,8 @@
   <section class="showcase-section">
     <div class="section-head">
       <div>
-        <p class="showcase-eyebrow">Trending Talent</p>
-        <h2>Creators and performances gaining attention.</h2>
+        <p class="showcase-eyebrow">Trending Performances</p>
+        <h2>Clips gaining attention across the network.</h2>
       </div>
     </div>
     {% if trending_performances %}
@@ -392,71 +409,63 @@
           {{ performance_card(perf) }}
         {% endfor %}
       </div>
-    {% elif trending_profiles %}
-      <div class="profile-row">
-        {% for profile in trending_profiles %}
-          {{ creator_card(profile) }}
-        {% endfor %}
-      </div>
     {% else %}
-      <div class="empty-showcase">Trending talent will appear as creators add profiles and performances.</div>
-    {% endif %}
-  </section>
-
-  {% for section in role_sections %}
-    <section class="showcase-section">
-      <div class="section-head">
-        <div>
-          <p class="showcase-eyebrow">Creator Lane</p>
-          <h2>{{ section.title }}</h2>
-        </div>
-        <a href="{{ url_for(section.endpoint) }}">View all</a>
-      </div>
-      {% if section.profiles %}
-        <div class="profile-row">
-          {% for profile in section.profiles %}
-            {{ creator_card(profile) }}
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="empty-showcase">{{ section.title }} will fill in as more creators join the network.</div>
-      {% endif %}
-    </section>
-  {% endfor %}
-
-  <section class="showcase-section">
-    <div class="section-head">
-      <div>
-        <p class="showcase-eyebrow">Open Collaborations</p>
-        <h2>People signaling they are ready to build.</h2>
-      </div>
-    </div>
-    {% if open_collaborations %}
-      <div class="collab-strip">
-        {% for profile in open_collaborations %}
-          {{ creator_card(profile) }}
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="empty-showcase">Add tags like "Available for Collabs" or services you offer to show up here.</div>
+      <div class="empty-showcase">Trending performances will appear as creators upload and people start watching.</div>
     {% endif %}
   </section>
 
   <section class="showcase-section">
     <div class="section-head">
       <div>
-        <p class="showcase-eyebrow">New This Week</p>
-        <h2>The latest drops from the community.</h2>
+        <p class="showcase-eyebrow">New Uploads</p>
+        <h2>The newest drops from the community.</h2>
       </div>
     </div>
-    {% if new_this_week %}
+    {% if new_uploads %}
       <div class="performance-row">
-        {% for perf in new_this_week %}
+        {% for perf in new_uploads %}
           {{ performance_card(perf) }}
         {% endfor %}
       </div>
     {% else %}
       <div class="empty-showcase">New uploads will appear here as the community grows.</div>
+    {% endif %}
+  </section>
+
+  <section class="showcase-section">
+    <div class="section-head">
+      <div>
+        <p class="showcase-eyebrow">Local Spotlight</p>
+        <h2>Performances with a city and state attached.</h2>
+      </div>
+    </div>
+    {% if local_spotlight %}
+      <div class="performance-row">
+        {% for perf in local_spotlight %}
+          {{ performance_card(perf) }}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-showcase">Local spotlights will appear when creators add location info to their profiles.</div>
+    {% endif %}
+  </section>
+
+  <section class="showcase-section">
+    <div class="section-head">
+      <div>
+        <p class="showcase-eyebrow">Featured Artists</p>
+        <h2>Artist profiles connected to the performance feed.</h2>
+      </div>
+      <a href="{{ url_for('search_directory', slug='artists') }}">Search artists</a>
+    </div>
+    {% if featured_artists %}
+      <div class="profile-row">
+        {% for profile in featured_artists %}
+          {{ creator_card(profile) }}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-showcase">Featured artists will appear as artists create profiles and upload performances.</div>
     {% endif %}
   </section>
 </section>

@@ -180,16 +180,12 @@
   "Tiles of performances, demos, and creator moments from across the Find the Beat network."
 ) }}
 
-<h2 class="section-band">browse talent</h2>
+<h2 class="section-band">search talent</h2>
 <section class="category-grid" aria-label="Talent categories">
-  <a class="category-tile" href="{{ url_for('instruments') }}">
-    <strong>Instruments</strong>
-    <span>Search guitar, piano, vocals, drums, tambourine, and more</span>
-  </a>
   {% for category in category_tiles %}
-    <a class="category-tile" href="{{ url_for('browse_category', slug=category.slug) }}">
+    <a class="category-tile" href="{{ url_for('showcase') if category.slug == 'showcases' else url_for('search_directory', slug=category.slug) }}">
       <strong>{{ category.title }}</strong>
-      <span>Open database</span>
+      <span>{{ "Performance feed" if category.slug == "showcases" else "Open directory" }}</span>
     </a>
   {% endfor %}
 </section>

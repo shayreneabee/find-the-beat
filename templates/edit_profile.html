@@ -44,6 +44,7 @@
   }
 
   .field input,
+  .field select,
   .field textarea {
     width: 100%;
     min-height: 54px;
@@ -63,6 +64,7 @@
   }
 
   .field input:focus,
+  .field select:focus,
   .field textarea:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 5px rgba(228, 87, 46, 0.12);
@@ -114,7 +116,12 @@
 
       <div class="field">
         <label for="role">Role</label>
-        <input id="role" name="role" value="{{ user.role or '' }}">
+        <select id="role" name="role">
+          {% set current_role = (user.role or '')|lower %}
+          {% for option in ["Producer", "Composer", "Artist", "Musician"] %}
+            <option value="{{ option }}" {% if current_role == option|lower or (option == "Producer" and current_role == "production") or (option == "Composer" and current_role == "composition") %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
       </div>
     </div>
 
