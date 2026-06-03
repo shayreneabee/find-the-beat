@@ -518,6 +518,13 @@ def init_db():
         for column, definition in {
             "audio_filename": "TEXT DEFAULT ''",
             "image_filename": "TEXT DEFAULT ''",
+            "media_type": "TEXT DEFAULT ''",
+            "media_url": "TEXT DEFAULT ''",
+            "thumbnail_url": "TEXT DEFAULT ''",
+            "genre": "TEXT DEFAULT ''",
+            "city": "TEXT DEFAULT ''",
+            "tags_csv": "TEXT DEFAULT ''",
+            "category": "TEXT DEFAULT ''",
             "external_url": "TEXT DEFAULT ''",
             "views": "INTEGER DEFAULT 0",
             "likes": "INTEGER DEFAULT 0",
@@ -684,14 +691,39 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
 
 
 def create_performance(profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url=""):
+    profile = get_profile(profile_id)
+    media_type = (
+        "video" if video_filename else
+        "audio" if audio_filename else
+        "image" if image_filename or thumb_filename else
+        "link" if external_url else
+        ""
+    )
     with get_db() as conn:
         cursor = conn.execute(
             """
             INSERT INTO performances
-                (profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (profile_id, title, description, video_filename, audio_filename, image_filename,
+                 thumb_filename, external_url, media_type, media_url, thumbnail_url, genre, city, tags_csv, category)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url),
+            (
+                profile_id,
+                title,
+                description,
+                video_filename,
+                audio_filename,
+                image_filename,
+                thumb_filename,
+                external_url,
+                media_type,
+                external_url,
+                thumb_filename or image_filename,
+                profile.genre if profile else "",
+                profile.city if profile else "",
+                profile.tags_csv if profile else "",
+                profile.role if profile else "",
+            ),
         )
         return cursor.lastrowid
 
@@ -810,6 +842,13 @@ def row_to_performance(row, profile=None):
     data.setdefault("audio_filename", "")
     data.setdefault("image_filename", "")
     data.setdefault("thumb_filename", "")
+    data.setdefault("media_type", "")
+    data.setdefault("media_url", "")
+    data.setdefault("thumbnail_url", "")
+    data.setdefault("genre", "")
+    data.setdefault("city", "")
+    data.setdefault("tags_csv", "")
+    data.setdefault("category", "")
     data.setdefault("external_url", "")
     data.setdefault("views", 0)
     data.setdefault("likes", 0)
@@ -817,8 +856,13 @@ def row_to_performance(row, profile=None):
     data["views"] = int(data.get("views") or 0)
     data["likes"] = int(data.get("likes") or 0)
     data["is_featured"] = bool(data.get("is_featured"))
-    data["thumbnail_filename"] = data.get("thumb_filename") or data.get("image_filename") or ""
-    data["media_type"] = "video" if data.get("video_filename") else "audio" if data.get("audio_filename") else "image" if data.get("image_filename") or data.get("thumb_filename") else "link" if data.get("external_url") else "empty"
+    data["thumbnail_filename"] = data.get("thumbnail_url") or data.get("thumb_filename") or data.get("image_filename") or ""
+    data["media_type"] = data.get("media_type") or ("video" if data.get("video_filename") else "audio" if data.get("audio_filename") else "image" if data.get("image_filename") or data.get("thumb_filename") else "link" if data.get("external_url") else "empty")
+    if profile:
+        data["genre"] = data.get("genre") or profile.genre
+        data["city"] = data.get("city") or profile.city
+        data["tags_csv"] = data.get("tags_csv") or profile.tags_csv
+        data["category"] = data.get("category") or profile.role
     data["profile"] = profile
     return SimpleNamespace(**data)
 
@@ -1153,6 +1197,23 @@ def get_performances(profile_id=None):
     return [row_to_performance(row, profiles.get(row["profile_id"])) for row in rows]
 
 
+def get_showcase_tiles(limit=6, role=None, profile_id=None):
+    role_key = (role or "").strip().lower()
+    performances = get_performances(profile_id=profile_id)
+    if role_key:
+        performances = [
+            perf
+            for perf in performances
+            if perf.profile and role_key in (perf.profile.role or "").lower()
+        ]
+    performances = sorted(
+        performances,
+        key=lambda perf: (bool(perf.is_featured), perf.views, perf.likes, perf.id),
+        reverse=True,
+    )
+    return performances[:limit]
+
+
 def showcase_context():
     performances = get_performances()
     profiles = search_profiles()
@@ -1427,6 +1488,7 @@ def home():
     return render_template(
         "index.html",
         creators=creators,
+        featured_showcase=get_showcase_tiles(limit=6),
         q=q,
         role_filter=role,
         genre_filter=genre,
@@ -1468,9 +1530,11 @@ def profiles():
     city = request.args.get("city", "").strip()
     instrument = request.args.get("instrument", "").strip()
     tags = request.args.get("tags", "").strip()
+    results = search_profiles(q=q, role=role, genre=genre, city=city, instrument=instrument, tags=tags)
     return render_template(
         "profiles.html",
-        profiles=search_profiles(q=q, role=role, genre=genre, city=city, instrument=instrument, tags=tags),
+        profiles=results,
+        showcase_items=get_showcase_tiles(limit=8, role=role) if role else [],
         q=q,
         role=role,
         genre=genre,
@@ -1501,6 +1565,7 @@ def profile_detail(profile_id):
         "profile_detail.html",
         profile=profile,
         perfs=get_performances(profile_id=profile.id),
+        showcase_items=get_showcase_tiles(limit=12, profile_id=profile.id),
     )
 
 
@@ -1529,6 +1594,11 @@ def performance_detail(perf_id):
         return redirect(url_for("performances"))
     perf = row_to_performance(row, get_profile(row["profile_id"]))
     return render_template("performance_detail.html", perf=perf)
+
+
+@app.route("/showcase/<int:perf_id>")
+def showcase_item(perf_id):
+    return performance_detail(perf_id)
 
 
 @app.route("/perfomances/upload", methods=["GET", "POST"])

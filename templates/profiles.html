@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_showcase_tiles.html" import showcase_tiles %}
 
 {% block title %}Browse Creators{% endblock %}
 
@@ -187,6 +188,15 @@
     {% endif %}
   </form>
 </section>
+
+{% if role %}
+  {{ showcase_tiles(
+    showcase_items,
+    role|title ~ " Showcase",
+    "Relevant uploads from creators in this lane.",
+    false
+  ) }}
+{% endif %}
 
 {% if profiles %}
   <section class="creator-grid">

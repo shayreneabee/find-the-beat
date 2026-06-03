@@ -1,0 +1,63 @@
+{% macro showcase_tiles(items, title="Featured Showcase", subtitle="", empty_upload=True) %}
+<section class="showcase-tile-section">
+  <div class="showcase-tile-head">
+    <div>
+      <p class="showcase-kicker">Showcase</p>
+      <h2>{{ title }}</h2>
+      {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+    </div>
+    <a class="button secondary" href="{{ url_for('showcase') }}">View Showcase</a>
+  </div>
+
+  {% if items %}
+    <div class="showcase-tile-grid">
+      {% for item in items %}
+        <article class="showcase-tile">
+          <a class="showcase-tile-media" href="{{ url_for('showcase_item', perf_id=item.id) }}" aria-label="Open {{ item.title }}">
+            {% if item.thumbnail_filename %}
+              <img src="{{ url_for('uploaded_photo', filename=item.thumbnail_filename) }}" alt="{{ item.title }}">
+            {% elif item.video_filename %}
+              <video preload="metadata" muted playsinline>
+                <source src="{{ url_for('uploaded_video', filename=item.video_filename) }}">
+              </video>
+            {% elif item.image_filename %}
+              <img src="{{ url_for('uploaded_photo', filename=item.image_filename) }}" alt="{{ item.title }}">
+            {% else %}
+              <span class="showcase-tile-placeholder">{{ item.media_type|title }}</span>
+            {% endif %}
+            <span class="showcase-media-badge">{{ item.media_type|title }}</span>
+            {% if item.media_type in ["video", "audio", "link"] %}
+              <span class="showcase-play" aria-hidden="true">▶</span>
+            {% endif %}
+          </a>
+          <div class="showcase-tile-copy">
+            <h3>{{ item.title }}</h3>
+            {% if item.profile %}
+              <p>{{ item.profile.display_name }}{% if item.profile.role %} • {{ item.profile.role }}{% endif %}</p>
+              <p>{{ item.genre or item.profile.genre or "Add genre" }}{% if item.city or item.profile.city %} • {{ item.city or item.profile.city }}{% endif %}</p>
+            {% else %}
+              <p>Creator profile coming soon</p>
+            {% endif %}
+            <div class="showcase-tile-actions">
+                <a class="button primary" href="{{ url_for('showcase_item', perf_id=item.id) }}">Play</a>
+              {% if item.profile %}
+                <a class="button secondary" href="{{ url_for('profile_detail', profile_id=item.profile.id) }}">View Profile</a>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="showcase-empty">
+      <h3>Nothing showcased yet.</h3>
+      <p>Upload your first performance.</p>
+      {% if empty_upload %}
+        <a class="button primary" href="{{ url_for('upload_performance') }}">Upload to Showcase</a>
+      {% else %}
+        <a class="button secondary" href="{{ url_for('showcase') }}">Open Showcase</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endmacro %}

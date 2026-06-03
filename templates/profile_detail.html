@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_showcase_tiles.html" import showcase_tiles %}
 
 {% block title %}{{ profile.display_name }}{% endblock %}
 
@@ -244,6 +245,11 @@
 
   <section class="artist-section" id="performances">
     <h2>Performances</h2>
+    {{ showcase_tiles(
+      showcase_items,
+      "Showcase",
+      "Videos, audio demos, photos, and live performance moments from this creator."
+    ) }}
     {% if perfs %}
       {% set featured = perfs[0] %}
       <h3>Featured: {{ featured.title }}</h3>

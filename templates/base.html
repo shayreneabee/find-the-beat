@@ -411,6 +411,172 @@
       font-weight: 700;
     }
 
+    .showcase-tile-section {
+      display: grid;
+      gap: 0.9rem;
+      margin-top: 1rem;
+      padding: clamp(0.95rem, 3vw, 1.25rem);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: var(--bc-radius, 24px);
+      background: rgba(255, 250, 238, 0.9);
+      box-shadow: var(--bc-lift, var(--lift));
+    }
+
+    .showcase-tile-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .showcase-tile-head h2,
+    .showcase-tile-head p,
+    .showcase-tile-copy h3,
+    .showcase-tile-copy p,
+    .showcase-empty h3,
+    .showcase-empty p {
+      margin: 0;
+    }
+
+    .showcase-tile-head h2 {
+      line-height: 1.05;
+      font-size: clamp(1.6rem, 4vw, 2.45rem);
+    }
+
+    .showcase-kicker {
+      color: var(--accent-dark);
+      font-size: 0.76rem;
+      font-weight: 950;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .showcase-tile-head p,
+    .showcase-tile-copy p,
+    .showcase-empty p {
+      color: var(--muted);
+    }
+
+    .showcase-tile-grid {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .showcase-tile {
+      overflow: hidden;
+      border: 1px solid rgba(78, 47, 16, 0.14);
+      border-radius: 20px;
+      background: rgba(255, 250, 238, 0.88);
+      box-shadow: 0 10px 24px rgba(55, 31, 7, 0.08);
+      transition: transform var(--bc-ease, 180ms ease), box-shadow var(--bc-ease, 180ms ease);
+    }
+
+    .showcase-tile:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--bc-shadow, var(--shadow));
+    }
+
+    .showcase-tile-media {
+      position: relative;
+      display: block;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 26% 16%, rgba(245, 138, 0, 0.45), transparent 8rem),
+        linear-gradient(135deg, #2f1e0d, #6b2f10);
+    }
+
+    .showcase-tile-media img,
+    .showcase-tile-media video,
+    .showcase-tile-placeholder {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      transition: transform var(--bc-ease, 180ms ease);
+    }
+
+    .showcase-tile:hover .showcase-tile-media img,
+    .showcase-tile:hover .showcase-tile-media video {
+      transform: scale(1.025);
+    }
+
+    .showcase-tile-placeholder {
+      display: grid;
+      place-items: center;
+      color: #fff7e8;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .showcase-media-badge,
+    .showcase-play {
+      position: absolute;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(47, 30, 13, 0.78);
+      color: #fff7e8;
+      font-weight: 950;
+      box-shadow: 0 10px 24px rgba(47, 30, 13, 0.18);
+    }
+
+    .showcase-media-badge {
+      left: 0.7rem;
+      top: 0.7rem;
+      padding: 0.28rem 0.55rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+    }
+
+    .showcase-play {
+      right: 0.7rem;
+      bottom: 0.7rem;
+      width: 2.35rem;
+      aspect-ratio: 1;
+      font-size: 0.9rem;
+    }
+
+    .showcase-tile-copy {
+      display: grid;
+      gap: 0.38rem;
+      padding: 0.9rem;
+    }
+
+    .showcase-tile-copy h3 {
+      line-height: 1.15;
+      font-size: 1.05rem;
+    }
+
+    .showcase-tile-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.48rem;
+      margin-top: 0.35rem;
+    }
+
+    .showcase-tile-actions .button {
+      min-height: 42px;
+      padding-inline: 0.85rem;
+      font-size: 0.82rem;
+    }
+
+    .showcase-empty {
+      display: grid;
+      gap: 0.55rem;
+      padding: 1.15rem;
+      border: 1px dashed rgba(78, 47, 16, 0.22);
+      border-radius: 20px;
+      background: rgba(255, 250, 238, 0.58);
+    }
+
+    @media (min-width: 700px) {
+      .showcase-tile-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
     .ecosystem-dock {
       display: flex;
       justify-content: center;

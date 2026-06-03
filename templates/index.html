@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_showcase_tiles.html" import showcase_tiles %}
 
 {% block title %}Find the Beat{% endblock %}
 
@@ -130,6 +131,12 @@
     <a class="button secondary" href="{{ url_for('login') }}">Sign In</a>
   </div>
 </section>
+
+{{ showcase_tiles(
+  featured_showcase,
+  "Featured Showcase",
+  "Tiles of performances, demos, and creator moments from across the Find the Beat network."
+) }}
 
 {% if creators %}
   <h2 class="section-band">featured creators</h2>
