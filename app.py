@@ -58,12 +58,10 @@ FOUNDER_PROFILES = [
         "full_name": os.getenv("BRENT_OWNER_FULL_NAME", "Shalanda Brent"),
         "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay"),
     },
-    {
-        "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
-        "full_name": os.getenv("BRENT_COFOUNDER_FULL_NAME", "Jerod Cotton"),
-        "display_name": os.getenv("BRENT_COFOUNDER_DISPLAY_NAME", "Jerod / Brent & Co Founder"),
-    },
 ]
+LEGACY_REMOVED_FOUNDER_EMAILS = {
+    "jerod.l.cotton@gmail.com",
+}
 OWNER_BIO = (
     "Official Brent & Co founder profile for ecosystem updates, creator support, "
     "and community connection."
@@ -1081,6 +1079,21 @@ def seed_demo_profiles_if_empty():
 
 def seed_founder_profile():
     with get_db() as conn:
+        for email in LEGACY_REMOVED_FOUNDER_EMAILS:
+            conn.execute(
+                """
+                UPDATE users
+                SET is_admin = 0,
+                    is_founder = 0,
+                    is_verified = 0,
+                    role = CASE WHEN lower(role) = 'admin' THEN 'user' ELSE role END,
+                    tags_csv = REPLACE(REPLACE(REPLACE(tags_csv, 'Founder, ', ''), ', Founder', ''), 'Founder', ''),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE lower(email) = lower(?)
+                """,
+                (email,),
+            )
+
         for founder in FOUNDER_PROFILES:
             email = founder["email"]
             if not email:
