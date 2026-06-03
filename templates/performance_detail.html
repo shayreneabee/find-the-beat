@@ -21,6 +21,21 @@
             <source src="{{ url_for('uploaded_video', filename=perf.video_filename) }}">
             Your browser does not support the video tag.
         </video>
+    {% elif perf.audio_filename %}
+        <div class="media-frame" style="margin-top:18px; padding:28px; background:linear-gradient(135deg,#2f1e0d,#6a2f12); border-radius:18px;">
+            <audio controls preload="metadata" style="width:100%;">
+                <source src="{{ url_for('uploaded_audio', filename=perf.audio_filename) }}">
+                Your browser does not support the audio tag.
+            </audio>
+        </div>
+    {% elif perf.image_filename %}
+        <div style="margin-top:18px;">
+            <img
+                class="media-frame"
+                src="{{ url_for('uploaded_photo', filename=perf.image_filename) }}"
+                alt="{{ perf.title }}"
+            >
+        </div>
     {% endif %}
 
     {% if perf.external_url %}
@@ -39,5 +54,19 @@
             >
         </div>
     {% endif %}
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;">
+        <span class="badge">{{ perf.media_type|title }}</span>
+        <span class="badge">{{ perf.views }} views</span>
+        <span class="badge">{{ perf.likes }} likes</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('like_performance', perf_id=perf.id) }}" style="margin-top:18px;">
+        <button class="button primary" type="submit">Like Performance</button>
+        {% if perf.profile %}
+            <a class="button secondary" href="{{ url_for('profile_detail', profile_id=perf.profile.id) }}">View Profile</a>
+        {% endif %}
+        <a class="button secondary" href="{{ url_for('showcase') }}">Back to Showcase</a>
+    </form>
 </section>
 {% endblock %}

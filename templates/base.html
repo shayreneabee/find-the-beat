@@ -149,17 +149,23 @@
       transform: translateX(-50%);
       display: flex;
       align-items: center;
-      justify-content: space-around;
+      justify-content: flex-start;
       gap: 0;
       padding: 0.35rem 0.25rem 0.55rem;
       background: var(--accent);
       border-top: 1px solid rgba(82, 45, 5, 0.22);
       box-shadow: 0 -10px 24px rgba(55, 31, 7, 0.15);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .nav::-webkit-scrollbar {
+      display: none;
     }
 
     .nav-pill {
       position: relative;
-      min-width: 66px;
+      min-width: 64px;
       min-height: 62px;
       display: inline-flex;
       align-items: center;
@@ -183,10 +189,16 @@
     }
 
     .nav-pill.home-link::before { content: "⌂"; }
+    .nav-pill.showcase-link::before { content: "✦"; }
     .nav-pill.search-link::before,
     .nav-pill.browse-link::before { content: "⌕"; }
+    .nav-pill.musicians-link::before { content: "♫"; }
+    .nav-pill.producers-link::before { content: "◍"; }
+    .nav-pill.composers-link::before { content: "♬"; }
+    .nav-pill.artists-link::before { content: "★"; }
     .nav-pill.performances-link::before { content: "✦"; }
-    .nav-pill.inbox-link::before { content: "▭"; }
+    .nav-pill.inbox-link::before,
+    .nav-pill.messages-link::before { content: "▭"; }
     .nav-pill.profile-link::before,
     .nav-pill.login-link::before { content: "◉"; }
     .nav-pill.logout-link::before { content: "↗"; }
@@ -217,6 +229,24 @@
 
     .nav-pill.primary {
       display: none;
+    }
+
+    .oauth-prep {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin-top: 1rem;
+    }
+
+    .oauth-prep button {
+      min-height: 2.8rem;
+      border: 1px solid rgba(82, 45, 5, 0.18);
+      border-radius: 999px;
+      background: rgba(255, 245, 219, 0.62);
+      color: var(--text);
+      font-weight: 900;
+      cursor: not-allowed;
+      opacity: 0.72;
     }
 
     .main {
@@ -671,17 +701,21 @@
 
       <nav class="nav" aria-label="Main navigation">
         <a href="{{ url_for('home') }}" class="nav-pill home-link">Home</a>
-        <a href="{{ url_for('profiles') }}" class="nav-pill browse-link">Browse</a>
+        <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link">Showcase</a>
+        <a href="{{ url_for('musicians') }}" class="nav-pill musicians-link">Musicians</a>
+        <a href="{{ url_for('producers') }}" class="nav-pill producers-link">Producers</a>
+        <a href="{{ url_for('composers') }}" class="nav-pill composers-link">Composers</a>
+        <a href="{{ url_for('artists') }}" class="nav-pill artists-link">Artists</a>
 
         {% if user %}
-          <a href="{{ url_for('profile') }}" class="nav-pill profile-link">My Profile</a>
-          <a href="{{ url_for('inbox') }}" class="nav-pill inbox-link">Inbox<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
+          <a href="{{ url_for('inbox') }}" class="nav-pill messages-link">Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
+          <a href="{{ url_for('profile') }}" class="nav-pill profile-link">Profile</a>
           <a href="{{ url_for('logout') }}" class="nav-pill logout-link">Logout</a>
         {% else %}
-          <a href="{{ url_for('login') }}" class="nav-pill login-link">Login</a>
+          <a href="{{ url_for('login') }}" class="nav-pill messages-link">Messages</a>
+          <a href="{{ url_for('login') }}" class="nav-pill login-link">Sign In</a>
           <a href="{{ url_for('signup') }}" class="nav-pill primary">Join</a>
         {% endif %}
-        <a href="https://brentandco.org/" class="nav-pill brent-link" rel="noopener">Brent &amp; Co</a>
       </nav>
     </header>
   </div>

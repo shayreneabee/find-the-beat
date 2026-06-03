@@ -29,10 +29,12 @@ INSTANCE_DIR = Path(os.getenv("INSTANCE_DIR", BASE_DIR / "instance"))
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", BASE_DIR / "static" / "uploads"))
 PHOTO_DIR = UPLOAD_DIR / "photos"
 VIDEO_DIR = UPLOAD_DIR / "videos"
+AUDIO_DIR = UPLOAD_DIR / "audio"
 DB_PATH = Path(os.getenv("DATABASE_PATH", INSTANCE_DIR / "find_the_beat_v2.db"))
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
+ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "m4a", "aac", "ogg", "webm"}
 BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentandco.org/")
 FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://findthebeatmusic.com")
 SECOND_CHANCE_URL = os.getenv(
@@ -42,10 +44,19 @@ SECOND_CHANCE_URL = os.getenv(
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "")
+APPLE_TEAM_ID = os.getenv("APPLE_TEAM_ID", "")
+APPLE_KEY_ID = os.getenv("APPLE_KEY_ID", "")
+APPLE_PRIVATE_KEY = os.getenv("APPLE_PRIVATE_KEY", "")
+FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID", "")
+FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET", "")
 FOUNDER_PROFILES = [
     {
         "email": os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower(),
-        "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay / Brent & Co Founder"),
+        "full_name": os.getenv("BRENT_OWNER_FULL_NAME", "Shalanda Brent"),
+        "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay"),
     },
     {
         "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
@@ -383,7 +394,7 @@ if os.getenv("TRUST_PROXY", "1") == "1":
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 
-for folder in (INSTANCE_DIR, UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR):
+for folder in (INSTANCE_DIR, UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR, AUDIO_DIR):
     folder.mkdir(parents=True, exist_ok=True)
 
 
@@ -402,14 +413,19 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                full_name TEXT DEFAULT '',
                 display_name TEXT DEFAULT '',
+                username TEXT DEFAULT '',
                 role TEXT DEFAULT '',
                 genre TEXT DEFAULT '',
                 city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                country TEXT DEFAULT '',
                 bio TEXT DEFAULT '',
                 tags_csv TEXT DEFAULT '',
                 instrument TEXT DEFAULT '',
                 services_csv TEXT DEFAULT '',
+                avatar_url TEXT DEFAULT '',
                 profile_pic TEXT DEFAULT '',
                 profile_video TEXT DEFAULT '',
                 instagram_url TEXT DEFAULT '',
@@ -418,10 +434,14 @@ def init_db():
                 spotify_url TEXT DEFAULT '',
                 linkedin_url TEXT DEFAULT '',
                 brent_account_id TEXT DEFAULT '',
+                provider TEXT DEFAULT 'local',
+                provider_id TEXT DEFAULT '',
                 auth_provider TEXT DEFAULT 'local',
                 is_admin INTEGER DEFAULT 0,
                 is_founder INTEGER DEFAULT 0,
-                is_verified INTEGER DEFAULT 0
+                is_verified INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
@@ -433,8 +453,13 @@ def init_db():
                 title TEXT NOT NULL,
                 description TEXT DEFAULT '',
                 video_filename TEXT DEFAULT '',
+                audio_filename TEXT DEFAULT '',
+                image_filename TEXT DEFAULT '',
                 thumb_filename TEXT DEFAULT '',
                 external_url TEXT DEFAULT '',
+                views INTEGER DEFAULT 0,
+                likes INTEGER DEFAULT 0,
+                is_featured INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(profile_id) REFERENCES users(id) ON DELETE CASCADE
             )
@@ -459,6 +484,11 @@ def init_db():
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
         }
         for column, definition in {
+            "full_name": "TEXT DEFAULT ''",
+            "username": "TEXT DEFAULT ''",
+            "state": "TEXT DEFAULT ''",
+            "country": "TEXT DEFAULT ''",
+            "avatar_url": "TEXT DEFAULT ''",
             "tags_csv": "TEXT DEFAULT ''",
             "instrument": "TEXT DEFAULT ''",
             "services_csv": "TEXT DEFAULT ''",
@@ -469,10 +499,14 @@ def init_db():
             "spotify_url": "TEXT DEFAULT ''",
             "linkedin_url": "TEXT DEFAULT ''",
             "brent_account_id": "TEXT DEFAULT ''",
+            "provider": "TEXT DEFAULT 'local'",
+            "provider_id": "TEXT DEFAULT ''",
             "auth_provider": "TEXT DEFAULT 'local'",
             "is_admin": "INTEGER DEFAULT 0",
             "is_founder": "INTEGER DEFAULT 0",
             "is_verified": "INTEGER DEFAULT 0",
+            "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+            "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
         }.items():
             if column not in existing_columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
@@ -480,8 +514,16 @@ def init_db():
         performance_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(performances)").fetchall()
         }
-        if "external_url" not in performance_columns:
-            conn.execute("ALTER TABLE performances ADD COLUMN external_url TEXT DEFAULT ''")
+        for column, definition in {
+            "audio_filename": "TEXT DEFAULT ''",
+            "image_filename": "TEXT DEFAULT ''",
+            "external_url": "TEXT DEFAULT ''",
+            "views": "INTEGER DEFAULT 0",
+            "likes": "INTEGER DEFAULT 0",
+            "is_featured": "INTEGER DEFAULT 0",
+        }.items():
+            if column not in performance_columns:
+                conn.execute(f"ALTER TABLE performances ADD COLUMN {column} {definition}")
 
 
 def allowed_file(filename, allowed_extensions):
@@ -514,7 +556,7 @@ def remove_upload(filename):
     if not filename:
         return
     filename = Path(filename).name
-    for folder in (UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR):
+    for folder in (UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR, AUDIO_DIR):
         path = folder / filename
         if path.exists() and path.is_file():
             path.unlink()
@@ -571,16 +613,17 @@ def create_user(email, password, fields, profile_pic):
         cursor = conn.execute(
             """
             INSERT INTO users (
-                email, password_hash, display_name, role, genre, city, bio,
+                email, password_hash, full_name, display_name, role, genre, city, bio,
                 tags_csv, instrument, services_csv, profile_pic,
                 instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url,
-                brent_account_id, auth_provider
+                brent_account_id, provider, auth_provider, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 email,
                 generate_password_hash(password),
+                fields["display_name"],
                 fields["display_name"],
                 fields["role"],
                 fields["genre"],
@@ -597,6 +640,7 @@ def create_user(email, password, fields, profile_pic):
                 fields.get("linkedin_url", ""),
                 brent_account_id(email),
                 AUTH_PROVIDER,
+                AUTH_PROVIDER,
             ),
         )
         return cursor.lastrowid
@@ -607,14 +651,16 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
         conn.execute(
             """
             UPDATE users
-            SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+            SET full_name = COALESCE(NULLIF(full_name, ''), ?),
+                display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
                 tags_csv = ?, instrument = ?, services_csv = ?,
-                profile_pic = ?, profile_video = ?,
+                avatar_url = ?, profile_pic = ?, profile_video = ?,
                 instagram_url = ?, tiktok_url = ?, youtube_url = ?,
-                spotify_url = ?, linkedin_url = ?
+                spotify_url = ?, linkedin_url = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
             (
+                fields["display_name"],
                 fields["display_name"],
                 fields["role"],
                 fields["genre"],
@@ -623,6 +669,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 fields["tags_csv"],
                 fields["instrument"],
                 fields["services_csv"],
+                profile_pic,
                 profile_pic,
                 profile_video,
                 fields.get("instagram_url", ""),
@@ -635,15 +682,15 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
         )
 
 
-def create_performance(profile_id, title, description, video_filename, thumb_filename, external_url=""):
+def create_performance(profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url=""):
     with get_db() as conn:
         cursor = conn.execute(
             """
             INSERT INTO performances
-                (profile_id, title, description, video_filename, thumb_filename, external_url)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (profile_id, title, description, video_filename, thumb_filename, external_url),
+            (profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url),
         )
         return cursor.lastrowid
 
@@ -695,24 +742,38 @@ def row_to_profile(row):
     if row is None:
         return None
     data = dict(row)
+    data.setdefault("full_name", "")
+    data.setdefault("username", "")
+    data.setdefault("state", "")
+    data.setdefault("country", "")
+    data.setdefault("avatar_url", "")
     data.setdefault("profile_pic", "")
     data.setdefault("profile_video", "")
     data.setdefault("tags_csv", "")
     data.setdefault("instrument", "")
     data.setdefault("services_csv", "")
     data.setdefault("brent_account_id", "")
+    data.setdefault("provider", AUTH_PROVIDER)
+    data.setdefault("provider_id", "")
     data.setdefault("auth_provider", AUTH_PROVIDER)
     data.setdefault("is_admin", 0)
     data.setdefault("is_founder", 0)
     data.setdefault("is_verified", 0)
     data["brent_account_id"] = data["brent_account_id"] or brent_account_id(data.get("email", ""))
-    data["auth_provider"] = data["auth_provider"] or AUTH_PROVIDER
+    data["provider"] = data["provider"] or data["auth_provider"] or AUTH_PROVIDER
+    data["auth_provider"] = data["auth_provider"] or data["provider"] or AUTH_PROVIDER
     data["is_admin"] = bool(data.get("is_admin"))
     data["is_founder"] = bool(data.get("is_founder"))
     data["is_verified"] = bool(data.get("is_verified"))
     data["photo_filename"] = data.get("profile_pic") or ""
+    data["avatar_url"] = data.get("avatar_url") or data["photo_filename"] or ""
     data["video_filename"] = data.get("profile_video") or ""
     data["name"] = data.get("display_name") or ""
+    data["fullName"] = data.get("full_name") or data["name"]
+    data["displayName"] = data["name"]
+    data["username"] = data.get("username") or ""
+    data["providerId"] = data.get("provider_id") or ""
+    data["initials"] = "".join(part[:1] for part in (data["name"] or data["email"] or "SB").replace("/", " ").split()[:2]).upper() or "SB"
     data["tags"] = split_csv(data.get("tags_csv", ""))
     data["services"] = split_csv(data.get("services_csv", ""))
     for field in SOCIAL_FIELDS:
@@ -744,7 +805,19 @@ def row_to_performance(row, profile=None):
     if row is None:
         return None
     data = dict(row)
+    data.setdefault("video_filename", "")
+    data.setdefault("audio_filename", "")
+    data.setdefault("image_filename", "")
+    data.setdefault("thumb_filename", "")
     data.setdefault("external_url", "")
+    data.setdefault("views", 0)
+    data.setdefault("likes", 0)
+    data.setdefault("is_featured", 0)
+    data["views"] = int(data.get("views") or 0)
+    data["likes"] = int(data.get("likes") or 0)
+    data["is_featured"] = bool(data.get("is_featured"))
+    data["thumbnail_filename"] = data.get("thumb_filename") or data.get("image_filename") or ""
+    data["media_type"] = "video" if data.get("video_filename") else "audio" if data.get("audio_filename") else "image" if data.get("image_filename") or data.get("thumb_filename") else "link" if data.get("external_url") else "empty"
     data["profile"] = profile
     return SimpleNamespace(**data)
 
@@ -969,6 +1042,7 @@ def seed_founder_profile():
                 continue
             owner_values = {
                 "email": email,
+                "full_name": founder["full_name"],
                 "display_name": founder["display_name"],
                 "role": "admin",
                 "genre": "Brent & Co Ecosystem",
@@ -988,13 +1062,15 @@ def seed_founder_profile():
                 conn.execute(
                     """
                     UPDATE users
-                    SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                    SET full_name = ?, display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
                         tags_csv = ?, instrument = ?, services_csv = ?,
-                        brent_account_id = ?, auth_provider = ?,
-                        is_admin = 1, is_founder = 1, is_verified = 1
+                        brent_account_id = ?, provider = ?, auth_provider = ?,
+                        is_admin = 1, is_founder = 1, is_verified = 1,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
                     (
+                        owner_values["full_name"],
                         owner_values["display_name"],
                         owner_values["role"],
                         owner_values["genre"],
@@ -1005,6 +1081,7 @@ def seed_founder_profile():
                         owner_values["services_csv"],
                         owner_values["brent_account_id"],
                         owner_values["auth_provider"],
+                        owner_values["auth_provider"],
                         existing["id"],
                     ),
                 )
@@ -1012,28 +1089,30 @@ def seed_founder_profile():
             conn.execute(
                 """
                 INSERT INTO users (
-                    email, password_hash, display_name, role, genre, city, bio,
+                    email, password_hash, full_name, display_name, role, genre, city, bio,
                     tags_csv, instrument, services_csv, brent_account_id,
-                    auth_provider, is_admin, is_founder, is_verified
+                    provider, auth_provider, is_admin, is_founder, is_verified
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
                 """,
                 (
                     owner_values["email"],
                     generate_password_hash(
                         OWNER_INITIAL_PASSWORD or secrets.token_urlsafe(32)
                     ),
-                owner_values["display_name"],
-                owner_values["role"],
-                owner_values["genre"],
-                owner_values["city"],
-                owner_values["bio"],
-                owner_values["tags_csv"],
-                owner_values["instrument"],
-                owner_values["services_csv"],
-                owner_values["brent_account_id"],
-                owner_values["auth_provider"],
-            ),
+                    owner_values["full_name"],
+                    owner_values["display_name"],
+                    owner_values["role"],
+                    owner_values["genre"],
+                    owner_values["city"],
+                    owner_values["bio"],
+                    owner_values["tags_csv"],
+                    owner_values["instrument"],
+                    owner_values["services_csv"],
+                    owner_values["brent_account_id"],
+                    owner_values["auth_provider"],
+                    owner_values["auth_provider"],
+                ),
             )
 
 
@@ -1071,6 +1150,77 @@ def get_performances(profile_id=None):
             profiles = {row["id"]: row_to_profile(row) for row in profile_rows}
 
     return [row_to_performance(row, profiles.get(row["profile_id"])) for row in rows]
+
+
+def showcase_context():
+    performances = get_performances()
+    profiles = search_profiles()
+
+    featured_performances = [
+        perf
+        for perf in performances
+        if perf.is_featured
+        or perf.video_filename
+        or perf.audio_filename
+        or perf.image_filename
+        or perf.external_url
+    ][:6] or performances[:6]
+    trending_performances = sorted(
+        performances,
+        key=lambda perf: (perf.views, perf.likes, perf.id),
+        reverse=True,
+    )[:8]
+    trending_profiles = sorted(
+        profiles,
+        key=lambda profile: (
+            bool(profile.is_founder),
+            bool(profile.is_verified),
+            len(profile.badges or []),
+            profile.id,
+        ),
+        reverse=True,
+    )[:8]
+
+    def role_profiles(role):
+        return search_profiles(role=role)[:6]
+
+    def wants_collab(profile):
+        text = " ".join(
+            [
+                profile.tags_csv or "",
+                profile.services_csv or "",
+                profile.bio or "",
+                profile.genre or "",
+            ]
+        ).lower()
+        return any(
+            phrase in text
+            for phrase in ("collab", "collaboration", "available", "feature", "session")
+        )
+
+    open_collaborations = [profile for profile in profiles if wants_collab(profile)][:8]
+    featured_artists = role_profiles("artist")
+    featured_producers = role_profiles("producer")
+    featured_musicians = role_profiles("musician")
+    featured_composers = role_profiles("composer")
+
+    return {
+        "featured_performances": featured_performances,
+        "trending_performances": trending_performances,
+        "trending_profiles": trending_profiles,
+        "featured_artists": featured_artists,
+        "featured_producers": featured_producers,
+        "featured_musicians": featured_musicians,
+        "featured_composers": featured_composers,
+        "role_sections": [
+            {"title": "Featured Artists", "profiles": featured_artists, "endpoint": "artists"},
+            {"title": "Featured Producers", "profiles": featured_producers, "endpoint": "producers"},
+            {"title": "Featured Musicians", "profiles": featured_musicians, "endpoint": "musicians"},
+            {"title": "Featured Composers", "profiles": featured_composers, "endpoint": "composers"},
+        ],
+        "open_collaborations": open_collaborations,
+        "new_this_week": performances[:8],
+    }
 
 
 def get_user_map(user_ids):
@@ -1368,6 +1518,10 @@ def performances():
 @app.route("/performances/<int:perf_id>")
 def performance_detail(perf_id):
     with get_db() as conn:
+        conn.execute(
+            "UPDATE performances SET views = COALESCE(views, 0) + 1 WHERE id = ?",
+            (perf_id,),
+        )
         row = conn.execute("SELECT * FROM performances WHERE id = ?", (perf_id,)).fetchone()
     if not row:
         flash("Performance not found.")
@@ -1409,6 +1563,16 @@ def upload_performance():
                 ALLOWED_VIDEO_EXTENSIONS,
                 VIDEO_DIR,
             )
+            audio_filename = save_upload(
+                first_uploaded_file("audio", "audio_file"),
+                ALLOWED_AUDIO_EXTENSIONS,
+                AUDIO_DIR,
+            )
+            image_filename = save_upload(
+                first_uploaded_file("image", "image_file"),
+                ALLOWED_IMAGE_EXTENSIONS,
+                PHOTO_DIR,
+            )
             thumb_filename = save_upload(
                 first_uploaded_file("thumb", "photo"),
                 ALLOWED_IMAGE_EXTENSIONS,
@@ -1417,8 +1581,8 @@ def upload_performance():
         except ValueError as exc:
             flash(str(exc))
             return redirect(url_for("upload_performance"))
-        if not video_filename and not external_url:
-            flash("Add a performance video file or a media link.")
+        if not any([video_filename, audio_filename, image_filename, external_url]):
+            flash("Add a video, audio demo, image, or media link.")
             return redirect(url_for("upload_performance"))
 
         perf_id = create_performance(
@@ -1426,6 +1590,8 @@ def upload_performance():
             title,
             description,
             video_filename,
+            audio_filename,
+            image_filename,
             thumb_filename,
             external_url,
         )
@@ -1460,8 +1626,8 @@ def upload_media():
 
     with get_db() as conn:
         conn.execute(
-            "UPDATE users SET profile_pic = ?, profile_video = ? WHERE id = ?",
-            (profile_pic, profile_video, user.id),
+            "UPDATE users SET avatar_url = ?, profile_pic = ?, profile_video = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (profile_pic, profile_pic, profile_video, user.id),
         )
     flash("Media uploaded.")
     return redirect(url_for("profile"))
@@ -1525,8 +1691,15 @@ def login():
         session["user_id"] = row["id"]
         with get_db() as conn:
             conn.execute(
-                "UPDATE users SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?), auth_provider = COALESCE(NULLIF(auth_provider, ''), ?) WHERE id = ?",
-                (brent_account_id(row["email"]), AUTH_PROVIDER, row["id"]),
+                """
+                UPDATE users
+                SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
+                    provider = COALESCE(NULLIF(provider, ''), ?),
+                    auth_provider = COALESCE(NULLIF(auth_provider, ''), ?),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
             )
         count = unread_message_count(row["id"])
         flash("You have new messages." if count else "You are logged in.")
@@ -1598,6 +1771,8 @@ def delete_profile(profile_id=None):
     with get_db() as conn:
         for perf in get_performances(profile_id=user.id):
             remove_upload(perf.video_filename)
+            remove_upload(perf.audio_filename)
+            remove_upload(perf.image_filename)
             remove_upload(perf.thumb_filename)
         conn.execute("DELETE FROM performances WHERE profile_id = ?", (user.id,))
         conn.execute(
@@ -1634,7 +1809,7 @@ def delete_profile_video():
 
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
-    for folder in (UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR):
+    for folder in (UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR, AUDIO_DIR):
         if (folder / filename).exists():
             return send_from_directory(folder, filename)
     return send_from_directory(UPLOAD_DIR, filename)
@@ -1648,6 +1823,11 @@ def uploaded_photo(filename):
 @app.route("/uploads/videos/<path:filename>")
 def uploaded_video(filename):
     return send_from_directory(VIDEO_DIR, filename)
+
+
+@app.route("/uploads/audio/<path:filename>")
+def uploaded_audio(filename):
+    return send_from_directory(AUDIO_DIR, filename)
 
 
 @app.route("/dashboard")
@@ -1716,17 +1896,18 @@ def api_unread_count():
 
 
 @app.route("/showcase")
-def showcase():
-    return redirect(url_for("performances"))
-
-
 @app.route("/showcases")
-def showcases():
-    return redirect(url_for("performances"))
+def showcase():
+    return render_template("showcase.html", **showcase_context())
 
 
 @app.route("/production")
 def production():
+    return redirect(url_for("profiles", role="producer"))
+
+
+@app.route("/producers")
+def producers():
     return redirect(url_for("profiles", role="producer"))
 
 
@@ -1781,7 +1962,12 @@ def delete_message(message_id):
 
 @app.route("/performances/<int:perf_id>/like", methods=["POST"])
 def like_performance(perf_id):
-    flash("Likes are not ready yet.")
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE performances SET likes = COALESCE(likes, 0) + 1 WHERE id = ?",
+            (perf_id,),
+        )
+    flash("Performance liked.")
     return redirect(url_for("performance_detail", perf_id=perf_id))
 
 
