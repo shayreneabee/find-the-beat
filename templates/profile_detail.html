@@ -238,6 +238,8 @@
   <section class="artist-details" id="details">
     <p><strong>Genre:</strong> {{ profile.genre or "Add genre" }}</p>
     <p><strong>Location:</strong> {{ profile.city or "Add city" }}{% if profile.state %}, {{ profile.state }}{% endif %}</p>
+    <p><strong>Previous work:</strong> {{ profile.previous_work or "Previous work coming soon" }}</p>
+    <p><strong>Availability:</strong> {{ profile.availability or "Availability coming soon" }}</p>
     <p><strong>Bio:</strong> {{ profile.bio or "Add bio" }}</p>
   </section>
 

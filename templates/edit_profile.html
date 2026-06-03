@@ -178,6 +178,20 @@
       <textarea id="bio" name="bio">{{ user.bio or '' }}</textarea>
     </div>
 
+    <div class="field">
+      <label for="previous_work">Previous work</label>
+      <textarea id="previous_work" name="previous_work" placeholder="Shows, placements, projects, credits, gigs, or collaborations.">{{ user.previous_work or '' }}</textarea>
+    </div>
+
+    <div class="field">
+      <label for="availability">Availability</label>
+      <select id="availability" name="availability">
+        {% for option in ["", "Available for Collabs", "Available for Studio Sessions", "Available for Live Shows", "Booking Soon", "Not Available Right Now"] %}
+          <option value="{{ option }}" {% if (user.availability or '') == option %}selected{% endif %}>{{ option or "Choose availability" }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
     <div class="two">
       <div class="field">
         <label for="instagram_url">Instagram</label>

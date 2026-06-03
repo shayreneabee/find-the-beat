@@ -63,6 +63,7 @@
 
     <form method="POST" action="{{ url_for('like_performance', perf_id=perf.id) }}" style="margin-top:18px;">
         <button class="button primary" type="submit">Like Performance</button>
+        <button class="button secondary" type="submit" formaction="{{ url_for('share_performance', perf_id=perf.id) }}">Share Performance</button>
         {% if perf.profile %}
             <a class="button secondary" href="{{ url_for('profile_detail', profile_id=perf.profile.id) }}">View Profile</a>
         {% endif %}

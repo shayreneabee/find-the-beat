@@ -421,6 +421,8 @@ def init_db():
                 state TEXT DEFAULT '',
                 country TEXT DEFAULT '',
                 bio TEXT DEFAULT '',
+                previous_work TEXT DEFAULT '',
+                availability TEXT DEFAULT '',
                 tags_csv TEXT DEFAULT '',
                 instrument TEXT DEFAULT '',
                 services_csv TEXT DEFAULT '',
@@ -488,6 +490,8 @@ def init_db():
             "state": "TEXT DEFAULT ''",
             "country": "TEXT DEFAULT ''",
             "avatar_url": "TEXT DEFAULT ''",
+            "previous_work": "TEXT DEFAULT ''",
+            "availability": "TEXT DEFAULT ''",
             "tags_csv": "TEXT DEFAULT ''",
             "instrument": "TEXT DEFAULT ''",
             "services_csv": "TEXT DEFAULT ''",
@@ -607,6 +611,8 @@ def profile_form_fields():
         "state": request.form.get("state", "").strip(),
         "country": request.form.get("country", "").strip(),
         "bio": request.form.get("bio", "").strip(),
+        "previous_work": request.form.get("previous_work", "").strip(),
+        "availability": request.form.get("availability", "").strip(),
         "tags_csv": request.form.get("tags_csv", "").strip(),
         "instrument": ", ".join(dict.fromkeys(instruments)),
         "services_csv": request.form.get("services_csv", "").strip(),
@@ -642,11 +648,12 @@ def create_user(email, password, fields, profile_pic):
             """
             INSERT INTO users (
                 email, password_hash, full_name, display_name, role, genre, city, state, country, bio,
+                previous_work, availability,
                 tags_csv, instrument, services_csv, profile_pic,
                 instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url,
                 brent_account_id, provider, auth_provider, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -659,6 +666,8 @@ def create_user(email, password, fields, profile_pic):
                 fields["state"],
                 fields["country"],
                 fields["bio"],
+                fields["previous_work"],
+                fields["availability"],
                 fields["tags_csv"],
                 fields["instrument"],
                 fields["services_csv"],
@@ -683,7 +692,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
             UPDATE users
             SET full_name = COALESCE(NULLIF(full_name, ''), ?),
                 display_name = ?, role = ?, genre = ?, city = ?, state = ?, country = ?, bio = ?,
-                tags_csv = ?, instrument = ?, services_csv = ?,
+                previous_work = ?, availability = ?, tags_csv = ?, instrument = ?, services_csv = ?,
                 avatar_url = ?, profile_pic = ?, profile_video = ?,
                 instagram_url = ?, tiktok_url = ?, youtube_url = ?,
                 spotify_url = ?, linkedin_url = ?, updated_at = CURRENT_TIMESTAMP
@@ -698,6 +707,8 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 fields["state"],
                 fields["country"],
                 fields["bio"],
+                fields["previous_work"],
+                fields["availability"],
                 fields["tags_csv"],
                 fields["instrument"],
                 fields["services_csv"],
@@ -868,6 +879,8 @@ def row_to_profile(row):
     data.setdefault("avatar_url", "")
     data.setdefault("profile_pic", "")
     data.setdefault("profile_video", "")
+    data.setdefault("previous_work", "")
+    data.setdefault("availability", "")
     data.setdefault("tags_csv", "")
     data.setdefault("instrument", "")
     data.setdefault("services_csv", "")
@@ -986,6 +999,8 @@ def profile_completion(user):
         ("Add genre", bool(user.genre)),
         ("Add city", bool(user.city)),
         ("Add bio", bool(user.bio)),
+        ("Add previous work", bool(user.previous_work)),
+        ("Add availability", bool(user.availability)),
         ("Add social links", bool(user.social_links)),
         ("Add first performance", bool(get_performances(profile_id=user.id))),
     ]
@@ -1655,7 +1670,7 @@ def search_directory(slug):
         availability = filters["availability"].lower()
         results = [
             profile for profile in results
-            if availability in f"{profile.tags_csv} {profile.services_csv} {profile.bio}".lower()
+            if availability in f"{profile.availability} {profile.tags_csv} {profile.services_csv} {profile.bio}".lower()
         ]
     if slug == "musicians" and selected_instruments:
         needles = [item.lower() for item in selected_instruments]
@@ -1666,6 +1681,16 @@ def search_directory(slug):
             return all(hits) if match_mode == "all" else any(hits)
 
         results = [profile for profile in results if instrument_match(profile)]
+    view_mode = request.args.get("view", "list")
+    if view_mode not in {"list", "map"}:
+        view_mode = "list"
+    map_points = []
+    location_counts = {}
+    for profile in results:
+        location = ", ".join(part for part in [profile.city, profile.state] if part) or profile.country or "Location coming soon"
+        location_counts[location] = location_counts.get(location, 0) + 1
+    for location, count in location_counts.items():
+        map_points.append({"location": location, "count": count})
     return render_template(
         "directory.html",
         category=category,
@@ -1675,6 +1700,8 @@ def search_directory(slug):
         match_mode=match_mode,
         instrument_options=INSTRUMENT_OPTIONS,
         is_musicians=slug == "musicians",
+        view_mode=view_mode,
+        map_points=map_points,
     )
 
 
@@ -1849,6 +1876,47 @@ def performance_detail(perf_id):
 @app.route("/showcase/<int:perf_id>")
 def showcase_item(perf_id):
     return performance_detail(perf_id)
+
+
+@app.route("/performances/<int:perf_id>/share", methods=["POST"])
+def share_performance(perf_id):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM performances WHERE id = ?", (perf_id,)).fetchone()
+    if not row:
+        flash("Performance not found.")
+        return redirect(url_for("showcase"))
+    perf = row_to_performance(row, get_profile(row["profile_id"]))
+    return render_template("share_confirmation.html", perf=perf)
+
+
+@app.route("/my-uploads")
+@app.route("/uploads")
+@login_required
+def my_uploads():
+    user = current_user()
+    return render_template("my_uploads.html", user=user, perfs=get_performances(profile_id=user.id))
+
+
+@app.route("/performances/<int:perf_id>/delete", methods=["POST"])
+@login_required
+def delete_performance(perf_id):
+    user = current_user()
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM performances WHERE id = ?", (perf_id,)).fetchone()
+        if not row:
+            flash("Performance not found.")
+            return redirect(url_for("my_uploads"))
+        if row["profile_id"] != user.id:
+            flash("You can only delete your own uploads.")
+            return redirect(url_for("my_uploads"))
+        perf = row_to_performance(row, user)
+        remove_upload(perf.video_filename)
+        remove_upload(perf.audio_filename)
+        remove_upload(perf.image_filename)
+        remove_upload(perf.thumb_filename)
+        conn.execute("DELETE FROM performances WHERE id = ?", (perf_id,))
+    flash("Upload deleted.")
+    return redirect(url_for("my_uploads"))
 
 
 @app.route("/perfomances/upload", methods=["GET", "POST"])

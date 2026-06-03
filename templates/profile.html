@@ -179,6 +179,10 @@
       <span>✦</span>
       <strong>Upload a<br>Performance</strong>
     </a>
+    <a class="profile-action" href="{{ url_for('my_uploads') }}">
+      <span>▣</span>
+      <strong>My<br>Uploads</strong>
+    </a>
     <a class="profile-action" href="{{ url_for('inbox') }}">
       <span>▭</span>
       <strong>Inbox{% if unread_count %}<br>{{ unread_count }} new{% endif %}</strong>
@@ -206,6 +210,8 @@
     <div class="detail-row"><small>Genre</small><strong>{{ user.genre or "Add genre" }}</strong></div>
     <div class="detail-row"><small>Instruments</small><strong>{{ user.instrument or "Add instruments" }}</strong></div>
     <div class="detail-row"><small>Services</small><strong>{{ user.services_csv or "Add services" }}</strong></div>
+    <div class="detail-row"><small>Previous Work</small><strong>{{ user.previous_work or "Add previous work" }}</strong></div>
+    <div class="detail-row"><small>Availability</small><strong>{{ user.availability or "Add availability" }}</strong></div>
     <div class="detail-row"><small>Tags</small><strong>{{ user.tags_csv or "Add tags" }}</strong></div>
     <div class="detail-row"><small>Social</small><strong>{{ "Added" if user.social_links else "Add social links" }}</strong></div>
     <div class="detail-row"><small>Bio</small><strong>{{ user.bio or "Add bio" }}</strong></div>

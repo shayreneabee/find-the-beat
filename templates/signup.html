@@ -52,6 +52,7 @@
   }
 
   .field input,
+  .field select,
   .field textarea {
     width: 100%;
     min-height: 48px;
@@ -241,6 +242,23 @@
     <div class="field">
       <label for="services_csv">Services:</label>
       <input id="services_csv" name="services_csv" placeholder="Mixing, songwriting, beats, vocals">
+    </div>
+
+    <div class="field">
+      <label for="previous_work">Previous Work:</label>
+      <textarea id="previous_work" name="previous_work" placeholder="Share shows, placements, projects, credits, gigs, or collaborations."></textarea>
+    </div>
+
+    <div class="field">
+      <label for="availability">Availability:</label>
+      <select id="availability" name="availability">
+        <option value="">Choose availability</option>
+        <option value="Available for Collabs">Available for Collabs</option>
+        <option value="Available for Studio Sessions">Available for Studio Sessions</option>
+        <option value="Available for Live Shows">Available for Live Shows</option>
+        <option value="Booking Soon">Booking Soon</option>
+        <option value="Not Available Right Now">Not Available Right Now</option>
+      </select>
     </div>
 
     <div class="field">

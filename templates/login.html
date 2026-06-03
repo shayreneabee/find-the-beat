@@ -5,10 +5,11 @@
 {% block content %}
 <style>
   .login-hero {
-    margin-top: 6.2rem;
     background: var(--accent);
-    padding: 1.6rem 1.25rem 1.8rem;
+    padding: 1.35rem 1.25rem 1.55rem;
     text-align: center;
+    border-bottom: 7px solid var(--cream);
+    box-shadow: 0 8px 14px rgba(55, 31, 7, 0.18);
   }
 
   .login-icon {
@@ -30,6 +31,31 @@
     letter-spacing: 0.06em;
     text-transform: lowercase;
     font-weight: 400;
+  }
+
+  .social-signin {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1.25rem 1rem 0;
+  }
+
+  .social-signin h2 {
+    margin: 0;
+    color: rgba(47, 30, 13, 0.68);
+    font-size: clamp(1.7rem, 8vw, 2.35rem);
+    font-weight: 300;
+    text-align: center;
+    text-transform: lowercase;
+  }
+
+  .social-button {
+    min-height: 52px;
+    border: 1px solid rgba(47, 30, 13, 0.16);
+    border-radius: 0 0 22px 22px;
+    background: rgba(255, 250, 238, 0.84);
+    box-shadow: 0 7px 0 rgba(47, 30, 13, 0.1);
+    color: rgba(47, 30, 13, 0.78);
+    font-weight: 900;
   }
 
   .login-form {
@@ -91,6 +117,13 @@
   <h1>welcome<br>to<br>find the beat</h1>
 </section>
 
+<section class="social-signin" aria-label="Social sign in">
+  <h2>sign in your way</h2>
+  <button class="social-button" type="button" disabled>Continue with Google</button>
+  <button class="social-button" type="button" disabled>Continue with Apple</button>
+  <button class="social-button" type="button" disabled>Email login below</button>
+</section>
+
 <form method="POST" class="login-form">
   <div>
     <label for="email">Email Address:</label>
@@ -101,14 +134,8 @@
     <input id="password" name="password" type="password" required>
   </div>
   <div class="login-actions">
-    <button type="submit" class="button primary">Sign-In</button>
-    <a href="{{ url_for('signup') }}" class="button secondary">Create Profile</a>
-  </div>
-  <div class="oauth-prep" aria-label="Future social sign in">
-    <button type="button" disabled>Continue with Google</button>
-    <button type="button" disabled>Continue with Apple</button>
-    <button type="button" disabled>Continue with Email</button>
-    <button type="button" disabled>Facebook later</button>
+    <a href="{{ url_for('signup') }}" class="button secondary">Register</a>
+    <button type="submit" class="button primary">Login</button>
   </div>
   <p class="login-note">Use the email and password from your Find the Beat profile.</p>
 </form>

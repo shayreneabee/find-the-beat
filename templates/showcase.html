@@ -126,6 +126,18 @@
     line-height: 1.05;
   }
 
+  .share-mini {
+    margin-top: 0.65rem;
+    border: 0;
+    background: transparent;
+    color: rgba(47, 30, 13, 0.72);
+    font: inherit;
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
   .watch-button::before {
     content: "✦";
     display: block;
@@ -250,6 +262,9 @@
     <h2 class="showcase-name">{{ perf.profile.display_name if perf.profile else perf.title }}</h2>
     <p class="showcase-role">{{ perf.profile.instrument or perf.profile.role if perf.profile else perf.media_type|title }}</p>
     <a class="watch-button" href="{{ url_for('performance_detail', perf_id=perf.id) }}">Watch<br>Performances</a>
+    <form method="POST" action="{{ url_for('share_performance', perf_id=perf.id) }}">
+      <button class="share-mini" type="submit">Share</button>
+    </form>
   </article>
 {% endmacro %}
 

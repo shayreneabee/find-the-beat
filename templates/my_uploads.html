@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}My Uploads • Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .uploads-page {
+    display: grid;
+    gap: 0;
+    min-height: calc(100vh - 172px);
+    margin: -1rem -0.9rem 0;
+    padding-bottom: 1.2rem;
+    background: linear-gradient(180deg, #fbf4de 0%, #eee7d0 100%);
+  }
+
+  .uploads-band {
+    min-height: 92px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    border-bottom: 7px solid var(--cream);
+    background: var(--accent);
+    color: rgba(47, 30, 13, 0.62);
+    font-size: clamp(2.55rem, 13vw, 4.2rem);
+    font-weight: 200;
+    text-transform: lowercase;
+  }
+
+  .uploads-profile {
+    display: grid;
+    justify-items: center;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .uploads-photo {
+    width: min(72%, 280px);
+    aspect-ratio: 16 / 8.5;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2f1e0d, #f58a00);
+    box-shadow: 0 8px 0 rgba(47, 30, 13, 0.12);
+    color: #fff7e8;
+    font-size: 3rem;
+    font-weight: 950;
+  }
+
+  .uploads-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .uploads-profile h2,
+  .uploads-profile p {
+    margin: 0.45rem 0 0;
+    color: rgba(47, 30, 13, 0.76);
+    font-weight: 300;
+    line-height: 1.1;
+  }
+
+  .uploads-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.55rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .upload-action {
+    min-height: 70px;
+    display: grid;
+    place-items: center;
+    border-radius: 0 0 20px 20px;
+    background: rgba(255, 250, 238, 0.8);
+    box-shadow: 0 7px 0 rgba(47, 30, 13, 0.1);
+    color: rgba(47, 30, 13, 0.78);
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .upload-list {
+    display: grid;
+    gap: 0;
+    padding-top: 0.4rem;
+  }
+
+  .upload-row {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.7rem 0.9rem;
+    box-shadow: inset 0 -2px 0 rgba(47, 30, 13, 0.22);
+  }
+
+  .upload-thumb {
+    width: 72px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2f1e0d, #9b4a16);
+    color: #fff7e8;
+    font-weight: 950;
+  }
+
+  .upload-thumb img,
+  .upload-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .upload-row h3,
+  .upload-row p {
+    margin: 0;
+  }
+
+  .upload-row h3 {
+    color: rgba(47, 30, 13, 0.78);
+    font-weight: 400;
+  }
+
+  .upload-row p {
+    color: rgba(47, 30, 13, 0.58);
+  }
+
+  .upload-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.45rem;
+  }
+
+  .upload-row-actions button,
+  .upload-row-actions a {
+    min-height: 36px;
+    padding: 0 0.7rem;
+    border: 1px solid rgba(47, 30, 13, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.8);
+    color: var(--text);
+    font-weight: 900;
+  }
+
+  .empty-uploads {
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(255, 250, 238, 0.74);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.12);
+  }
+</style>
+
+<section class="uploads-page">
+  <h1 class="uploads-band">My Uploads</h1>
+  <header class="uploads-profile">
+    <div class="uploads-photo">
+      {% if user.profile_pic %}
+        <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
+      {% else %}
+        {{ user.initials }}
+      {% endif %}
+    </div>
+    <h2>{{ user.display_name }}</h2>
+    <p>{{ user.instrument or user.role or "Creator" }}</p>
+  </header>
+
+  <nav class="uploads-actions" aria-label="Upload actions">
+    <a class="upload-action" href="{{ url_for('upload_performance') }}">Upload<br>Video</a>
+    <a class="upload-action" href="{{ url_for('upload_performance') }}">Upload<br>Audio</a>
+    <a class="upload-action" href="{{ url_for('upload_performance') }}">Upload<br>Photo</a>
+  </nav>
+
+  {% if perfs %}
+    <section class="upload-list">
+      {% for perf in perfs %}
+        <article class="upload-row">
+          <a class="upload-thumb" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+            {% if perf.thumbnail_filename %}
+              <img src="{{ url_for('uploaded_photo', filename=perf.thumbnail_filename) }}" alt="{{ perf.title }}">
+            {% elif perf.image_filename %}
+              <img src="{{ url_for('uploaded_photo', filename=perf.image_filename) }}" alt="{{ perf.title }}">
+            {% elif perf.video_filename %}
+              <video muted preload="metadata"><source src="{{ url_for('uploaded_video', filename=perf.video_filename) }}"></video>
+            {% else %}
+              ✦
+            {% endif %}
+          </a>
+          <div>
+            <h3>{{ perf.title }}</h3>
+            <p>{{ perf.media_type|title }} • {{ perf.views }} views • {{ perf.likes }} likes</p>
+            <div class="upload-row-actions">
+              <a href="{{ url_for('performance_detail', perf_id=perf.id) }}">Open</a>
+              <form method="POST" action="{{ url_for('delete_performance', perf_id=perf.id) }}">
+                <button type="submit" onclick="return confirm('Delete this upload?');">Delete</button>
+              </form>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <section class="empty-uploads">
+      <h2>No uploads yet.</h2>
+      <p>Upload your first performance so it can appear on your profile and in Showcases.</p>
+      <a class="button primary" href="{{ url_for('upload_performance') }}">Upload Performance</a>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

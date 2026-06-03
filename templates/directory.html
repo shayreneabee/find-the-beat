@@ -87,6 +87,30 @@
     padding: 0 0.75rem 0.85rem;
   }
 
+  .view-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    padding: 0.7rem 1rem 0;
+  }
+
+  .view-toggle a {
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(47, 30, 13, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.68);
+    color: rgba(47, 30, 13, 0.7);
+    font-weight: 900;
+  }
+
+  .view-toggle a.active {
+    background: var(--accent);
+    color: var(--text);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.16);
+  }
+
   .directory-card p,
   .directory-empty p {
     margin: 0.35rem 0 0;
@@ -215,6 +239,41 @@
     box-shadow: 0 5px 10px rgba(47, 30, 13, 0.12);
   }
 
+  .map-panel {
+    display: grid;
+    gap: 0.8rem;
+    margin: 0.9rem 1rem 0;
+    padding: 1rem;
+    border: 1px solid rgba(47, 30, 13, 0.14);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 28% 24%, rgba(245, 138, 0, 0.3), transparent 6rem),
+      rgba(255, 250, 238, 0.72);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.12);
+  }
+
+  .map-card {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr auto;
+    gap: 0.65rem;
+    align-items: center;
+    min-height: 58px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 16px;
+    background: rgba(255, 250, 238, 0.82);
+    box-shadow: inset 0 -1px 0 rgba(47, 30, 13, 0.16);
+  }
+
+  .map-pin {
+    width: 2.4rem;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent);
+    font-weight: 950;
+  }
+
   .directory-back {
     width: 46px;
     aspect-ratio: 1;
@@ -294,14 +353,32 @@
           {% if is_musicians %}
             <input name="availability" value="{{ filters.availability }}" placeholder="Availability: available, collabs, live">
           {% endif %}
-          <button class="button primary" type="submit">Search</button>
+          <button class="button primary" type="submit" name="view" value="{{ view_mode }}">Search</button>
           <a class="button secondary" href="{{ url_for('search_directory', slug=category.slug) }}">Clear</a>
         </div>
       </form>
     </details>
+    <div class="view-toggle" aria-label="Result view">
+      <a class="{{ 'active' if view_mode == 'list' else '' }}" href="{{ url_for('search_directory', slug=category.slug, state=filters.state, city=filters.city, role=filters.role, genre=filters.genre, instrument=filters.instrument, services=filters.services, availability=filters.availability, view='list') }}">List View</a>
+      <a class="{{ 'active' if view_mode == 'map' else '' }}" href="{{ url_for('search_directory', slug=category.slug, state=filters.state, city=filters.city, role=filters.role, genre=filters.genre, instrument=filters.instrument, services=filters.services, availability=filters.availability, view='map') }}">Map View</a>
+    </div>
   </section>
 
-  {% if profiles %}
+  {% if view_mode == "map" %}
+    <section class="map-panel">
+      {% if map_points %}
+        {% for point in map_points %}
+          <div class="map-card">
+            <span class="map-pin">⌖</span>
+            <strong>{{ point.location }}</strong>
+            <span>{{ point.count }} {{ "creator" if point.count == 1 else "creators" }}</span>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p>No locations to map yet.</p>
+      {% endif %}
+    </section>
+  {% elif profiles %}
     <section class="directory-grid">
       {% for p in profiles %}
         <a class="directory-card" href="{{ url_for('profile_detail', profile_id=p.id) }}">
