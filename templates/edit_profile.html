@@ -68,6 +68,32 @@
     box-shadow: 0 0 0 5px rgba(228, 87, 46, 0.12);
   }
 
+  .instrument-select {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .instrument-select label {
+    cursor: pointer;
+  }
+
+  .instrument-select span {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.78);
+    font-weight: 900;
+  }
+
+  .instrument-select input:checked + span {
+    background: var(--accent);
+    color: var(--text);
+  }
+
   @media (max-width: 760px) {
     .two {
       grid-template-columns: 1fr;
@@ -106,19 +132,38 @@
 
     <div class="two">
       <div class="field">
-        <label for="instrument">Instrument</label>
-        <input id="instrument" name="instrument" value="{{ user.instrument or '' }}">
+        <label for="state">State</label>
+        <input id="state" name="state" value="{{ user.state or '' }}" placeholder="MS or Mississippi">
       </div>
 
       <div class="field">
-        <label for="services_csv">Services</label>
-        <input id="services_csv" name="services_csv" value="{{ user.services_csv or '' }}">
+        <label for="country">Country</label>
+        <input id="country" name="country" value="{{ user.country or '' }}" placeholder="United States">
       </div>
     </div>
 
     <div class="field">
-      <label for="tags_csv">Tags</label>
-      <input id="tags_csv" name="tags_csv" value="{{ user.tags_csv or '' }}">
+      <label>Instruments</label>
+      <div class="instrument-select">
+        {% for option in instrument_options %}
+          <label>
+            <input type="checkbox" name="instruments" value="{{ option }}" hidden {% if option in user.instruments %}checked{% endif %}>
+            <span>{{ option }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <input id="instrument" name="instrument" value="{{ user.instrument or '' }}" placeholder="Other instruments, separated by commas">
+    </div>
+
+    <div class="two">
+      <div class="field">
+        <label for="services_csv">Services</label>
+        <input id="services_csv" name="services_csv" value="{{ user.services_csv or '' }}">
+      </div>
+      <div class="field">
+        <label for="tags_csv">Tags</label>
+        <input id="tags_csv" name="tags_csv" value="{{ user.tags_csv or '' }}">
+      </div>
     </div>
 
     <div class="field">

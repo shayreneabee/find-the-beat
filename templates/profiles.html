@@ -177,7 +177,9 @@
     <input name="role" value="{{ role }}" placeholder="Role: producer, vocalist">
     <input name="genre" value="{{ genre }}" placeholder="Genre: R&B, hip-hop">
     <input name="city" value="{{ city }}" placeholder="City or state">
+    <input name="state" value="{{ state }}" placeholder="State: MS or Mississippi">
     <input name="instrument" value="{{ instrument }}" placeholder="Instrument or service">
+    <input name="services" value="{{ services }}" placeholder="Services">
     <input name="tags" value="{{ tags }}" placeholder="Tags: available, sample">
     <button class="button primary" type="submit">Filter</button>
     <a class="button secondary" href="{{ url_for('profiles') }}">Clear</a>
@@ -212,7 +214,7 @@
           {% endif %}
           <div>
             <h2>{{ p.display_name }}</h2>
-            <p class="creator-meta">{{ p.role or "Add talent" }} • {{ p.city or "Add city" }}</p>
+            <p class="creator-meta">{{ p.role or "Add talent" }} • {{ p.city or "Add city" }}{% if p.state %}, {{ p.state }}{% endif %}</p>
             <p class="creator-meta">{{ p.genre or "Add genre" }}{% if p.instrument %} • {{ p.instrument }}{% endif %}</p>
           </div>
         </div>

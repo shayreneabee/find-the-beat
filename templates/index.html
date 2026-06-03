@@ -114,9 +114,51 @@
     font-weight: 900;
   }
 
+  .category-grid {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1rem;
+  }
+
+  .category-tile {
+    min-height: 138px;
+    display: grid;
+    align-content: end;
+    gap: 0.3rem;
+    padding: 1rem;
+    border: 1px solid rgba(78, 47, 16, 0.14);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 82% 12%, rgba(245, 138, 0, 0.34), transparent 6rem),
+      linear-gradient(135deg, rgba(255, 250, 238, 0.94), rgba(255, 224, 181, 0.58));
+    color: var(--text);
+    box-shadow: var(--bc-lift, var(--lift));
+    transition: transform var(--bc-ease, 180ms ease), box-shadow var(--bc-ease, 180ms ease);
+  }
+
+  .category-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--bc-shadow, var(--shadow));
+  }
+
+  .category-tile strong {
+    font-size: 1.18rem;
+    line-height: 1.05;
+  }
+
+  .category-tile span {
+    color: var(--muted);
+    font-size: 0.88rem;
+    font-weight: 800;
+  }
+
   @media (min-width: 760px) {
     .creator-strip {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .category-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
 </style>
@@ -137,6 +179,16 @@
   "Featured Showcase",
   "Tiles of performances, demos, and creator moments from across the Find the Beat network."
 ) }}
+
+<h2 class="section-band">browse talent</h2>
+<section class="category-grid" aria-label="Talent categories">
+  {% for category in category_tiles %}
+    <a class="category-tile" href="{{ url_for('browse_category', slug=category.slug) }}">
+      <strong>{{ category.title }}</strong>
+      <span>Open database</span>
+    </a>
+  {% endfor %}
+</section>
 
 {% if creators %}
   <h2 class="section-band">featured creators</h2>

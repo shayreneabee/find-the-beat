@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Instruments • Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .instrument-shell {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .instrument-panel {
+    padding: clamp(1rem, 3vw, 1.35rem);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--card);
+    box-shadow: var(--lift);
+  }
+
+  .instrument-panel h1 {
+    margin: 0;
+    font-size: clamp(2.3rem, 7vw, 4.4rem);
+    line-height: 1;
+  }
+
+  .instrument-panel p {
+    margin: 0.35rem 0 0;
+    color: var(--muted);
+  }
+
+  .instrument-grid,
+  .instrument-filter-grid,
+  .instrument-results {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .instrument-filter-grid input,
+  .instrument-filter-grid select {
+    min-height: 48px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--cream);
+    color: var(--text);
+  }
+
+  .instrument-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .instrument-pills label {
+    cursor: pointer;
+  }
+
+  .instrument-pills span {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.78);
+    font-weight: 900;
+  }
+
+  .instrument-pills input:checked + span {
+    background: var(--accent);
+    color: var(--text);
+  }
+
+  .instrument-card {
+    padding: 1rem;
+    border: 1px solid rgba(78, 47, 16, 0.14);
+    border-radius: 22px;
+    background: rgba(255, 250, 238, 0.92);
+    box-shadow: var(--bc-lift, var(--lift));
+  }
+
+  .instrument-card h2,
+  .instrument-card p {
+    margin: 0;
+  }
+
+  .instrument-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.8rem;
+  }
+
+  @media (min-width: 760px) {
+    .instrument-filter-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .instrument-results {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<section class="instrument-shell">
+  <header class="instrument-panel">
+    <p class="showcase-kicker">Instrument search</p>
+    <h1>Find creators by instrument.</h1>
+    <p>Select one or more instruments, then narrow by state, city, genre, role, or services.</p>
+  </header>
+
+  <section class="instrument-panel">
+    <form method="GET" action="{{ url_for('instruments') }}" class="instrument-grid">
+      <div class="instrument-pills">
+        {% for option in instrument_options %}
+          <label>
+            <input type="checkbox" name="instruments" value="{{ option }}" hidden {% if option in selected_instruments %}checked{% endif %}>
+            <span>{{ option }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <div class="instrument-filter-grid">
+        <select name="match">
+          <option value="any" {% if match_mode != "all" %}selected{% endif %}>Match any selected instrument</option>
+          <option value="all" {% if match_mode == "all" %}selected{% endif %}>Match all selected instruments</option>
+        </select>
+        <input name="state" value="{{ filters.state }}" placeholder="State: Mississippi or MS">
+        <input name="city" value="{{ filters.city }}" placeholder="City">
+        <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
+        <input name="role" value="{{ filters.role }}" placeholder="Role">
+        <input name="services" value="{{ filters.services }}" placeholder="Services">
+      </div>
+      <div class="instrument-actions">
+        <button class="button primary" type="submit">Search Instruments</button>
+        <a class="button secondary" href="{{ url_for('instruments') }}">Clear</a>
+      </div>
+    </form>
+  </section>
+
+  {% if profiles %}
+    <section class="instrument-results">
+      {% for p in profiles %}
+        <article class="instrument-card">
+          <h2>{{ p.display_name }}</h2>
+          <p>{{ p.instrument or "Add instruments" }}</p>
+          <p>{{ p.role or "Creative" }} • {{ p.genre or "Add genre" }}{% if p.city or p.state %} • {{ p.city }}{% if p.city and p.state %}, {% endif %}{{ p.state }}{% endif %}</p>
+          <p>{{ p.bio or "This creator is still building out their profile." }}</p>
+          <div class="instrument-actions">
+            <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
+            <a class="button secondary" href="{{ url_for('new_message', recipient_id=p.id) }}">Message</a>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <section class="instrument-panel">
+      <h2>Nothing matched that search yet.</h2>
+      <p>Try another instrument, state, or city.</p>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

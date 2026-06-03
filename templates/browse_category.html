@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% from "_showcase_tiles.html" import showcase_tiles %}
+
+{% block title %}{{ category.title }} • Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .category-hero,
+  .category-filter,
+  .category-empty {
+    padding: clamp(1rem, 3vw, 1.35rem);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--card);
+    box-shadow: var(--lift);
+  }
+
+  .category-hero {
+    display: grid;
+    gap: 0.45rem;
+    background:
+      radial-gradient(circle at 82% 8%, rgba(245, 138, 0, 0.32), transparent 10rem),
+      var(--card);
+  }
+
+  .category-hero h1 {
+    margin: 0;
+    font-size: clamp(2.4rem, 7vw, 4.8rem);
+    line-height: 0.98;
+  }
+
+  .category-hero p,
+  .category-empty p,
+  .profile-result p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .category-filter {
+    margin-top: 1rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .filter-grid input,
+  .filter-grid select {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--cream);
+    color: var(--text);
+  }
+
+  .profile-results {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .profile-result {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem;
+    border: 1px solid rgba(78, 47, 16, 0.14);
+    border-radius: 22px;
+    background: rgba(255, 250, 238, 0.92);
+    box-shadow: var(--bc-lift, var(--lift));
+  }
+
+  .profile-result-head {
+    display: grid;
+    grid-template-columns: 82px 1fr;
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .profile-result-photo {
+    width: 82px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 22px;
+    background:
+      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.12) 0 4px, transparent 4px 11px),
+      linear-gradient(135deg, #ffd9a3, #f58a00);
+    display: grid;
+    place-items: center;
+    font-size: 1.55rem;
+    font-weight: 950;
+  }
+
+  .profile-result-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-result h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    line-height: 1.12;
+  }
+
+  .result-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .result-actions .button {
+    min-height: 44px;
+  }
+
+  .category-empty {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    text-align: center;
+  }
+
+  @media (min-width: 760px) {
+    .filter-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: end;
+    }
+
+    .profile-results {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<section class="category-hero">
+  <p class="showcase-kicker">Talent database</p>
+  <h1>{{ category.title }}</h1>
+  <p>Browse {{ category.title|lower }} by city, state, genre, instrument, role, and services.</p>
+</section>
+
+<section class="category-filter">
+  <form class="filter-grid" method="GET" action="{{ url_for('browse_category', slug=category.slug) }}">
+    <input name="state" value="{{ filters.state }}" placeholder="State: Mississippi or MS">
+    <input name="city" value="{{ filters.city }}" placeholder="City: Jackson, Atlanta, Dallas">
+    <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
+    <select name="instrument">
+      <option value="">Any instrument</option>
+      {% for option in instrument_options %}
+        <option value="{{ option }}" {% if filters.instrument == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+    <input name="role" value="{{ filters.role }}" placeholder="Role">
+    <input name="services" value="{{ filters.services }}" placeholder="Services">
+    <button class="button primary" type="submit">Search</button>
+    <a class="button secondary" href="{{ url_for('browse_category', slug=category.slug) }}">Clear</a>
+  </form>
+</section>
+
+{{ showcase_tiles(
+  showcase_items,
+  category.title ~ " Showcase",
+  "Recent uploads connected to this category.",
+  false
+) }}
+
+{% if profiles %}
+  <section class="profile-results">
+    {% for p in profiles %}
+      <article class="profile-result">
+        <div class="profile-result-head">
+          <a class="profile-result-photo" href="{{ url_for('profile_detail', profile_id=p.id) }}">
+            {% if p.photo_filename %}
+              <img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}">
+            {% else %}
+              {{ p.initials }}
+            {% endif %}
+          </a>
+          <div>
+            <h2>{{ p.display_name }}</h2>
+            <p>{{ p.role or "Creative" }}{% if p.instrument %} • {{ p.instrument }}{% endif %}</p>
+            <p>{{ p.genre or "Add genre" }}{% if p.city or p.state %} • {{ p.city }}{% if p.city and p.state %}, {% endif %}{{ p.state }}{% endif %}</p>
+          </div>
+        </div>
+        <p>{{ p.bio or "This creator is still building out their profile." }}</p>
+        <div class="result-actions">
+          <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
+          <a class="button secondary" href="{{ url_for('new_message', recipient_id=p.id) }}">Message</a>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% else %}
+  <section class="category-empty">
+    <h2>No {{ category.title|lower }} found{% if location_label %} in {{ location_label }}{% endif %} yet.</h2>
+    <p>Try another state or invite someone to join Find The Beat.</p>
+    <a class="button primary" href="{{ url_for('signup') }}">Invite someone to join</a>
+  </section>
+{% endif %}
+{% endblock %}

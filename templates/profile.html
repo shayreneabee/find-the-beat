@@ -160,7 +160,7 @@
     </div>
   </div>
 
-  <div class="profile-line">{{ user.city or "Add your city" }}</div>
+  <div class="profile-line">{{ user.city or "Add your city" }}{% if user.state %}, {{ user.state }}{% endif %}</div>
   <div class="profile-line">{{ user.role or "Add talent" }}{% if user.instrument %} • {{ user.instrument }}{% endif %}</div>
 
   <section class="app-panel completion-card">
@@ -204,6 +204,7 @@
 
   <section class="app-panel profile-details">
     <div class="detail-row"><small>Genre</small><strong>{{ user.genre or "Add genre" }}</strong></div>
+    <div class="detail-row"><small>Instruments</small><strong>{{ user.instrument or "Add instruments" }}</strong></div>
     <div class="detail-row"><small>Services</small><strong>{{ user.services_csv or "Add services" }}</strong></div>
     <div class="detail-row"><small>Tags</small><strong>{{ user.tags_csv or "Add tags" }}</strong></div>
     <div class="detail-row"><small>Social</small><strong>{{ "Added" if user.social_links else "Add social links" }}</strong></div>

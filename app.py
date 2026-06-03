@@ -579,14 +579,23 @@ def profile_form_fields():
         key: normalize_social_url(request.form.get(key, "").strip())
         for key in SOCIAL_FIELDS
     }
+    selected_instruments = [
+        item.strip()
+        for item in request.form.getlist("instruments")
+        if item.strip()
+    ]
+    manual_instrument = request.form.get("instrument", "").strip()
+    instruments = [*selected_instruments, *split_csv(manual_instrument)]
     return {
         "display_name": request.form.get("display_name", "").strip(),
         "role": request.form.get("role", "").strip(),
         "genre": request.form.get("genre", "").strip(),
         "city": request.form.get("city", "").strip(),
+        "state": request.form.get("state", "").strip(),
+        "country": request.form.get("country", "").strip(),
         "bio": request.form.get("bio", "").strip(),
         "tags_csv": request.form.get("tags_csv", "").strip(),
-        "instrument": request.form.get("instrument", "").strip(),
+        "instrument": ", ".join(dict.fromkeys(instruments)),
         "services_csv": request.form.get("services_csv", "").strip(),
         **social_fields,
     }
@@ -619,12 +628,12 @@ def create_user(email, password, fields, profile_pic):
         cursor = conn.execute(
             """
             INSERT INTO users (
-                email, password_hash, full_name, display_name, role, genre, city, bio,
+                email, password_hash, full_name, display_name, role, genre, city, state, country, bio,
                 tags_csv, instrument, services_csv, profile_pic,
                 instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url,
                 brent_account_id, provider, auth_provider, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -634,6 +643,8 @@ def create_user(email, password, fields, profile_pic):
                 fields["role"],
                 fields["genre"],
                 fields["city"],
+                fields["state"],
+                fields["country"],
                 fields["bio"],
                 fields["tags_csv"],
                 fields["instrument"],
@@ -658,7 +669,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
             """
             UPDATE users
             SET full_name = COALESCE(NULLIF(full_name, ''), ?),
-                display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                display_name = ?, role = ?, genre = ?, city = ?, state = ?, country = ?, bio = ?,
                 tags_csv = ?, instrument = ?, services_csv = ?,
                 avatar_url = ?, profile_pic = ?, profile_video = ?,
                 instagram_url = ?, tiktok_url = ?, youtube_url = ?,
@@ -671,6 +682,8 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 fields["role"],
                 fields["genre"],
                 fields["city"],
+                fields["state"],
+                fields["country"],
                 fields["bio"],
                 fields["tags_csv"],
                 fields["instrument"],
@@ -756,6 +769,65 @@ SOCIAL_FIELDS = [
     "spotify_url",
     "linkedin_url",
 ]
+INSTRUMENT_OPTIONS = [
+    "Guitar",
+    "Bass",
+    "Drums",
+    "Piano",
+    "Keyboard",
+    "Violin",
+    "Saxophone",
+    "Trumpet",
+    "Flute",
+    "Percussion",
+    "Tambourine",
+    "Vocals",
+    "Producer",
+    "DJ",
+    "Songwriter",
+    "Composer",
+    "Engineer",
+]
+CATEGORY_TILES = [
+    {"slug": "musicians", "title": "Musicians", "terms": ["musician", "instrumentalist", "band", "live"]},
+    {"slug": "producers", "title": "Producers", "terms": ["producer", "production", "beats", "beat production"]},
+    {"slug": "composers", "title": "Composers", "terms": ["composer", "composition", "score", "arrangement"]},
+    {"slug": "artists", "title": "Artists", "terms": ["artist", "rapper", "singer", "performer"]},
+    {"slug": "vocalists", "title": "Vocalists", "terms": ["vocalist", "vocals", "voice", "singer"]},
+    {"slug": "guitar-players", "title": "Guitar Players", "terms": ["guitar", "guitarist"]},
+    {"slug": "drummers", "title": "Drummers", "terms": ["drums", "drummer"]},
+    {"slug": "pianists", "title": "Pianists", "terms": ["piano", "pianist", "keyboard", "keys"]},
+    {"slug": "bassists", "title": "Bassists", "terms": ["bass", "bassist"]},
+    {"slug": "engineers", "title": "Engineers", "terms": ["engineer", "mixing", "mastering", "recording"]},
+    {"slug": "songwriters", "title": "Songwriters", "terms": ["songwriter", "songwriting", "lyrics", "topline"]},
+    {"slug": "tambourine-players", "title": "Tambourine Players", "terms": ["tambourine", "percussion"]},
+]
+STATE_ALIASES = {
+    "ms": "mississippi",
+    "mississippi": "ms",
+    "ga": "georgia",
+    "georgia": "ga",
+    "il": "illinois",
+    "illinois": "il",
+    "tx": "texas",
+    "texas": "tx",
+    "tn": "tennessee",
+    "tennessee": "tn",
+    "la": "louisiana",
+    "louisiana": "la",
+}
+
+
+def category_by_slug(slug):
+    return next((category for category in CATEGORY_TILES if category["slug"] == slug), None)
+
+
+def location_terms(value):
+    value = (value or "").strip()
+    if not value:
+        return []
+    alias = STATE_ALIASES.get(value.lower())
+    return [value, alias] if alias else [value]
 
 
 def normalize_social_url(value):
@@ -806,6 +878,7 @@ def row_to_profile(row):
     data["providerId"] = data.get("provider_id") or ""
     data["initials"] = "".join(part[:1] for part in (data["name"] or data["email"] or "SB").replace("/", " ").split()[:2]).upper() or "SB"
     data["tags"] = split_csv(data.get("tags_csv", ""))
+    data["instruments"] = split_csv(data.get("instrument", ""))
     data["services"] = split_csv(data.get("services_csv", ""))
     for field in SOCIAL_FIELDS:
         data.setdefault(field, "")
@@ -964,18 +1037,18 @@ def get_profile(profile_id):
     return row_to_profile(row)
 
 
-def search_profiles(q="", role="", genre="", city="", instrument="", tags=""):
+def search_profiles(q="", role="", genre="", city="", state="", country="", instrument="", services="", tags=""):
     clauses = []
     params = []
     if q:
         needle = f"%{q}%"
         clauses.append(
             """
-            (display_name LIKE ? OR role LIKE ? OR genre LIKE ? OR city LIKE ?
+            (display_name LIKE ? OR role LIKE ? OR genre LIKE ? OR city LIKE ? OR state LIKE ? OR country LIKE ?
              OR bio LIKE ? OR tags_csv LIKE ? OR instrument LIKE ? OR services_csv LIKE ?)
             """
         )
-        params.extend([needle] * 8)
+        params.extend([needle] * 10)
     if role:
         clauses.append("role LIKE ?")
         params.append(f"%{role}%")
@@ -983,11 +1056,24 @@ def search_profiles(q="", role="", genre="", city="", instrument="", tags=""):
         clauses.append("genre LIKE ?")
         params.append(f"%{genre}%")
     if city:
-        clauses.append("city LIKE ?")
-        params.append(f"%{city}%")
+        clauses.append("(city LIKE ? OR state LIKE ? OR country LIKE ?)")
+        params.extend([f"%{city}%", f"%{city}%", f"%{city}%"])
+    if state:
+        terms = location_terms(state)
+        state_clauses = []
+        for term in terms:
+            state_clauses.append("(state LIKE ? OR city LIKE ?)")
+            params.extend([f"%{term}%", f"%{term}%"])
+        clauses.append("(" + " OR ".join(state_clauses) + ")")
+    if country:
+        clauses.append("country LIKE ?")
+        params.append(f"%{country}%")
     if instrument:
         clauses.append("(instrument LIKE ? OR services_csv LIKE ?)")
         params.extend([f"%{instrument}%", f"%{instrument}%"])
+    if services:
+        clauses.append("services_csv LIKE ?")
+        params.append(f"%{services}%")
     if tags:
         clauses.append("(tags_csv LIKE ? OR services_csv LIKE ? OR role LIKE ?)")
         params.extend([f"%{tags}%", f"%{tags}%", f"%{tags}%"])
@@ -1000,6 +1086,34 @@ def search_profiles(q="", role="", genre="", city="", instrument="", tags=""):
     with get_db() as conn:
         rows = conn.execute(sql, params).fetchall()
     return [row_to_profile(row) for row in rows]
+
+
+def profile_matches_category(profile, category):
+    haystack = " ".join(
+        [
+            profile.role or "",
+            profile.instrument or "",
+            profile.services_csv or "",
+            profile.tags_csv or "",
+            profile.genre or "",
+            profile.bio or "",
+        ]
+    ).lower()
+    return any(term.lower() in haystack for term in category["terms"])
+
+
+def search_category_profiles(category, filters):
+    profiles = search_profiles(
+        q=filters.get("q", ""),
+        role=filters.get("role", ""),
+        genre=filters.get("genre", ""),
+        city=filters.get("city", ""),
+        state=filters.get("state", ""),
+        country=filters.get("country", ""),
+        instrument=filters.get("instrument", ""),
+        services=filters.get("services", ""),
+    )
+    return [profile for profile in profiles if profile_matches_category(profile, category)]
 
 
 def seed_demo_profiles_if_empty():
@@ -1455,6 +1569,8 @@ def second_chance_signup():
             "role": "Second Chance Member",
             "genre": "Career readiness",
             "city": request.form.get("city", "").strip(),
+            "state": "",
+            "country": "",
             "bio": "Building a new career path with Second Chance Careers.",
             "tags_csv": "resume, jobs, life skills",
             "instrument": "",
@@ -1502,6 +1618,7 @@ def home():
         "index.html",
         creators=creators,
         featured_showcase=get_showcase_tiles(limit=6),
+        category_tiles=CATEGORY_TILES,
         q=q,
         role_filter=role,
         genre_filter=genre,
@@ -1520,9 +1637,11 @@ def search():
     role = request.args.get("role", "").strip()
     genre = request.args.get("genre", "").strip()
     city = request.args.get("city", "").strip()
+    state = request.args.get("state", "").strip()
     instrument = request.args.get("instrument", "").strip()
+    services = request.args.get("services", "").strip()
     tags = request.args.get("tags", "").strip()
-    results = search_profiles(q=q, role=role, genre=genre, city=city, instrument=instrument, tags=tags)
+    results = search_profiles(q=q, role=role, genre=genre, city=city, state=state, instrument=instrument, services=services, tags=tags)
     return render_template(
         "search.html",
         results=results,
@@ -1530,7 +1649,9 @@ def search():
         role=role,
         genre=genre,
         city=city,
+        state=state,
         instrument=instrument,
+        services=services,
         tags=tags,
     )
 
@@ -1541,9 +1662,11 @@ def profiles():
     role = request.args.get("role", "").strip()
     genre = request.args.get("genre", "").strip()
     city = request.args.get("city", "").strip()
+    state = request.args.get("state", "").strip()
     instrument = request.args.get("instrument", "").strip()
+    services = request.args.get("services", "").strip()
     tags = request.args.get("tags", "").strip()
-    results = search_profiles(q=q, role=role, genre=genre, city=city, instrument=instrument, tags=tags)
+    results = search_profiles(q=q, role=role, genre=genre, city=city, state=state, instrument=instrument, services=services, tags=tags)
     return render_template(
         "profiles.html",
         profiles=results,
@@ -1552,8 +1675,91 @@ def profiles():
         role=role,
         genre=genre,
         city=city,
+        state=state,
         instrument=instrument,
+        services=services,
         tags=tags,
+    )
+
+
+@app.route("/browse/<slug>")
+def browse_category(slug):
+    category = category_by_slug(slug)
+    if not category:
+        flash("Category not found.")
+        return redirect(url_for("profiles"))
+    filters = {
+        "q": request.args.get("q", "").strip(),
+        "state": request.args.get("state", "").strip(),
+        "city": request.args.get("city", "").strip(),
+        "genre": request.args.get("genre", "").strip(),
+        "instrument": request.args.get("instrument", "").strip(),
+        "role": request.args.get("role", "").strip(),
+        "services": request.args.get("services", "").strip(),
+        "country": request.args.get("country", "").strip(),
+    }
+    results = search_category_profiles(category, filters)
+    result_ids = {profile.id for profile in results}
+    showcase_items = [
+        perf
+        for perf in get_performances()
+        if perf.profile and perf.profile.id in result_ids and profile_matches_category(perf.profile, category)
+    ][:6]
+    location_label = filters["state"] or filters["city"] or filters["country"]
+    return render_template(
+        "browse_category.html",
+        category=category,
+        profiles=results,
+        showcase_items=showcase_items,
+        filters=filters,
+        category_tiles=CATEGORY_TILES,
+        instrument_options=INSTRUMENT_OPTIONS,
+        location_label=location_label,
+    )
+
+
+@app.route("/instruments")
+def instruments():
+    filters = {
+        "q": request.args.get("q", "").strip(),
+        "state": request.args.get("state", "").strip(),
+        "city": request.args.get("city", "").strip(),
+        "genre": request.args.get("genre", "").strip(),
+        "instrument": request.args.get("instrument", "").strip(),
+        "role": request.args.get("role", "").strip(),
+        "services": request.args.get("services", "").strip(),
+        "country": request.args.get("country", "").strip(),
+    }
+    selected = [
+        item.strip()
+        for item in request.args.getlist("instruments")
+        if item.strip()
+    ]
+    match_mode = request.args.get("match", "any")
+    profiles = search_profiles(
+        q=filters["q"],
+        role=filters["role"],
+        genre=filters["genre"],
+        city=filters["city"],
+        state=filters["state"],
+        country=filters["country"],
+        instrument=filters["instrument"],
+        services=filters["services"],
+    )
+    if selected:
+        selected_lower = [item.lower() for item in selected]
+        def instrument_hit(profile):
+            haystack = f"{profile.instrument} {profile.services_csv} {profile.tags_csv} {profile.role}".lower()
+            matches = [needle in haystack for needle in selected_lower]
+            return all(matches) if match_mode == "all" else any(matches)
+        profiles = [profile for profile in profiles if instrument_hit(profile)]
+    return render_template(
+        "instruments.html",
+        profiles=profiles,
+        filters=filters,
+        selected_instruments=selected,
+        match_mode=match_mode,
+        instrument_options=INSTRUMENT_OPTIONS,
     )
 
 
@@ -1756,7 +1962,7 @@ def signup():
         flash("Welcome to Find the Beat. Complete your profile to help other creators find you.")
         return redirect(url_for("profile"))
 
-    return render_template("signup.html")
+    return render_template("signup.html", instrument_options=INSTRUMENT_OPTIONS)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -1838,7 +2044,7 @@ def edit_profile(profile_id=None):
         flash("Profile updated.")
         return redirect(url_for("profile"))
 
-    return render_template("edit_profile.html", user=user)
+    return render_template("edit_profile.html", user=user, instrument_options=INSTRUMENT_OPTIONS)
 
 
 @app.route("/profile/delete", methods=["POST", "GET"])
@@ -1987,27 +2193,27 @@ def showcase():
 
 @app.route("/production")
 def production():
-    return redirect(url_for("profiles", role="producer"))
+    return redirect(url_for("browse_category", slug="producers"))
 
 
 @app.route("/producers")
 def producers():
-    return redirect(url_for("profiles", role="producer"))
+    return redirect(url_for("browse_category", slug="producers"))
 
 
 @app.route("/artists")
 def artists():
-    return redirect(url_for("profiles", role="artist"))
+    return redirect(url_for("browse_category", slug="artists"))
 
 
 @app.route("/musicians")
 def musicians():
-    return redirect(url_for("profiles", role="musician"))
+    return redirect(url_for("browse_category", slug="musicians"))
 
 
 @app.route("/composers")
 def composers():
-    return redirect(url_for("profiles", role="composer"))
+    return redirect(url_for("browse_category", slug="composers"))
 
 
 @app.route("/thread")

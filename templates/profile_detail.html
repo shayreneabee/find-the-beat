@@ -195,7 +195,7 @@
 
     <div class="artist-copy">
       <div>
-        <p class="artist-meta">{{ profile.role or "Add talent" }} • {{ profile.city or "Add city" }}</p>
+        <p class="artist-meta">{{ profile.role or "Add talent" }} • {{ profile.city or "Add city" }}{% if profile.state %}, {{ profile.state }}{% endif %}</p>
         <h1>{{ profile.display_name }}</h1>
       </div>
       <p>{{ profile.bio or "Add bio" }}</p>
@@ -240,6 +240,7 @@
     <h2>Creative Details</h2>
     <p><strong>Genres:</strong> {{ profile.genre or "Add genre" }}</p>
     <p><strong>Instruments/services:</strong> {{ profile.instrument or "Add talent" }}{% if profile.services_csv %} • {{ profile.services_csv }}{% endif %}</p>
+    <p><strong>Location:</strong> {{ profile.city or "Add city" }}{% if profile.state %}, {{ profile.state }}{% endif %}{% if profile.country %} • {{ profile.country }}{% endif %}</p>
     <p><strong>Tags:</strong> {{ profile.tags_csv or "Available for Collabs" }}</p>
   </section>
 
