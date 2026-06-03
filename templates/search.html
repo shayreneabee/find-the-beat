@@ -6,87 +6,212 @@
 <style>
   .search-hub {
     display: grid;
-    gap: 1rem;
+    gap: 0;
+    min-height: calc(100vh - 172px);
+    margin: -1rem -0.9rem 0;
+    padding-bottom: 1.4rem;
+    background:
+      radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.52), transparent 10rem),
+      linear-gradient(180deg, #fbf4de 0%, #eee7d0 100%);
   }
 
   .search-hero {
-    padding: clamp(1.2rem, 4vw, 2rem);
-    border: 1px solid var(--line);
-    border-radius: 26px;
-    background:
-      radial-gradient(circle at 82% 10%, rgba(245, 138, 0, 0.32), transparent 10rem),
-      var(--card);
-    box-shadow: var(--lift);
+    display: grid;
+    gap: 0.65rem;
+    text-align: center;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
-  .search-hero h1 {
+  .search-band {
+    min-height: 92px;
+    display: grid;
+    place-items: center;
     margin: 0;
-    font-size: clamp(2.4rem, 7vw, 4.8rem);
-    line-height: 0.98;
+    border-top: 1px solid rgba(47, 30, 13, 0.18);
+    border-bottom: 1px solid rgba(47, 30, 13, 0.18);
+    background:
+      linear-gradient(180deg, rgba(255, 186, 76, 0.35), transparent),
+      var(--accent);
+    box-shadow: 0 8px 14px rgba(55, 31, 7, 0.18);
+    color: rgba(47, 30, 13, 0.62);
+    font-size: clamp(3rem, 17vw, 4.8rem);
+    font-weight: 200;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    text-transform: lowercase;
   }
 
-  .search-hero p {
-    max-width: 680px;
-    margin: 0.65rem 0 0;
-    color: var(--muted);
+  .looking-title {
+    margin: 1.25rem 0 0.55rem;
+    padding: 0 0.75rem;
+    color: rgba(47, 30, 13, 0.62);
+    font-size: clamp(2.25rem, 12vw, 3.65rem);
+    font-weight: 200;
+    letter-spacing: 0.03em;
+    line-height: 0.95;
+    text-transform: uppercase;
   }
 
   .search-category-grid {
     display: grid;
-    gap: 0.9rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.15rem 0.85rem;
+    padding: 0 1rem;
   }
 
   .search-category-tile {
-    min-height: 152px;
+    position: relative;
+    min-height: 118px;
     display: grid;
     align-content: end;
-    gap: 0.35rem;
-    padding: 1rem;
-    border: 1px solid rgba(78, 47, 16, 0.14);
-    border-radius: 24px;
-    background:
-      radial-gradient(circle at 84% 12%, rgba(245, 138, 0, 0.34), transparent 7rem),
-      linear-gradient(135deg, rgba(255, 250, 238, 0.94), rgba(255, 224, 181, 0.62));
-    box-shadow: var(--bc-lift, var(--lift));
+    overflow: hidden;
+    border: 0;
+    border-radius: 0 0 24px 24px;
+    background: #f9f2df;
+    box-shadow:
+      0 9px 0 rgba(47, 30, 13, 0.12),
+      0 12px 18px rgba(47, 30, 13, 0.22);
     transition: transform var(--bc-ease, 180ms ease), box-shadow var(--bc-ease, 180ms ease);
   }
 
   .search-category-tile:hover {
     transform: translateY(-3px);
-    box-shadow: var(--bc-shadow, var(--shadow));
+    box-shadow:
+      0 10px 0 rgba(47, 30, 13, 0.10),
+      0 17px 24px rgba(47, 30, 13, 0.24);
+  }
+
+  .search-category-tile.showcases-tile {
+    grid-column: 1 / -1;
+    width: min(62%, 240px);
+    justify-self: center;
+  }
+
+  .tile-photo {
+    min-height: 78px;
+    border: 10px solid #f9f2df;
+    border-bottom: 0;
+    background:
+      linear-gradient(135deg, rgba(47, 30, 13, 0.72), rgba(245, 138, 0, 0.16)),
+      var(--tile-art);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .search-category-tile.production { --tile-art:
+    radial-gradient(circle at 78% 18%, #32b2ff 0 0.35rem, transparent 0.45rem),
+    linear-gradient(100deg, #20120a 0 30%, #803815 31% 44%, #1b2f3d 45% 100%);
+  }
+
+  .search-category-tile.composers { --tile-art:
+    repeating-linear-gradient(0deg, rgba(47, 30, 13, 0.34) 0 2px, transparent 2px 17px),
+    repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.18) 0 1px, transparent 1px 34px),
+    linear-gradient(135deg, #fff4cf, #b98a56);
+  }
+
+  .search-category-tile.artists { --tile-art:
+    radial-gradient(circle at 38% 28%, #f5cfa8 0 1.4rem, transparent 1.5rem),
+    radial-gradient(circle at 52% 24%, #17100d 0 2.3rem, transparent 2.4rem),
+    linear-gradient(115deg, #d14a30, #23100a 58%, #f58a00);
+  }
+
+  .search-category-tile.musicians { --tile-art:
+    radial-gradient(circle at 50% 40%, rgba(255, 250, 238, 0.9) 0 0.3rem, transparent 0.35rem),
+    repeating-linear-gradient(90deg, rgba(255, 250, 238, 0.45) 0 8px, transparent 8px 18px),
+    linear-gradient(135deg, #27170d, #8a5a36);
+  }
+
+  .search-category-tile.showcases { --tile-art:
+    radial-gradient(circle at 50% 50%, #f9f2df 0 0.55rem, transparent 0.65rem),
+    radial-gradient(circle at 50% 58%, #2f1e0d 0 1.25rem, transparent 1.35rem),
+    radial-gradient(circle at 22% 34%, #f7b35a 0 1.4rem, transparent 1.5rem),
+    radial-gradient(circle at 78% 34%, #f7b35a 0 1.4rem, transparent 1.5rem),
+    linear-gradient(135deg, #3a2011, #9b4a16);
   }
 
   .search-category-tile strong {
-    font-size: 1.35rem;
-    line-height: 1.05;
+    display: block;
+    min-height: 42px;
+    padding: 0.3rem 0.5rem 0.45rem;
+    color: rgba(47, 30, 13, 0.64);
+    font-size: clamp(1.5rem, 8vw, 2.1rem);
+    font-weight: 200;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-align: center;
+    text-transform: uppercase;
   }
 
   .search-category-tile span {
-    color: var(--muted);
-    font-weight: 800;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .search-back {
+    width: 46px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    margin: 1.35rem 0 0 1.25rem;
+    border: 1px solid rgba(47, 30, 13, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.74);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.16);
+    color: rgba(47, 30, 13, 0.58);
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .search-note {
+    max-width: 300px;
+    margin: 0.9rem auto 0;
+    padding: 0 1rem;
+    color: rgba(47, 30, 13, 0.56);
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-align: center;
   }
 
   @media (min-width: 760px) {
+    .search-hub {
+      min-height: auto;
+      margin-inline: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--lift);
+    }
+
     .search-category-grid {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      max-width: 430px;
+      margin: 0 auto;
     }
   }
 </style>
 
 <section class="search-hub">
   <header class="search-hero">
-    <p class="showcase-kicker">Search</p>
-    <h1>Find people by creative lane.</h1>
-    <p>Search is the talent database. Pick a category to find producers, composers, artists, musicians, or jump into performance showcases.</p>
+    <h1 class="search-band">search</h1>
+    <p class="looking-title">I’m looking for:</p>
   </header>
 
   <section class="search-category-grid" aria-label="Search categories">
     {% for category in categories %}
-      <a class="search-category-tile" href="{{ url_for('showcase') if category.slug == 'showcases' else url_for('search_directory', slug=category.slug) }}">
-        <strong>{{ category.title }}</strong>
+      {% set title = "Artist" if category.slug == "artists" else category.title %}
+      <a class="search-category-tile {{ category.slug }} {{ 'showcases-tile' if category.slug == 'showcases' else '' }}" href="{{ url_for('showcase') if category.slug == 'showcases' else url_for('search_directory', slug=category.slug) }}">
+        <div class="tile-photo" aria-hidden="true"></div>
+        <strong>{{ title }}</strong>
         <span>{{ "Performance feed" if category.slug == "showcases" else "Open directory" }}</span>
       </a>
     {% endfor %}
   </section>
+
+  <a class="search-back" href="{{ url_for('home') }}" aria-label="Back to home">‹</a>
+  <p class="search-note">Tap a lane to search the real Find The Beat creator database.</p>
 </section>
 {% endblock %}
