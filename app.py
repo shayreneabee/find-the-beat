@@ -794,14 +794,16 @@ CATEGORY_TILES = [
     {"slug": "composers", "title": "Composers", "terms": ["composer", "composition", "score", "arrangement"]},
     {"slug": "artists", "title": "Artists", "terms": ["artist", "rapper", "singer", "performer"]},
     {"slug": "vocalists", "title": "Vocalists", "terms": ["vocalist", "vocals", "voice", "singer"]},
-    {"slug": "guitar-players", "title": "Guitar Players", "terms": ["guitar", "guitarist"]},
-    {"slug": "drummers", "title": "Drummers", "terms": ["drums", "drummer"]},
-    {"slug": "pianists", "title": "Pianists", "terms": ["piano", "pianist", "keyboard", "keys"]},
-    {"slug": "bassists", "title": "Bassists", "terms": ["bass", "bassist"]},
     {"slug": "engineers", "title": "Engineers", "terms": ["engineer", "mixing", "mastering", "recording"]},
     {"slug": "songwriters", "title": "Songwriters", "terms": ["songwriter", "songwriting", "lyrics", "topline"]},
-    {"slug": "tambourine-players", "title": "Tambourine Players", "terms": ["tambourine", "percussion"]},
 ]
+INSTRUMENT_CATEGORY_REDIRECTS = {
+    "guitar-players": "Guitar",
+    "drummers": "Drums",
+    "pianists": "Piano",
+    "bassists": "Bass",
+    "tambourine-players": "Tambourine",
+}
 STATE_ALIASES = {
     "ms": "mississippi",
     "mississippi": "ms",
@@ -1686,6 +1688,9 @@ def profiles():
 def browse_category(slug):
     category = category_by_slug(slug)
     if not category:
+        instrument = INSTRUMENT_CATEGORY_REDIRECTS.get(slug)
+        if instrument:
+            return redirect(url_for("instruments", instruments=instrument))
         flash("Category not found.")
         return redirect(url_for("profiles"))
     filters = {

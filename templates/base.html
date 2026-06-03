@@ -870,6 +870,7 @@
         <a href="{{ url_for('home') }}" class="nav-pill home-link">Home</a>
         <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link">Showcase</a>
         <a href="{{ url_for('profiles') }}" class="nav-pill browse-link">Browse</a>
+        <a href="{{ url_for('instruments') }}" class="nav-pill instruments-link">Instruments</a>
 
         {% if user %}
           <a href="{{ url_for('inbox') }}" class="nav-pill messages-link">Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>

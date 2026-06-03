@@ -72,11 +72,40 @@
   }
 
   .instrument-card {
+    display: grid;
+    gap: 0.85rem;
     padding: 1rem;
     border: 1px solid rgba(78, 47, 16, 0.14);
     border-radius: 22px;
     background: rgba(255, 250, 238, 0.92);
     box-shadow: var(--bc-lift, var(--lift));
+  }
+
+  .instrument-card-head {
+    display: grid;
+    grid-template-columns: 82px 1fr;
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .instrument-photo {
+    width: 82px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 22px;
+    background:
+      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.12) 0 4px, transparent 4px 11px),
+      linear-gradient(135deg, #ffd9a3, #f58a00);
+    display: grid;
+    place-items: center;
+    font-size: 1.55rem;
+    font-weight: 950;
+  }
+
+  .instrument-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .instrument-card h2,
@@ -141,9 +170,20 @@
     <section class="instrument-results">
       {% for p in profiles %}
         <article class="instrument-card">
-          <h2>{{ p.display_name }}</h2>
-          <p>{{ p.instrument or "Add instruments" }}</p>
-          <p>{{ p.role or "Creative" }} • {{ p.genre or "Add genre" }}{% if p.city or p.state %} • {{ p.city }}{% if p.city and p.state %}, {% endif %}{{ p.state }}{% endif %}</p>
+          <div class="instrument-card-head">
+            <a class="instrument-photo" href="{{ url_for('profile_detail', profile_id=p.id) }}">
+              {% if p.photo_filename %}
+                <img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}">
+              {% else %}
+                {{ p.initials }}
+              {% endif %}
+            </a>
+            <div>
+              <h2>{{ p.display_name }}</h2>
+              <p>{{ p.instrument or "Add instruments" }}</p>
+              <p>{{ p.role or "Creative" }} • {{ p.genre or "Add genre" }}{% if p.city or p.state %} • {{ p.city }}{% if p.city and p.state %}, {% endif %}{{ p.state }}{% endif %}</p>
+            </div>
+          </div>
           <p>{{ p.bio or "This creator is still building out their profile." }}</p>
           <div class="instrument-actions">
             <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>

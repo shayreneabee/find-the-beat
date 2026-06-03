@@ -182,6 +182,10 @@
 
 <h2 class="section-band">browse talent</h2>
 <section class="category-grid" aria-label="Talent categories">
+  <a class="category-tile" href="{{ url_for('instruments') }}">
+    <strong>Instruments</strong>
+    <span>Search guitar, piano, vocals, drums, tambourine, and more</span>
+  </a>
   {% for category in category_tiles %}
     <a class="category-tile" href="{{ url_for('browse_category', slug=category.slug) }}">
       <strong>{{ category.title }}</strong>
