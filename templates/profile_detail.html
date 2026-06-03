@@ -1,36 +1,55 @@
 {% extends "base.html" %}
-{% from "_showcase_tiles.html" import showcase_tiles %}
 
-{% block title %}{{ profile.display_name }}{% endblock %}
+{% block title %}{{ profile.display_name }} • Find the Beat{% endblock %}
 
 {% block content %}
 <style>
   .artist-portfolio {
     display: grid;
-    gap: 1rem;
+    gap: 0;
+    min-height: calc(100vh - 172px);
+    margin: -1rem -0.9rem 0;
+    padding-bottom: 1.2rem;
+    background:
+      radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.42), transparent 9rem),
+      linear-gradient(180deg, #fbf4de 0%, #eee7d0 100%);
   }
 
-  .artist-hero,
-  .artist-section {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    box-shadow: var(--lift);
+  .artist-title-band {
+    min-height: 92px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 0.35rem 0.75rem;
+    border-top: 1px solid rgba(47, 30, 13, 0.18);
+    border-bottom: 7px solid var(--cream);
+    background: var(--accent);
+    color: rgba(47, 30, 13, 0.62);
+    font-size: clamp(2.55rem, 13vw, 4.2rem);
+    font-weight: 200;
+    letter-spacing: 0.03em;
+    line-height: 0.95;
+    text-align: center;
+    text-transform: lowercase;
   }
 
   .artist-hero {
     display: grid;
-    gap: 1rem;
-    padding: 1rem;
+    justify-items: center;
+    padding: 1rem 0.75rem 0.45rem;
+    text-align: center;
   }
 
   .artist-photo,
   .artist-placeholder {
-    width: 100%;
-    aspect-ratio: 1 / 1;
+    width: min(82%, 320px);
+    aspect-ratio: 16 / 8.2;
     overflow: hidden;
-    background: var(--accent);
-    box-shadow: var(--lift);
+    background:
+      radial-gradient(circle at 24% 30%, #f7b35a 0 1.4rem, transparent 1.5rem),
+      radial-gradient(circle at 76% 30%, #f7b35a 0 1.4rem, transparent 1.5rem),
+      linear-gradient(135deg, #2f1e0d, #9b4a16);
+    box-shadow: 0 8px 0 rgba(47, 30, 13, 0.12);
   }
 
   .artist-photo img {
@@ -42,149 +61,148 @@
   .artist-placeholder {
     display: grid;
     place-items: center;
-    background:
-      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.14) 0 5px, transparent 5px 14px),
-      radial-gradient(circle at 22% 18%, rgba(255, 224, 181, 0.82), transparent 38%),
-      linear-gradient(135deg, #f58a00, #ffd9a3);
-    font-size: 5rem;
+    color: #fff7e8;
+    font-size: 3rem;
     font-weight: 900;
   }
 
-  .artist-copy {
+  .artist-name {
+    margin: 0.55rem 0 0;
+    color: rgba(47, 30, 13, 0.78);
+    font-size: clamp(1.8rem, 8vw, 2.35rem);
+    font-weight: 300;
+    line-height: 1.08;
+  }
+
+  .artist-role {
+    margin: 0.1rem 0 0;
+    color: rgba(47, 30, 13, 0.72);
+    font-size: clamp(1.45rem, 7vw, 2rem);
+    font-weight: 300;
+    line-height: 1.08;
+  }
+
+  .artist-tab-row {
     display: grid;
-    gap: 0.75rem;
-    align-content: center;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 1rem;
+    min-height: 54px;
+    padding: 0 0.75rem;
+    border-bottom: 2px solid rgba(47, 30, 13, 0.22);
   }
 
-  .artist-copy h1 {
+  .artist-tab-row a,
+  .artist-tab-row button {
+    border: 0;
+    background: transparent;
+    color: rgba(47, 30, 13, 0.76);
+    font: inherit;
+    font-size: clamp(1.45rem, 7vw, 2rem);
+    font-weight: 300;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+
+  .performance-list {
+    display: grid;
+  }
+
+  .performance-row {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr 3.4rem;
+    gap: 0.45rem;
+    align-items: center;
+    min-height: 94px;
+    padding: 0.68rem 0.75rem;
+    box-shadow: inset 0 -2px 0 rgba(47, 30, 13, 0.2);
+    color: rgba(47, 30, 13, 0.78);
+  }
+
+  .performance-row::before {
+    content: "✦";
+    font-size: 2.7rem;
+    font-weight: 950;
+    line-height: 1;
+    color: #2f1e0d;
+  }
+
+  .performance-row strong {
+    display: block;
+    font-size: clamp(1.6rem, 7vw, 2.15rem);
+    font-weight: 300;
+    line-height: 1.08;
+  }
+
+  .performance-row small {
+    color: rgba(47, 30, 13, 0.58);
+    font-size: 0.95rem;
+  }
+
+  .performance-row .arrow {
+    justify-self: end;
+    font-size: 2.65rem;
+    font-weight: 950;
+    line-height: 1;
+  }
+
+  .empty-performances,
+  .artist-details {
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(255, 250, 238, 0.74);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.12);
+    color: rgba(47, 30, 13, 0.68);
+  }
+
+  .artist-details {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .artist-details p {
     margin: 0;
-    font-size: clamp(2.2rem, 6vw, 4rem);
-    line-height: 0.98;
   }
 
-  .artist-meta,
-  .artist-copy p,
-  .artist-section p {
-    margin: 0;
-    color: var(--muted);
-  }
-
-  .badge-line,
   .artist-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .badge {
-    padding: 0.3rem 0.6rem;
-    border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent-dark);
-    font-size: 0.82rem;
-    font-weight: 900;
-  }
-
-  .artist-section {
-    padding: 1rem;
-  }
-
-  .profile-tabs {
-    display: flex;
     gap: 0.55rem;
-    overflow-x: auto;
-    padding: 0.2rem;
+    padding: 0.75rem 1rem 0;
   }
 
-  .profile-tabs a {
-    flex: 0 0 auto;
-    padding: 0.68rem 0.95rem;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: rgba(255, 250, 238, 0.72);
-    color: var(--text);
-    font-weight: 900;
-  }
-
-  .social-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .social-row a {
-    padding: 0.38rem 0.62rem;
-    border-radius: 999px;
-    background: rgba(255, 224, 181, 0.62);
-    color: var(--accent-dark);
-    font-size: 0.78rem;
-    font-weight: 950;
-  }
-
-  .featured-media {
-    margin-top: 0.9rem;
-    overflow: hidden;
-    background: #2f1e0d;
-    border-radius: 14px;
-  }
-
-  .featured-media video,
-  .featured-media audio,
-  .featured-media img,
-  .featured-empty {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-  }
-
-  .featured-media audio {
-    aspect-ratio: auto;
-    padding: 2.5rem 1rem;
-    background: linear-gradient(135deg, #2f1e0d, #5f250d);
-  }
-
-  .featured-empty {
+  .artist-back {
+    width: 46px;
+    aspect-ratio: 1;
     display: grid;
     place-items: center;
-    color: var(--cream);
-    font-weight: 900;
+    margin: 1.15rem 0 0 1.25rem;
+    border: 1px solid rgba(47, 30, 13, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.74);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.16);
+    color: rgba(47, 30, 13, 0.58);
+    font-size: 2rem;
+    line-height: 1;
   }
 
-  .performance-grid {
-    display: grid;
-    gap: 0.85rem;
-    margin-top: 0.9rem;
-  }
-
-  .performance-card {
-    padding: 0.9rem;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: rgba(255, 250, 238, 0.72);
-  }
-
-  .performance-card h3 {
-    margin: 0 0 0.25rem;
-  }
-
-  .performance-card p {
-    margin: 0.25rem 0;
-  }
-
-  @media (min-width: 780px) {
-    .artist-hero {
-      grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.25fr);
-      padding: 1.25rem;
-    }
-
-    .performance-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (min-width: 760px) {
+    .artist-portfolio {
+      min-height: auto;
+      margin-inline: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--lift);
     }
   }
 </style>
 
-<div class="artist-portfolio">
-  <section class="artist-hero" id="overview">
+<section class="artist-portfolio">
+  <h1 class="artist-title-band">{{ "My Showcases" if user and user.id == profile.id else "Showcases" }}</h1>
+
+  <header class="artist-hero" id="overview">
     {% if profile.photo_filename %}
       <div class="artist-photo">
         <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
@@ -192,111 +210,46 @@
     {% else %}
       <div class="artist-placeholder">{{ profile.initials }}</div>
     {% endif %}
+    <h2 class="artist-name">{{ profile.display_name }}</h2>
+    <p class="artist-role">{{ profile.instrument or profile.role or "Add talent" }}</p>
+  </header>
 
-    <div class="artist-copy">
-      <div>
-        <p class="artist-meta">{{ profile.role or "Add talent" }} • {{ profile.city or "Add city" }}{% if profile.state %}, {{ profile.state }}{% endif %}</p>
-        <h1>{{ profile.display_name }}</h1>
-      </div>
-      <p>{{ profile.bio or "Add bio" }}</p>
-      <div class="badge-line">
-        {% for badge in profile.badges[:6] %}
-          <span class="badge">{{ badge }}</span>
-        {% endfor %}
-        {% if not profile.badges %}
-          <span class="badge">Available for Collabs</span>
-          <span class="badge">Add genre</span>
-        {% endif %}
-      </div>
-      {% if profile.social_links %}
-        <div class="social-row" id="socials" aria-label="Social links">
-          {% for label, url in profile.social_links %}
-            <a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="social-row"><span class="badge">Add social links</span></div>
-      {% endif %}
-      <div class="artist-actions">
-        {% if user and user.id == profile.id %}
-          <a class="button primary" href="{{ url_for('profile') }}">My Profile</a>
-          <a class="button secondary" href="{{ url_for('upload_performance') }}">Upload Performance</a>
-        {% else %}
-          <a class="button primary" href="{{ url_for('new_message', recipient_id=profile.id) }}">Message</a>
-        {% endif %}
-        <button class="button secondary" type="button" onclick="navigator.clipboard?.writeText(window.location.href); this.textContent='Link Copied';">Share</button>
-        <a class="button secondary" href="{{ url_for('profiles') }}">Browse More</a>
-      </div>
-    </div>
-  </section>
+  <div class="artist-tab-row">
+    <a href="#performances">My Performances</a>
+    <button type="button" onclick="navigator.clipboard?.writeText(window.location.href); this.textContent='Shared';">Share</button>
+  </div>
 
-  <nav class="profile-tabs artist-section" aria-label="Profile sections">
-    <a href="#overview">Overview</a>
-    <a href="#performances">Performances</a>
-    <a href="#details">Creative Details</a>
-    {% if profile.social_links %}<a href="#socials">Socials</a>{% endif %}
-  </nav>
-
-  <section class="artist-section" id="details">
-    <h2>Creative Details</h2>
-    <p><strong>Genres:</strong> {{ profile.genre or "Add genre" }}</p>
-    <p><strong>Instruments/services:</strong> {{ profile.instrument or "Add talent" }}{% if profile.services_csv %} • {{ profile.services_csv }}{% endif %}</p>
-    <p><strong>Location:</strong> {{ profile.city or "Add city" }}{% if profile.state %}, {{ profile.state }}{% endif %}{% if profile.country %} • {{ profile.country }}{% endif %}</p>
-    <p><strong>Tags:</strong> {{ profile.tags_csv or "Available for Collabs" }}</p>
-  </section>
-
-  <section class="artist-section" id="performances">
-    <h2>Performances</h2>
-    {{ showcase_tiles(
-      showcase_items,
-      "Showcase",
-      "Videos, audio demos, photos, and live performance moments from this creator."
-    ) }}
+  <section id="performances" class="performance-list" aria-label="Performances">
     {% if perfs %}
-      {% set featured = perfs[0] %}
-      <h3>Featured: {{ featured.title }}</h3>
-      <p>{{ featured.description or "A featured performance from this creator." }}</p>
-      <div class="featured-media">
-        {% if featured.video_filename %}
-          <video controls preload="metadata">
-            <source src="{{ url_for('uploaded_video', filename=featured.video_filename) }}">
-            Your browser does not support the video tag.
-          </video>
-        {% elif featured.audio_filename %}
-          <audio controls preload="metadata">
-            <source src="{{ url_for('uploaded_audio', filename=featured.audio_filename) }}">
-            Your browser does not support the audio tag.
-          </audio>
-        {% elif featured.image_filename %}
-          <img src="{{ url_for('uploaded_photo', filename=featured.image_filename) }}" alt="{{ featured.title }}">
-        {% elif featured.thumb_filename %}
-          <img src="{{ url_for('uploaded_photo', filename=featured.thumb_filename) }}" alt="{{ featured.title }}">
-        {% else %}
-          <div class="featured-empty">Media Link</div>
-        {% endif %}
-      </div>
-      {% if featured.external_url %}
-        <p style="margin-top:0.75rem;"><a class="button secondary" href="{{ featured.external_url }}" rel="noopener" target="_blank">Open Media Link</a></p>
-      {% endif %}
+      {% for perf in perfs %}
+        <a class="performance-row" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+          <span>
+            <strong>{{ perf.title }}</strong>
+            <small>{{ perf.media_type|title }}{% if perf.views %} • {{ perf.views }} views{% endif %}</small>
+          </span>
+          <span class="arrow">›</span>
+        </a>
+      {% endfor %}
     {% else %}
-      <div class="featured-media"><div class="featured-empty">No Performances Yet</div></div>
-      <p style="margin-top:0.75rem;">Performances will appear here after this creator uploads a video, audio demo, image, or media link.</p>
+      <div class="empty-performances">No performances yet. Upload your first performance to start this showcase.</div>
     {% endif %}
   </section>
 
-  {% if perfs|length > 1 %}
-    <section class="artist-section">
-      <h2>More Performances</h2>
-      <div class="performance-grid">
-        {% for perf in perfs[1:] %}
-          <a class="performance-card" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
-            <h3>{{ perf.title }}</h3>
-            <p>{{ perf.description or "Open this performance." }}</p>
-            <p class="artist-meta">{{ perf.media_type|title }} • {{ perf.views }} views • {{ perf.likes }} likes</p>
-          </a>
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
-</div>
+  <section class="artist-details" id="details">
+    <p><strong>Genre:</strong> {{ profile.genre or "Add genre" }}</p>
+    <p><strong>Location:</strong> {{ profile.city or "Add city" }}{% if profile.state %}, {{ profile.state }}{% endif %}</p>
+    <p><strong>Bio:</strong> {{ profile.bio or "Add bio" }}</p>
+  </section>
+
+  <div class="artist-actions">
+    {% if user and user.id == profile.id %}
+      <a class="button primary" href="{{ url_for('upload_performance') }}">Upload Performance</a>
+      <a class="button secondary" href="{{ url_for('profile') }}">My Profile</a>
+    {% else %}
+      <a class="button primary" href="{{ url_for('new_message', recipient_id=profile.id) }}">Message</a>
+    {% endif %}
+  </div>
+
+  <a class="artist-back" href="{{ url_for('showcase') }}" aria-label="Back to showcases">‹</a>
+</section>
 {% endblock %}
