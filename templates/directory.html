@@ -6,26 +6,87 @@
 <style>
   .directory-page {
     display: grid;
-    gap: 1rem;
+    gap: 0;
+    min-height: calc(100vh - 172px);
+    margin: -1rem -0.9rem 0;
+    padding-bottom: 1.4rem;
+    background:
+      radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.45), transparent 9rem),
+      linear-gradient(180deg, #fbf4de 0%, #efe8d2 100%);
   }
 
-  .directory-hero,
-  .directory-filter,
-  .directory-empty {
-    padding: clamp(1rem, 3vw, 1.35rem);
-    border: 1px solid var(--line);
-    border-radius: 24px;
-    background: var(--card);
-    box-shadow: var(--lift);
+  .directory-hero {
+    display: grid;
+    gap: 0;
+    text-align: center;
   }
 
   .directory-hero h1 {
+    min-height: 92px;
+    display: grid;
+    place-items: center;
     margin: 0;
-    font-size: clamp(2.35rem, 7vw, 4.5rem);
-    line-height: 0.98;
+    border-top: 1px solid rgba(47, 30, 13, 0.18);
+    border-bottom: 7px solid var(--cream);
+    background:
+      linear-gradient(180deg, rgba(255, 186, 76, 0.35), transparent),
+      var(--accent);
+    box-shadow: 0 8px 14px rgba(55, 31, 7, 0.18);
+    color: rgba(47, 30, 13, 0.62);
+    font-size: clamp(2.8rem, 15vw, 4.5rem);
+    font-weight: 200;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    text-transform: lowercase;
   }
 
-  .directory-hero p,
+  .directory-subband {
+    min-height: 72px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    border-bottom: 7px solid var(--cream);
+    background: var(--accent);
+    box-shadow: 0 8px 12px rgba(55, 31, 7, 0.14);
+    color: rgba(47, 30, 13, 0.62);
+    font-size: clamp(2rem, 10vw, 3rem);
+    font-weight: 200;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .directory-filter {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid rgba(47, 30, 13, 0.1);
+  }
+
+  .directory-filter details {
+    border: 1px solid rgba(78, 47, 16, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 250, 238, 0.72);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.1);
+  }
+
+  .directory-filter summary {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    padding: 0 0.9rem;
+    color: rgba(47, 30, 13, 0.68);
+    cursor: pointer;
+    font-weight: 900;
+    list-style: none;
+  }
+
+  .directory-filter summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .directory-filter form {
+    padding: 0 0.75rem 0.85rem;
+  }
+
   .directory-card p,
   .directory-empty p {
     margin: 0.35rem 0 0;
@@ -79,28 +140,35 @@
     color: var(--text);
   }
 
+  .directory-grid {
+    padding-top: 0.85rem;
+  }
+
   .directory-card {
+    position: relative;
     display: grid;
-    gap: 0.85rem;
-    padding: 1rem;
-    border: 1px solid rgba(78, 47, 16, 0.14);
-    border-radius: 22px;
-    background: rgba(255, 250, 238, 0.92);
-    box-shadow: var(--bc-lift, var(--lift));
+    min-height: 108px;
+    padding: 0.68rem 1rem 0.68rem 0.9rem;
+    border: 0;
+    border-radius: 0;
+    background: rgba(255, 250, 238, 0.42);
+    box-shadow:
+      inset 0 -2px 0 rgba(47, 30, 13, 0.42),
+      0 4px 0 rgba(47, 30, 13, 0.12);
   }
 
   .directory-head {
     display: grid;
-    grid-template-columns: 82px 1fr;
-    gap: 0.85rem;
+    grid-template-columns: 96px 1fr;
+    gap: clamp(1rem, 8vw, 3.3rem);
     align-items: center;
   }
 
   .directory-photo {
-    width: 82px;
+    width: 86px;
     aspect-ratio: 1;
     overflow: hidden;
-    border-radius: 22px;
+    border-radius: 0;
     background:
       repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.12) 0 4px, transparent 4px 11px),
       linear-gradient(135deg, #ffd9a3, #f58a00);
@@ -108,6 +176,7 @@
     place-items: center;
     font-size: 1.55rem;
     font-weight: 950;
+    box-shadow: 4px 6px 0 rgba(47, 30, 13, 0.16);
   }
 
   .directory-photo img {
@@ -118,99 +187,139 @@
 
   .directory-card h2 {
     margin: 0;
-    font-size: 1.35rem;
+    color: rgba(47, 30, 13, 0.68);
+    font-size: clamp(1.55rem, 7vw, 2.15rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .directory-meta {
+    margin: 0.15rem 0 0;
+    color: rgba(47, 30, 13, 0.56);
+    font-size: clamp(1.25rem, 5.5vw, 1.7rem);
+    font-weight: 300;
     line-height: 1.12;
   }
 
-  .directory-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
+  .directory-card .directory-bio {
+    display: none;
   }
 
-  .directory-actions .button {
-    min-height: 44px;
+  .directory-empty {
+    margin: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(78, 47, 16, 0.16);
+    border-radius: 20px;
+    background: rgba(255, 250, 238, 0.72);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.12);
+  }
+
+  .directory-back {
+    width: 46px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    margin: 1.35rem 0 0 1.25rem;
+    border: 1px solid rgba(47, 30, 13, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.74);
+    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.16);
+    color: rgba(47, 30, 13, 0.58);
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .directory-card:focus-visible {
+    outline: 3px solid rgba(245, 138, 0, 0.55);
+    outline-offset: -3px;
   }
 
   @media (min-width: 760px) {
+    .directory-page {
+      min-height: auto;
+      margin-inline: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--lift);
+    }
+
     .filter-row {
       grid-template-columns: repeat(3, minmax(0, 1fr));
       align-items: end;
     }
 
     .directory-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 430px;
+      margin: 0 auto;
     }
   }
 </style>
 
 <section class="directory-page">
   <header class="directory-hero">
-    <p class="showcase-kicker">Search directory</p>
     <h1>{{ category.title }}</h1>
-    <p>{{ "Filter musicians by state, city, instrument, genre, and availability." if is_musicians else "Filter this people database by location, genre, role, and services." }}</p>
+    <p class="directory-subband">All {{ category.title }}</p>
   </header>
 
   <section class="directory-filter">
-    <form method="GET" action="{{ url_for('search_directory', slug=category.slug) }}">
-      {% if is_musicians %}
-        <div class="instrument-pills">
-          {% for option in instrument_options %}
-            <label>
-              <input type="checkbox" name="instruments" value="{{ option }}" hidden {% if option in selected_instruments %}checked{% endif %}>
-              <span>{{ option }}</span>
-            </label>
-          {% endfor %}
+    <details>
+      <summary>Filter results</summary>
+      <form method="GET" action="{{ url_for('search_directory', slug=category.slug) }}">
+        {% if is_musicians %}
+          <div class="instrument-pills">
+            {% for option in instrument_options %}
+              <label>
+                <input type="checkbox" name="instruments" value="{{ option }}" hidden {% if option in selected_instruments %}checked{% endif %}>
+                <span>{{ option }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+        <div class="filter-row">
+          {% if is_musicians %}
+            <select name="match">
+              <option value="any" {% if match_mode != "all" %}selected{% endif %}>Match any selected instrument</option>
+              <option value="all" {% if match_mode == "all" %}selected{% endif %}>Match all selected instruments</option>
+            </select>
+          {% endif %}
+          <input name="state" value="{{ filters.state }}" placeholder="State: Mississippi or MS">
+          <input name="city" value="{{ filters.city }}" placeholder="City: Jackson, Atlanta">
+          {% if not is_musicians %}
+            <input name="role" value="{{ filters.role }}" placeholder="Role">
+          {% endif %}
+          <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
+          <input name="instrument" value="{{ filters.instrument }}" placeholder="Instrument">
+          <input name="services" value="{{ filters.services }}" placeholder="Services">
+          {% if is_musicians %}
+            <input name="availability" value="{{ filters.availability }}" placeholder="Availability: available, collabs, live">
+          {% endif %}
+          <button class="button primary" type="submit">Search</button>
+          <a class="button secondary" href="{{ url_for('search_directory', slug=category.slug) }}">Clear</a>
         </div>
-      {% endif %}
-      <div class="filter-row">
-        {% if is_musicians %}
-          <select name="match">
-            <option value="any" {% if match_mode != "all" %}selected{% endif %}>Match any selected instrument</option>
-            <option value="all" {% if match_mode == "all" %}selected{% endif %}>Match all selected instruments</option>
-          </select>
-        {% endif %}
-        <input name="state" value="{{ filters.state }}" placeholder="State: Mississippi or MS">
-        <input name="city" value="{{ filters.city }}" placeholder="City: Jackson, Atlanta">
-        {% if not is_musicians %}
-          <input name="role" value="{{ filters.role }}" placeholder="Role">
-        {% endif %}
-        <input name="genre" value="{{ filters.genre }}" placeholder="Genre">
-        <input name="instrument" value="{{ filters.instrument }}" placeholder="Instrument">
-        <input name="services" value="{{ filters.services }}" placeholder="Services">
-        {% if is_musicians %}
-          <input name="availability" value="{{ filters.availability }}" placeholder="Availability: available, collabs, live">
-        {% endif %}
-        <button class="button primary" type="submit">Search</button>
-        <a class="button secondary" href="{{ url_for('search_directory', slug=category.slug) }}">Clear</a>
-      </div>
-    </form>
+      </form>
+    </details>
   </section>
 
   {% if profiles %}
     <section class="directory-grid">
       {% for p in profiles %}
-        <article class="directory-card">
+        <a class="directory-card" href="{{ url_for('profile_detail', profile_id=p.id) }}">
           <div class="directory-head">
-            <a class="directory-photo" href="{{ url_for('profile_detail', profile_id=p.id) }}">
+            <span class="directory-photo">
               {% if p.photo_filename %}
                 <img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}">
               {% else %}
                 {{ p.initials }}
               {% endif %}
-            </a>
+            </span>
             <div>
-              <h2>{{ p.display_name }}</h2>
-              <p>{{ p.role or "Creative" }}{% if p.instrument %} • {{ p.instrument }}{% endif %}</p>
-              <p>{{ p.genre or "Add genre" }}{% if p.city or p.state %} • {{ p.city }}{% if p.city and p.state %}, {% endif %}{{ p.state }}{% endif %}</p>
+              <h2>{{ p.display_name }}{% if p.state %}, {{ p.state }}{% elif p.city %}, {{ p.city }}{% endif %}</h2>
+              <p class="directory-meta">{{ p.genre or p.instrument or p.role or "Creative" }}</p>
             </div>
           </div>
-          <p>{{ p.bio or "This creator is still building out their profile." }}</p>
-          <div class="directory-actions">
-            <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
-            <a class="button secondary" href="{{ url_for('new_message', recipient_id=p.id) }}">Message</a>
-          </div>
-        </article>
+          <p class="directory-bio">{{ p.bio or "This creator is still building out their profile." }}</p>
+        </a>
       {% endfor %}
     </section>
   {% else %}
@@ -224,5 +333,7 @@
       {% endif %}
     </section>
   {% endif %}
+
+  <a class="directory-back" href="{{ url_for('search') }}" aria-label="Back to search">‹</a>
 </section>
 {% endblock %}
