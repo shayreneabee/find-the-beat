@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}Showcase • Find the Beat{% endblock %}
+
+{% block head %}
+<style>
+  .showcase-page {
+    display: grid;
+    gap: 1.2rem;
+  }
+
+  .showcase-hero,
+  .showcase-section {
+    border: 1px solid rgba(255, 255, 255, 0.76);
+    border-radius: 28px;
+    background: rgba(255, 250, 238, 0.9);
+    box-shadow: var(--bc-lift, var(--lift));
+    overflow: hidden;
+  }
+
+  .showcase-hero {
+    position: relative;
+    min-height: 360px;
+    display: grid;
+    align-items: end;
+    padding: clamp(1.2rem, 4vw, 2.4rem);
+    color: #fff7e8;
+    background:
+      linear-gradient(130deg, rgba(36, 20, 8, 0.96), rgba(73, 31, 12, 0.78) 48%, rgba(245, 138, 0, 0.34)),
+      radial-gradient(circle at 78% 20%, rgba(255, 174, 84, 0.5), transparent 18rem),
+      #241408;
+  }
+
+  .showcase-hero::before,
+  .showcase-hero::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+  }
+
+  .showcase-hero::before {
+    inset: 2rem 1.2rem auto auto;
+    width: 38%;
+    max-width: 280px;
+    aspect-ratio: 1;
+    background: repeating-linear-gradient(90deg, rgba(255, 185, 93, 0.3) 0 5px, transparent 5px 17px);
+    opacity: 0.72;
+    transform: rotate(-8deg);
+  }
+
+  .showcase-hero::after {
+    left: 1.4rem;
+    bottom: 1.2rem;
+    width: 70%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 217, 163, 0.9), transparent);
+    box-shadow: 0 -18px 0 rgba(255, 217, 163, 0.24), 0 -36px 0 rgba(255, 217, 163, 0.16);
+  }
+
+  .showcase-hero-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+  }
+
+  .showcase-eyebrow {
+    margin: 0 0 0.45rem;
+    color: #ffc978;
+    font-size: 0.78rem;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .showcase-hero h1,
+  .showcase-section h2 {
+    margin: 0;
+    line-height: 1.02;
+  }
+
+  .showcase-hero h1 {
+    font-size: clamp(2.55rem, 8vw, 5.4rem);
+  }
+
+  .showcase-hero p {
+    max-width: 620px;
+    margin: 0.8rem 0 0;
+    color: rgba(255, 247, 232, 0.86);
+    font-size: clamp(1rem, 2vw, 1.18rem);
+  }
+
+  .showcase-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.1rem;
+  }
+
+  .showcase-section {
+    padding: clamp(1rem, 3vw, 1.45rem);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .section-head p {
+    max-width: 430px;
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+  }
+
+  .performance-row,
+  .profile-row {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .featured-row {
+    grid-template-columns: 1fr;
+  }
+
+  .performance-card,
+  .creator-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(78, 47, 16, 0.13);
+    border-radius: 20px;
+    background: rgba(255, 250, 238, 0.84);
+    box-shadow: 0 10px 24px rgba(55, 31, 7, 0.08);
+  }
+
+  .performance-media {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 25% 20%, rgba(245, 138, 0, 0.42), transparent 8rem),
+      linear-gradient(135deg, #2f1e0d, #5f250d);
+  }
+
+  .performance-media img,
+  .performance-media video,
+  .performance-placeholder {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  .performance-placeholder {
+    display: grid;
+    place-items: center;
+    color: #fff7e8;
+    font-weight: 950;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .media-pill {
+    position: absolute;
+    left: 0.75rem;
+    top: 0.75rem;
+    padding: 0.28rem 0.56rem;
+    border-radius: 999px;
+    background: rgba(47, 30, 13, 0.76);
+    color: #fff7e8;
+    font-size: 0.72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+  }
+
+  .performance-copy,
+  .creator-copy {
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.9rem;
+  }
+
+  .performance-copy h3,
+  .creator-copy h3 {
+    margin: 0;
+    line-height: 1.15;
+  }
+
+  .performance-copy p,
+  .creator-copy p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  .performance-stats,
+  .performance-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+  }
+
+  .stat-pill {
+    padding: 0.22rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 224, 181, 0.6);
+    color: var(--accent-dark);
+    font-size: 0.76rem;
+    font-weight: 900;
+  }
+
+  .creator-card {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    align-items: center;
+    padding: 0.75rem;
+    color: var(--text);
+  }
+
+  .creator-avatar {
+    width: 76px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 22px;
+    background:
+      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.12) 0 4px, transparent 4px 11px),
+      linear-gradient(135deg, #ffd9a3, #f58a00);
+    display: grid;
+    place-items: center;
+    font-weight: 950;
+    font-size: 1.45rem;
+  }
+
+  .creator-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .collab-strip {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .collab-strip .creator-card {
+    min-width: 260px;
+    scroll-snap-align: start;
+  }
+
+  .empty-showcase {
+    padding: 1.15rem;
+    border: 1px dashed rgba(78, 47, 16, 0.2);
+    border-radius: 20px;
+    background: rgba(255, 250, 238, 0.58);
+    color: var(--muted);
+  }
+
+  @media (min-width: 720px) {
+    .performance-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .featured-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .featured-row .performance-card:first-child {
+      grid-column: span 2;
+    }
+
+    .featured-row .performance-card:first-child .performance-media img,
+    .featured-row .performance-card:first-child .performance-media video,
+    .featured-row .performance-card:first-child .performance-placeholder {
+      aspect-ratio: 16 / 7;
+    }
+
+    .profile-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1040px) {
+    .profile-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>
+{% endblock %}
+
+{% macro performance_card(perf, large=False) %}
+  <article class="performance-card {{ 'large' if large else '' }}">
+    <div class="performance-media">
+      {% if perf.thumbnail_filename %}
+        <img src="{{ url_for('uploaded_photo', filename=perf.thumbnail_filename) }}" alt="{{ perf.title }}">
+      {% elif perf.video_filename %}
+        <video controls preload="metadata">
+          <source src="{{ url_for('uploaded_video', filename=perf.video_filename) }}">
+        </video>
+      {% elif perf.image_filename %}
+        <img src="{{ url_for('uploaded_photo', filename=perf.image_filename) }}" alt="{{ perf.title }}">
+      {% elif perf.audio_filename %}
+        <div class="performance-placeholder">Audio Demo</div>
+      {% else %}
+        <div class="performance-placeholder">Media Link</div>
+      {% endif %}
+      <span class="media-pill">{{ perf.media_type }}</span>
+    </div>
+    <div class="performance-copy">
+      <h3>{{ perf.title }}</h3>
+      {% if perf.profile %}
+        <p>{{ perf.profile.display_name }}{% if perf.profile.city %} • {{ perf.profile.city }}{% endif %}</p>
+        <p>{{ perf.profile.genre or "Genre coming soon" }}{% if perf.profile.instrument %} • {{ perf.profile.instrument }}{% endif %}</p>
+      {% endif %}
+      <div class="performance-stats">
+        <span class="stat-pill">{{ perf.views }} views</span>
+        <span class="stat-pill">{{ perf.likes }} likes</span>
+      </div>
+      <div class="performance-links">
+        <a class="button primary" href="{{ url_for('performance_detail', perf_id=perf.id) }}">Play</a>
+        {% if perf.profile %}
+          <a class="button secondary" href="{{ url_for('profile_detail', profile_id=perf.profile.id) }}">Profile</a>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+{% endmacro %}
+
+{% macro creator_card(profile) %}
+  <a class="creator-card" href="{{ url_for('profile_detail', profile_id=profile.id) }}">
+    <div class="creator-avatar">
+      {% if profile.photo_filename %}
+        <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
+      {% else %}
+        {{ profile.initials }}
+      {% endif %}
+    </div>
+    <div class="creator-copy">
+      <h3>{{ profile.display_name }}</h3>
+      <p>{{ profile.role or "Creator" }}{% if profile.city %} • {{ profile.city }}{% endif %}</p>
+      <p>{{ profile.genre or profile.instrument or "Open to discovery" }}</p>
+    </div>
+  </a>
+{% endmacro %}
+
+{% block content %}
+<section class="showcase-page">
+  <header class="showcase-hero">
+    <div class="showcase-hero-copy">
+      <p class="showcase-eyebrow">Find the Beat Showcase</p>
+      <h1>Discover the performances, profiles, and collabs moving the network.</h1>
+      <p>Watch featured videos, hear audio demos, browse rising talent, and find the next artist, producer, musician, or composer to build with.</p>
+      <div class="showcase-actions">
+        <a class="button primary" href="{{ url_for('upload_performance') }}">Upload Performance</a>
+        <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="showcase-section">
+    <div class="section-head">
+      <div>
+        <p class="showcase-eyebrow">Featured Showcase</p>
+        <h2>Performances to press play on first.</h2>
+      </div>
+      <a href="{{ url_for('performances') }}">All performances</a>
+    </div>
+    {% if featured_performances %}
+      <div class="performance-row featured-row">
+        {% for perf in featured_performances %}
+          {{ performance_card(perf, loop.first) }}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-showcase">No performances yet. Upload a video, audio demo, image, or media link to start the Showcase.</div>
+    {% endif %}
+  </section>
+
+  <section class="showcase-section">
+    <div class="section-head">
+      <div>
+        <p class="showcase-eyebrow">Trending Talent</p>
+        <h2>Creators and performances gaining attention.</h2>
+      </div>
+    </div>
+    {% if trending_performances %}
+      <div class="performance-row">
+        {% for perf in trending_performances %}
+          {{ performance_card(perf) }}
+        {% endfor %}
+      </div>
+    {% elif trending_profiles %}
+      <div class="profile-row">
+        {% for profile in trending_profiles %}
+          {{ creator_card(profile) }}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-showcase">Trending talent will appear as creators add profiles and performances.</div>
+    {% endif %}
+  </section>
+
+  {% for section in role_sections %}
+    <section class="showcase-section">
+      <div class="section-head">
+        <div>
+          <p class="showcase-eyebrow">Creator Lane</p>
+          <h2>{{ section.title }}</h2>
+        </div>
+        <a href="{{ url_for(section.endpoint) }}">View all</a>
+      </div>
+      {% if section.profiles %}
+        <div class="profile-row">
+          {% for profile in section.profiles %}
+            {{ creator_card(profile) }}
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-showcase">{{ section.title }} will fill in as more creators join the network.</div>
+      {% endif %}
+    </section>
+  {% endfor %}
+
+  <section class="showcase-section">
+    <div class="section-head">
+      <div>
+        <p class="showcase-eyebrow">Open Collaborations</p>
+        <h2>People signaling they are ready to build.</h2>
+      </div>
+    </div>
+    {% if open_collaborations %}
+      <div class="collab-strip">
+        {% for profile in open_collaborations %}
+          {{ creator_card(profile) }}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-showcase">Add tags like "Available for Collabs" or services you offer to show up here.</div>
+    {% endif %}
+  </section>
+
+  <section class="showcase-section">
+    <div class="section-head">
+      <div>
+        <p class="showcase-eyebrow">New This Week</p>
+        <h2>The latest drops from the community.</h2>
+      </div>
+    </div>
+    {% if new_this_week %}
+      <div class="performance-row">
+        {% for perf in new_this_week %}
+          {{ performance_card(perf) }}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-showcase">New uploads will appear here as the community grows.</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

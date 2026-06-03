@@ -198,7 +198,7 @@
               <img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}">
             </a>
           {% else %}
-            <a class="creator-initial" href="{{ url_for('profile_detail', profile_id=p.id) }}">{{ (p.display_name or "F")[:1] }}</a>
+            <a class="creator-initial" href="{{ url_for('profile_detail', profile_id=p.id) }}">{{ p.initials }}</a>
           {% endif %}
           <div>
             <h2>{{ p.display_name }}</h2>

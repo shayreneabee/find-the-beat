@@ -155,7 +155,7 @@
       {% if user.profile_pic %}
         <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
       {% else %}
-        <div class="profile-initial">{{ user.display_name[:1] }}</div>
+        <div class="profile-initial">{{ user.initials }}</div>
       {% endif %}
     </div>
   </div>

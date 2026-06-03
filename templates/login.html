@@ -104,6 +104,12 @@
     <button type="submit" class="button primary">Sign-In</button>
     <a href="{{ url_for('signup') }}" class="button secondary">Create Profile</a>
   </div>
+  <div class="oauth-prep" aria-label="Future social sign in">
+    <button type="button" disabled>Continue with Google</button>
+    <button type="button" disabled>Continue with Apple</button>
+    <button type="button" disabled>Continue with Email</button>
+    <button type="button" disabled>Facebook later</button>
+  </div>
   <p class="login-note">Use the email and password from your Find the Beat profile.</p>
 </form>
 {% endblock %}

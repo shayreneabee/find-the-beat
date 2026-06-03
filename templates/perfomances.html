@@ -60,11 +60,18 @@
     }
 
     .performance-media video,
+    .performance-media audio,
     .performance-media img,
     .performance-placeholder {
         width: 100%;
         aspect-ratio: 16 / 10;
         object-fit: cover;
+    }
+
+    .performance-media audio {
+        aspect-ratio: auto;
+        padding: 2.2rem 0.9rem;
+        background: linear-gradient(135deg, #2f1e0d, #6a2f12);
     }
 
     .performance-placeholder {
@@ -175,6 +182,13 @@
                             <source src="{{ url_for('uploaded_video', filename=perf.video_filename) }}">
                             Your browser does not support the video tag.
                         </video>
+                    {% elif perf.audio_filename %}
+                        <audio controls preload="metadata">
+                            <source src="{{ url_for('uploaded_audio', filename=perf.audio_filename) }}">
+                            Your browser does not support the audio tag.
+                        </audio>
+                    {% elif perf.image_filename %}
+                        <img src="{{ url_for('uploaded_photo', filename=perf.image_filename) }}" alt="{{ perf.title }}">
                     {% elif perf.thumb_filename %}
                         <img src="{{ url_for('uploaded_photo', filename=perf.thumb_filename) }}" alt="{{ perf.title }}">
                     {% elif perf.external_url %}
@@ -193,6 +207,7 @@
                 <p class="performance-description">
                     {{ perf.description or "A new performance from the Find the Beat community." }}
                 </p>
+                <p class="performance-meta">{{ perf.media_type|title }} • {{ perf.views }} views • {{ perf.likes }} likes</p>
                 <div class="performance-links">
                     <a href="{{ url_for('performance_detail', perf_id=perf.id) }}">Open</a>
                     {% if perf.external_url %}

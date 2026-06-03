@@ -88,6 +88,23 @@
     padding: 1rem;
   }
 
+  .profile-tabs {
+    display: flex;
+    gap: 0.55rem;
+    overflow-x: auto;
+    padding: 0.2rem;
+  }
+
+  .profile-tabs a {
+    flex: 0 0 auto;
+    padding: 0.68rem 0.95rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.72);
+    color: var(--text);
+    font-weight: 900;
+  }
+
   .social-row {
     display: flex;
     flex-wrap: wrap;
@@ -111,11 +128,18 @@
   }
 
   .featured-media video,
+  .featured-media audio,
   .featured-media img,
   .featured-empty {
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: cover;
+  }
+
+  .featured-media audio {
+    aspect-ratio: auto;
+    padding: 2.5rem 1rem;
+    background: linear-gradient(135deg, #2f1e0d, #5f250d);
   }
 
   .featured-empty {
@@ -142,6 +166,10 @@
     margin: 0 0 0.25rem;
   }
 
+  .performance-card p {
+    margin: 0.25rem 0;
+  }
+
   @media (min-width: 780px) {
     .artist-hero {
       grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.25fr);
@@ -155,13 +183,13 @@
 </style>
 
 <div class="artist-portfolio">
-  <section class="artist-hero">
+  <section class="artist-hero" id="overview">
     {% if profile.photo_filename %}
       <div class="artist-photo">
         <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
       </div>
     {% else %}
-      <div class="artist-placeholder">{{ (profile.display_name or "F")[:1] }}</div>
+      <div class="artist-placeholder">{{ profile.initials }}</div>
     {% endif %}
 
     <div class="artist-copy">
@@ -180,7 +208,7 @@
         {% endif %}
       </div>
       {% if profile.social_links %}
-        <div class="social-row" aria-label="Social links">
+        <div class="social-row" id="socials" aria-label="Social links">
           {% for label, url in profile.social_links %}
             <a href="{{ url }}" rel="noopener" target="_blank">{{ label }}</a>
           {% endfor %}
@@ -200,18 +228,25 @@
     </div>
   </section>
 
-  <section class="artist-section">
+  <nav class="profile-tabs artist-section" aria-label="Profile sections">
+    <a href="#overview">Overview</a>
+    <a href="#performances">Performances</a>
+    <a href="#details">Creative Details</a>
+    {% if profile.social_links %}<a href="#socials">Socials</a>{% endif %}
+  </nav>
+
+  <section class="artist-section" id="details">
     <h2>Creative Details</h2>
     <p><strong>Genres:</strong> {{ profile.genre or "Add genre" }}</p>
     <p><strong>Instruments/services:</strong> {{ profile.instrument or "Add talent" }}{% if profile.services_csv %} • {{ profile.services_csv }}{% endif %}</p>
     <p><strong>Tags:</strong> {{ profile.tags_csv or "Available for Collabs" }}</p>
   </section>
 
-  <section class="artist-section">
-    <h2>Featured Performance</h2>
+  <section class="artist-section" id="performances">
+    <h2>Performances</h2>
     {% if perfs %}
       {% set featured = perfs[0] %}
-      <h3>{{ featured.title }}</h3>
+      <h3>Featured: {{ featured.title }}</h3>
       <p>{{ featured.description or "A featured performance from this creator." }}</p>
       <div class="featured-media">
         {% if featured.video_filename %}
@@ -219,6 +254,13 @@
             <source src="{{ url_for('uploaded_video', filename=featured.video_filename) }}">
             Your browser does not support the video tag.
           </video>
+        {% elif featured.audio_filename %}
+          <audio controls preload="metadata">
+            <source src="{{ url_for('uploaded_audio', filename=featured.audio_filename) }}">
+            Your browser does not support the audio tag.
+          </audio>
+        {% elif featured.image_filename %}
+          <img src="{{ url_for('uploaded_photo', filename=featured.image_filename) }}" alt="{{ featured.title }}">
         {% elif featured.thumb_filename %}
           <img src="{{ url_for('uploaded_photo', filename=featured.thumb_filename) }}" alt="{{ featured.title }}">
         {% else %}
@@ -230,7 +272,7 @@
       {% endif %}
     {% else %}
       <div class="featured-media"><div class="featured-empty">No Performances Yet</div></div>
-      <p style="margin-top:0.75rem;">Performances will appear here after this creator uploads a video or media link.</p>
+      <p style="margin-top:0.75rem;">Performances will appear here after this creator uploads a video, audio demo, image, or media link.</p>
     {% endif %}
   </section>
 
@@ -242,6 +284,7 @@
           <a class="performance-card" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
             <h3>{{ perf.title }}</h3>
             <p>{{ perf.description or "Open this performance." }}</p>
+            <p class="artist-meta">{{ perf.media_type|title }} • {{ perf.views }} views • {{ perf.likes }} likes</p>
           </a>
         {% endfor %}
       </div>
