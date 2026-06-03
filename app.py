@@ -60,6 +60,7 @@ FOUNDER_PROFILES = [
     },
     {
         "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
+        "full_name": os.getenv("BRENT_COFOUNDER_FULL_NAME", "Jerod Cotton"),
         "display_name": os.getenv("BRENT_COFOUNDER_DISPLAY_NAME", "Jerod / Brent & Co Founder"),
     },
 ]
@@ -1042,7 +1043,7 @@ def seed_founder_profile():
                 continue
             owner_values = {
                 "email": email,
-                "full_name": founder["full_name"],
+                "full_name": founder.get("full_name") or founder["display_name"],
                 "display_name": founder["display_name"],
                 "role": "admin",
                 "genre": "Brent & Co Ecosystem",
