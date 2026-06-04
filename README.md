@@ -12,6 +12,8 @@ A full-stack web application that allows musicians and creatives to connect, col
 - Profile picture and intro video uploads
 - Google/Apple OAuth-ready sign-in
 - Interactive OpenStreetMap/Leaflet talent map view
+- Privacy-safe analytics hooks and Shay-only admin dashboard
+- Signup email notifications when SMTP is configured
 
 ## 🛠 Tech Stack
 - Backend: Python (Flask)
@@ -74,6 +76,7 @@ Recommended manual test:
 - `users`: account and profile fields, including email, password hash, display name, role, genre, city/state, bio, tags/services, profile image, profile video, timestamps.
 - `performances`: uploaded performances tied to `profile_id`, including title, description, video/audio/image filenames, thumbnail filename, media link, views, likes, and timestamp.
 - `messages`: user-to-user messages with `sender_id`, `recipient_id`, body, read/unread flag, and timestamp.
+- `activity_log`: private admin activity events for signups, logins, profile creation, uploads, messages, and showcase shares.
 
 ## Render Notes
 
@@ -119,6 +122,40 @@ Store `APPLE_PRIVATE_KEY` as the full private key, preserving line breaks or usi
 ### Map Notes
 
 The search Map View uses Leaflet with OpenStreetMap tiles and server-generated location points. No private map key is exposed to the browser.
+
+### Analytics and Signup Notifications
+
+Analytics is optional and configured only through environment variables. The app does not send user emails, names, or profile data to analytics.
+
+Use Google Analytics:
+
+```text
+GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+Or use Plausible:
+
+```text
+PLAUSIBLE_DOMAIN=findthebeatmusic.com
+```
+
+Signup notification emails are sent to Shay only when SMTP is configured:
+
+```text
+SIGNUP_NOTIFY_EMAIL=shalanda.brent@gmail.com
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_USE_TLS=1
+```
+
+The private admin dashboard is available at `/admin` and is restricted to:
+
+```text
+BRENT_ADMIN_EMAIL=shalanda.brent@gmail.com
+```
 
 ## 🌐 Live Demo
 (Add link later if deployed)

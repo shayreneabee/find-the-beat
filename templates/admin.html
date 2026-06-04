@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Admin | Find The Beat{% endblock %}
+
+{% block head %}
+  <style>
+    .admin-hero {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: clamp(1.25rem, 4vw, 2rem);
+      border-radius: 1.5rem;
+      color: #fff7e9;
+      background:
+        radial-gradient(circle at 86% 18%, rgba(255, 187, 80, 0.38), transparent 14rem),
+        linear-gradient(135deg, #3a220f, #7a3d12 52%, #f58a00);
+      box-shadow: 0 22px 50px rgba(76, 39, 9, 0.22);
+    }
+
+    .admin-hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 7vw, 4.5rem);
+      line-height: 0.95;
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card,
+    .admin-panel {
+      border: 1px solid rgba(89, 54, 23, 0.16);
+      border-radius: 1.2rem;
+      background: rgba(255, 250, 238, 0.95);
+      box-shadow: 0 16px 36px rgba(74, 39, 11, 0.12);
+    }
+
+    .stat-card {
+      padding: 1rem;
+    }
+
+    .stat-card strong {
+      display: block;
+      color: #371f07;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      line-height: 1;
+    }
+
+    .stat-card span {
+      color: #6c4a2b;
+      font-weight: 800;
+    }
+
+    .admin-panels {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .admin-panel {
+      overflow: hidden;
+    }
+
+    .admin-panel h2 {
+      margin: 0;
+      padding: 1rem 1rem 0.75rem;
+      color: #371f07;
+      font-size: 1.2rem;
+    }
+
+    .admin-list {
+      display: grid;
+      gap: 0.1rem;
+      margin: 0;
+      padding: 0 1rem 1rem;
+      list-style: none;
+    }
+
+    .admin-list li {
+      display: grid;
+      gap: 0.22rem;
+      padding: 0.75rem 0;
+      border-top: 1px solid rgba(89, 54, 23, 0.12);
+      color: #5f4a3f;
+    }
+
+    .admin-list strong {
+      color: #2b1a12;
+    }
+
+    .admin-meta {
+      font-size: 0.86rem;
+      color: #8a6b4a;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <section class="admin-hero">
+    <p class="eyebrow">Founder dashboard</p>
+    <h1>Brent &amp; Co pulse check.</h1>
+    <p>Private launch metrics for signups, profiles, uploads, messages, and recent activity.</p>
+  </section>
+
+  <section class="admin-grid" aria-label="Admin stats">
+    <article class="stat-card"><strong>{{ stats.total_users }}</strong><span>Total users</span></article>
+    <article class="stat-card"><strong>{{ stats.new_today }}</strong><span>New today</span></article>
+    <article class="stat-card"><strong>{{ stats.new_week }}</strong><span>New this week</span></article>
+    <article class="stat-card"><strong>{{ stats.profile_count }}</strong><span>Profiles</span></article>
+    <article class="stat-card"><strong>{{ stats.upload_count }}</strong><span>Uploads</span></article>
+    <article class="stat-card"><strong>{{ stats.message_count }}</strong><span>Messages</span></article>
+  </section>
+
+  <section class="admin-panels">
+    <article class="admin-panel">
+      <h2>Latest Users</h2>
+      <ul class="admin-list">
+        {% for row in latest_users %}
+          <li>
+            <strong>{{ row.display_name or row.email }}</strong>
+            <span>{{ row.role or "Profile pending" }}{% if row.city and row.state %} · {{ row.city }}, {{ row.state }}{% elif row.city or row.state %} · {{ row.city or row.state }}{% endif %}</span>
+            <span class="admin-meta">{{ row.email }} · joined {{ row.created_at or "unknown" }}</span>
+          </li>
+        {% else %}
+          <li>No users yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="admin-panel">
+      <h2>Latest Activity</h2>
+      <ul class="admin-list">
+        {% for row in latest_activity %}
+          <li>
+            <strong>{{ row.event_type.replace("_", " ")|title }}</strong>
+            <span>{{ row.description or "Activity recorded" }}</span>
+            <span class="admin-meta">{{ row.display_name or row.email or "System" }} · {{ row.created_at }}</span>
+          </li>
+        {% else %}
+          <li>No activity recorded yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="admin-panel">
+      <h2>Latest Showcase Uploads</h2>
+      <ul class="admin-list">
+        {% for row in latest_uploads %}
+          <li>
+            <strong>{{ row.title }}</strong>
+            <span>{{ row.display_name or row.email or "Creator" }}{% if row.city and row.state %} · {{ row.city }}, {{ row.state }}{% elif row.city or row.state %} · {{ row.city or row.state }}{% endif %}</span>
+            <span class="admin-meta">{{ row.media_type or "media" }} · {{ row.created_at }}</span>
+          </li>
+        {% else %}
+          <li>No uploads yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="admin-panel">
+      <h2>Latest Messages</h2>
+      <ul class="admin-list">
+        {% for row in latest_messages %}
+          <li>
+            <strong>{{ row.sender_name or row.sender_email or "Sender" }} to {{ row.recipient_name or row.recipient_email or "Recipient" }}</strong>
+            <span>{{ row.body[:100] }}{% if row.body|length > 100 %}...{% endif %}</span>
+            <span class="admin-meta">{{ row.created_at }}</span>
+          </li>
+        {% else %}
+          <li>No messages yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+{% endblock %}

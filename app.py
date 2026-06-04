@@ -3,7 +3,9 @@ import json
 import os
 import secrets
 import sqlite3
+import smtplib
 import time
+from email.message import EmailMessage
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
@@ -58,6 +60,16 @@ FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID", "")
 FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET", "")
 GOOGLE_OAUTH_READY = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 APPLE_OAUTH_READY = bool(APPLE_CLIENT_ID and APPLE_TEAM_ID and APPLE_KEY_ID and APPLE_PRIVATE_KEY)
+GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "").strip()
+PLAUSIBLE_DOMAIN = os.getenv("PLAUSIBLE_DOMAIN", "").strip()
+ADMIN_EMAIL = os.getenv("BRENT_ADMIN_EMAIL", "shalanda.brent@gmail.com").strip().lower()
+SIGNUP_NOTIFY_EMAIL = os.getenv("SIGNUP_NOTIFY_EMAIL", ADMIN_EMAIL).strip()
+SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587") or "587")
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "").strip()
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USERNAME or SIGNUP_NOTIFY_EMAIL).strip()
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "1") != "0"
 FOUNDER_PROFILES = [
     {
         "email": os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower(),
@@ -490,6 +502,7 @@ def init_db():
                 is_founder INTEGER DEFAULT 0,
                 is_verified INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                last_login_at TEXT DEFAULT '',
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -528,6 +541,19 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS activity_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                event_type TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                metadata_json TEXT DEFAULT '',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -557,6 +583,7 @@ def init_db():
             "is_founder": "INTEGER DEFAULT 0",
             "is_verified": "INTEGER DEFAULT 0",
             "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+            "last_login_at": "TEXT DEFAULT ''",
             "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
         }.items():
             if column not in existing_columns:
@@ -579,6 +606,7 @@ def init_db():
             "views": "INTEGER DEFAULT 0",
             "likes": "INTEGER DEFAULT 0",
             "is_featured": "INTEGER DEFAULT 0",
+            "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
         }.items():
             if column not in performance_columns:
                 conn.execute(f"ALTER TABLE performances ADD COLUMN {column} {definition}")
@@ -624,6 +652,69 @@ def brent_account_id(email):
     normalized = (email or "").strip().lower()
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:24]
     return f"brent-local-{digest}"
+
+
+def log_activity(user_id, event_type, description="", metadata=None):
+    try:
+        with get_db() as conn:
+            conn.execute(
+                """
+                INSERT INTO activity_log (user_id, event_type, description, metadata_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    event_type,
+                    description or "",
+                    json.dumps(metadata or {}, separators=(",", ":")),
+                ),
+            )
+    except Exception as exc:
+        app.logger.warning("Activity log skipped: %s", exc)
+
+
+def send_signup_notification(email, fields, provider="email/password"):
+    if not SMTP_HOST or not SIGNUP_NOTIFY_EMAIL:
+        app.logger.info("Signup notification skipped because SMTP is not configured.")
+        return False
+
+    display_name = fields.get("display_name") or fields.get("full_name") or "New user"
+    role = fields.get("role") or "Not selected"
+    city = fields.get("city") or ""
+    state = fields.get("state") or ""
+    location = ", ".join(part for part in (city, state) if part) or "Not provided"
+    signup_time = time.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+    message = EmailMessage()
+    message["Subject"] = f"New Find The Beat signup: {display_name}"
+    message["From"] = SMTP_FROM_EMAIL
+    message["To"] = SIGNUP_NOTIFY_EMAIL
+    message.set_content(
+        "\n".join(
+            [
+                "A new user registered in the Brent & Co ecosystem.",
+                "",
+                f"Name: {display_name}",
+                f"Email: {email}",
+                f"Role: {role}",
+                f"City/State: {location}",
+                f"Provider: {provider}",
+                f"Signup time: {signup_time}",
+            ]
+        )
+    )
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as smtp:
+            if SMTP_USE_TLS:
+                smtp.starttls()
+            if SMTP_USERNAME and SMTP_PASSWORD:
+                smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+            smtp.send_message(message)
+        return True
+    except Exception as exc:
+        app.logger.warning("Signup notification failed: %s", exc)
+        return False
 
 
 def normalize_profile_role(role):
@@ -714,11 +805,11 @@ def create_user(email, password, fields, profile_pic):
                 fields["state"],
                 fields["country"],
                 fields["bio"],
-                fields["previous_work"],
-                fields["availability"],
-                fields["tags_csv"],
-                fields["instrument"],
-                fields["services_csv"],
+                fields.get("previous_work", ""),
+                fields.get("availability", ""),
+                fields.get("tags_csv", ""),
+                fields.get("instrument", ""),
+                fields.get("services_csv", ""),
                 profile_pic,
                 fields.get("instagram_url", ""),
                 fields.get("tiktok_url", ""),
@@ -730,7 +821,16 @@ def create_user(email, password, fields, profile_pic):
                 AUTH_PROVIDER,
             ),
         )
-        return cursor.lastrowid
+        user_id = cursor.lastrowid
+    log_activity(
+        user_id,
+        "user_signed_up",
+        "User signed up",
+        {"role": fields.get("role", ""), "city": fields.get("city", ""), "state": fields.get("state", "")},
+    )
+    log_activity(user_id, "profile_created", "Initial profile created")
+    send_signup_notification(email, fields, "email/password")
+    return user_id
 
 
 def update_user_profile(user_id, fields, profile_pic, profile_video):
@@ -789,6 +889,7 @@ def upsert_oauth_user(provider, email, display_name="", avatar_url="", provider_
                     avatar_url = COALESCE(NULLIF(avatar_url, ''), ?),
                     provider = ?, provider_id = ?, auth_provider = ?,
                     brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
+                    last_login_at = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
@@ -803,14 +904,15 @@ def upsert_oauth_user(provider, email, display_name="", avatar_url="", provider_
                     row["id"],
                 ),
             )
+            log_activity(row["id"], "user_logged_in", f"{provider.title()} login")
             return row["id"]
         cursor = conn.execute(
             """
             INSERT INTO users (
                 email, password_hash, full_name, display_name, avatar_url,
-                brent_account_id, provider, provider_id, auth_provider, updated_at
+                brent_account_id, provider, provider_id, auth_provider, last_login_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -824,7 +926,19 @@ def upsert_oauth_user(provider, email, display_name="", avatar_url="", provider_
                 provider,
             ),
         )
-        return cursor.lastrowid
+        user_id = cursor.lastrowid
+    fields = {
+        "display_name": display_name,
+        "full_name": display_name,
+        "role": "",
+        "city": "",
+        "state": "",
+    }
+    log_activity(user_id, "user_signed_up", f"User signed up with {provider}")
+    log_activity(user_id, "profile_created", "OAuth profile created")
+    log_activity(user_id, "user_logged_in", f"{provider.title()} login")
+    send_signup_notification(email, fields, provider)
+    return user_id
 
 
 def create_performance(profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url=""):
@@ -874,7 +988,14 @@ def create_message(sender_id, recipient_id, body):
             """,
             (sender_id, recipient_id, body),
         )
-        return cursor.lastrowid
+        message_id = cursor.lastrowid
+    log_activity(
+        sender_id,
+        "message_sent",
+        "Message sent",
+        {"recipient_id": recipient_id, "message_id": message_id},
+    )
+    return message_id
 
 
 def split_csv(value):
@@ -1044,6 +1165,9 @@ def row_to_profile(row):
     data.setdefault("is_admin", 0)
     data.setdefault("is_founder", 0)
     data.setdefault("is_verified", 0)
+    data.setdefault("created_at", "")
+    data.setdefault("last_login_at", "")
+    data.setdefault("updated_at", "")
     data["brent_account_id"] = data["brent_account_id"] or brent_account_id(data.get("email", ""))
     data["provider"] = data["provider"] or data["auth_provider"] or AUTH_PROVIDER
     data["auth_provider"] = data["auth_provider"] or data["provider"] or AUTH_PROVIDER
@@ -1198,6 +1322,21 @@ def login_required(view):
     return wrapped
 
 
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = current_user()
+        if not user:
+            flash("Please log in first.")
+            return redirect(url_for("login"))
+        if (user.email or "").strip().lower() != ADMIN_EMAIL:
+            flash("That area is only available to the Brent & Co founder account.")
+            return redirect(url_for("home"))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
 @app.context_processor
 def inject_user():
     return {
@@ -1205,6 +1344,9 @@ def inject_user():
         "brent_co_url": BRENT_CO_URL,
         "find_the_beat_url": FIND_THE_BEAT_URL,
         "second_chance_url": SECOND_CHANCE_URL,
+        "ga_measurement_id": GA_MEASUREMENT_ID,
+        "plausible_domain": PLAUSIBLE_DOMAIN,
+        "admin_email": ADMIN_EMAIL,
     }
 
 
@@ -1788,6 +1930,72 @@ def healthz():
     return {"status": "ok"}
 
 
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    with get_db() as conn:
+        stats = {
+            "total_users": conn.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+            "new_today": conn.execute(
+                "SELECT COUNT(*) FROM users WHERE date(created_at) = date('now')"
+            ).fetchone()[0],
+            "new_week": conn.execute(
+                "SELECT COUNT(*) FROM users WHERE datetime(created_at) >= datetime('now', '-7 days')"
+            ).fetchone()[0],
+            "profile_count": conn.execute(
+                "SELECT COUNT(*) FROM users WHERE COALESCE(display_name, '') != ''"
+            ).fetchone()[0],
+            "upload_count": conn.execute("SELECT COUNT(*) FROM performances").fetchone()[0],
+            "message_count": conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0],
+        }
+        latest_users = conn.execute(
+            """
+            SELECT id, email, display_name, role, city, state, provider, created_at, last_login_at
+            FROM users
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT 8
+            """
+        ).fetchall()
+        latest_messages = conn.execute(
+            """
+            SELECT m.id, m.body, m.created_at,
+                   sender.display_name AS sender_name, sender.email AS sender_email,
+                   recipient.display_name AS recipient_name, recipient.email AS recipient_email
+            FROM messages m
+            LEFT JOIN users sender ON sender.id = m.sender_id
+            LEFT JOIN users recipient ON recipient.id = m.recipient_id
+            ORDER BY datetime(m.created_at) DESC, m.id DESC
+            LIMIT 8
+            """
+        ).fetchall()
+        latest_uploads = conn.execute(
+            """
+            SELECT p.id, p.title, p.created_at, p.media_type, u.display_name, u.email, u.city, u.state
+            FROM performances p
+            LEFT JOIN users u ON u.id = p.profile_id
+            ORDER BY datetime(p.created_at) DESC, p.id DESC
+            LIMIT 8
+            """
+        ).fetchall()
+        latest_activity = conn.execute(
+            """
+            SELECT a.id, a.event_type, a.description, a.created_at, u.display_name, u.email
+            FROM activity_log a
+            LEFT JOIN users u ON u.id = a.user_id
+            ORDER BY datetime(a.created_at) DESC, a.id DESC
+            LIMIT 12
+            """
+        ).fetchall()
+    return render_template(
+        "admin.html",
+        stats=stats,
+        latest_users=latest_users,
+        latest_messages=latest_messages,
+        latest_uploads=latest_uploads,
+        latest_activity=latest_activity,
+    )
+
+
 @app.route("/search")
 def search():
     return render_template(
@@ -2050,6 +2258,13 @@ def share_performance(perf_id):
         flash("Performance not found.")
         return redirect(url_for("showcase"))
     perf = row_to_performance(row, get_profile(row["profile_id"]))
+    viewer = current_user()
+    log_activity(
+        viewer.id if viewer else None,
+        "showcase_shared",
+        f"Shared {perf.title}",
+        {"performance_id": perf.id, "profile_id": perf.profile.id if perf.profile else row["profile_id"]},
+    )
     return render_template("share_confirmation.html", perf=perf)
 
 
@@ -2147,6 +2362,12 @@ def upload_performance():
             image_filename,
             thumb_filename,
             external_url,
+        )
+        log_activity(
+            user.id,
+            "performance_uploaded",
+            f"Uploaded {title}",
+            {"performance_id": perf_id, "media_link": bool(external_url)},
         )
         flash("Performance uploaded.")
         return redirect(url_for("performance_detail", perf_id=perf_id))
@@ -2249,11 +2470,13 @@ def login():
                 SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
                     provider = COALESCE(NULLIF(provider, ''), ?),
                     auth_provider = COALESCE(NULLIF(auth_provider, ''), ?),
+                    last_login_at = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
                 (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
             )
+        log_activity(row["id"], "user_logged_in", "Email/password login")
         count = unread_message_count(row["id"])
         flash("You have new messages." if count else "You are logged in.")
         return redirect(url_for("profile"))

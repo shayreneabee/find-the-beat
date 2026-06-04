@@ -865,6 +865,19 @@
     }
   </style>
 
+  {% if ga_measurement_id %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ ga_measurement_id }}', { anonymize_ip: true });
+    </script>
+  {% endif %}
+  {% if plausible_domain %}
+    <script defer data-domain="{{ plausible_domain }}" src="https://plausible.io/js/script.js"></script>
+  {% endif %}
+
   {% block head %}{% endblock %}
 </head>
 
@@ -892,6 +905,9 @@
         {% if user %}
           <a href="{{ url_for('inbox') }}" class="nav-pill messages-link">Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
           <a href="{{ url_for('profile') }}" class="nav-pill profile-link">Profile</a>
+          {% if user.email|lower == admin_email %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-pill profile-link">Admin</a>
+          {% endif %}
         {% else %}
           <a href="{{ url_for('login') }}" class="nav-pill messages-link">Messages</a>
           <a href="{{ url_for('login') }}" class="nav-pill profile-link">Profile</a>
