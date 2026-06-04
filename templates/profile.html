@@ -170,7 +170,7 @@
     <p class="muted">Complete your profile to help other creators find you. You can still skip and browse anytime.</p>
     <div class="completion-meter" aria-label="Profile completion"><span style="width: {{ completion.percent }}%;"></span></div>
     <div class="completion-list">
-      {% for label, done in completion.items %}
+      {% for label, done in completion["items"] %}
         <span class="{{ 'done' if done else '' }}">{{ label }}</span>
       {% endfor %}
     </div>

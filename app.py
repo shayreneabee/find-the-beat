@@ -1297,17 +1297,29 @@ def current_user():
     user_id = session.get("user_id")
     if not user_id:
         return None
-    with get_db() as conn:
-        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    try:
+        with get_db() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    except sqlite3.OperationalError:
+        app.logger.exception("Current user lookup failed; retrying after schema init")
+        init_db()
+        with get_db() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
     return row_to_profile(row)
 
 
 @app.context_processor
 def inject_user_context():
-    user = current_user()
+    try:
+        user = current_user()
+        unread = unread_message_count(user.id) if user else 0
+    except Exception:
+        app.logger.exception("Template user context failed")
+        user = None
+        unread = 0
     return {
         "user": user,
-        "unread_count": unread_message_count(user.id) if user else 0,
+        "unread_count": unread,
     }
 
 
@@ -1339,8 +1351,13 @@ def admin_required(view):
 
 @app.context_processor
 def inject_user():
+    try:
+        user = current_user()
+    except Exception:
+        app.logger.exception("Template app context user lookup failed")
+        user = None
     return {
-        "user": current_user(),
+        "user": user,
         "brent_co_url": BRENT_CO_URL,
         "find_the_beat_url": FIND_THE_BEAT_URL,
         "second_chance_url": SECOND_CHANCE_URL,
