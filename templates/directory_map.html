@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.title }} Map • Find the Beat{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQm0oAIAirStXPhSTPhQmVuR9BuwB4XwgeY=" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<style>
+  .map-page {
+    display: grid;
+    gap: 0;
+    min-height: calc(100vh - 172px);
+    margin: -1rem -0.9rem 0;
+    padding-bottom: 1.3rem;
+    background: linear-gradient(180deg, #fbf4de 0%, #eee7d0 100%);
+  }
+
+  .map-page h1,
+  .map-subband {
+    display: grid;
+    place-items: center;
+    margin: 0;
+    background: var(--accent);
+    color: rgba(47, 30, 13, 0.65);
+    font-weight: 200;
+    text-align: center;
+  }
+
+  .map-page h1 {
+    min-height: 92px;
+    border-bottom: 7px solid var(--cream);
+    font-size: clamp(2.8rem, 15vw, 4.5rem);
+    text-transform: lowercase;
+  }
+
+  .map-subband {
+    min-height: 64px;
+    border-bottom: 7px solid var(--cream);
+    font-size: clamp(1.75rem, 9vw, 2.6rem);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .map-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .map-actions a {
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(47, 30, 13, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 250, 238, 0.7);
+    font-weight: 900;
+  }
+
+  .map-actions .active {
+    background: var(--accent);
+  }
+
+  #talent-map {
+    min-height: 390px;
+    margin: 0 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(47, 30, 13, 0.16);
+    border-radius: 20px;
+    box-shadow: 0 8px 16px rgba(47, 30, 13, 0.16);
+    background: rgba(255, 250, 238, 0.75);
+  }
+
+  .map-list {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.9rem 1rem 0;
+  }
+
+  .map-card {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr auto;
+    gap: 0.65rem;
+    align-items: center;
+    min-height: 58px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 16px;
+    background: rgba(255, 250, 238, 0.82);
+    box-shadow: inset 0 -1px 0 rgba(47, 30, 13, 0.16);
+  }
+
+  .map-pin {
+    width: 2.4rem;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent);
+    font-weight: 950;
+  }
+</style>
+
+<section class="map-page">
+  <h1>{{ category.title }}</h1>
+  <p class="map-subband">Map View</p>
+  <nav class="map-actions" aria-label="Result view">
+    <a href="{{ url_for('search_directory', slug=category.slug, state=filters.state, city=filters.city, role=filters.role, genre=filters.genre, instrument=filters.instrument, services=filters.services, availability=filters.availability, view='list') }}">List View</a>
+    <a class="active" href="{{ url_for('search_directory', slug=category.slug, state=filters.state, city=filters.city, role=filters.role, genre=filters.genre, instrument=filters.instrument, services=filters.services, availability=filters.availability, view='map') }}">Map View</a>
+  </nav>
+
+  <div class="map-version" hidden>dedicated-leaflet-map-v1</div>
+  <div id="talent-map" data-points='{{ map_points|tojson }}' aria-label="{{ category.title }} map"></div>
+
+  <section class="map-list">
+    {% if map_points %}
+      {% for point in map_points %}
+        <div class="map-card">
+          <span class="map-pin">⌖</span>
+          <strong>{{ point.location }}</strong>
+          <span>{{ point.count }} {{ "creator" if point.count == 1 else "creators" }}</span>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p>No mappable locations yet. Add city and state to profiles to place them on the map.</p>
+    {% endif %}
+  </section>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  (() => {
+    const el = document.getElementById("talent-map");
+    if (!el || !window.L) return;
+    const points = JSON.parse(el.dataset.points || "[]");
+    const map = L.map(el, { scrollWheelZoom: false }).setView([32.7416, -89.6787], 5);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+    const bounds = [];
+    points.forEach((point) => {
+      if (!point.lat || !point.lng) return;
+      const marker = L.marker([point.lat, point.lng]).addTo(map);
+      marker.bindPopup(`${point.location}<br>${point.count} ${point.count === 1 ? "creator" : "creators"}`);
+      bounds.push([point.lat, point.lng]);
+    });
+    if (bounds.length > 1) map.fitBounds(bounds, { padding: [24, 24] });
+    if (bounds.length === 1) map.setView(bounds[0], 9);
+  })();
+</script>
+{% endblock %}

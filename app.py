@@ -1851,7 +1851,7 @@ def search_directory(slug):
         if coords:
             map_points.append({"location": location, "count": count, "lat": coords[0], "lng": coords[1]})
     return render_template(
-        "directory.html",
+        "directory_map.html" if view_mode == "map" else "directory.html",
         category=category,
         profiles=results,
         filters=filters,
