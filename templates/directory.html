@@ -380,8 +380,9 @@
 
   {% if view_mode == "map" %}
     <section class="map-panel">
+      <div class="map-version" hidden>leaflet-map-v2</div>
+      <div id="talent-map" data-points='{{ map_points|tojson }}' aria-label="{{ category.title }} map"></div>
       {% if map_points %}
-        <div id="talent-map" data-points='{{ map_points|tojson }}' aria-label="{{ category.title }} map"></div>
         {% for point in map_points %}
           <div class="map-card">
             <span class="map-pin">⌖</span>
@@ -429,7 +430,7 @@
   <a class="directory-back" href="{{ url_for('search') }}" aria-label="Back to search">‹</a>
 </section>
 
-{% if view_mode == "map" and map_points %}
+{% if view_mode == "map" %}
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
     (() => {
