@@ -1,12 +1,16 @@
 import hashlib
+import json
 import os
 import secrets
 import sqlite3
+import time
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import urlparse
 
+from authlib.integrations.flask_client import OAuth
+from authlib.jose import jwt
 from flask import (
     Flask,
     flash,
@@ -52,6 +56,8 @@ APPLE_KEY_ID = os.getenv("APPLE_KEY_ID", "")
 APPLE_PRIVATE_KEY = os.getenv("APPLE_PRIVATE_KEY", "")
 FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID", "")
 FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET", "")
+GOOGLE_OAUTH_READY = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+APPLE_OAUTH_READY = bool(APPLE_CLIENT_ID and APPLE_TEAM_ID and APPLE_KEY_ID and APPLE_PRIVATE_KEY)
 FOUNDER_PROFILES = [
     {
         "email": os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower(),
@@ -389,6 +395,48 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
 
+oauth = OAuth(app)
+
+if GOOGLE_OAUTH_READY:
+    oauth.register(
+        name="google",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
+
+
+def apple_private_key():
+    return APPLE_PRIVATE_KEY.replace("\\n", "\n")
+
+
+def apple_client_secret():
+    now = int(time.time())
+    payload = {
+        "iss": APPLE_TEAM_ID,
+        "iat": now,
+        "exp": now + 86400 * 180,
+        "aud": "https://appleid.apple.com",
+        "sub": APPLE_CLIENT_ID,
+    }
+    header = {"alg": "ES256", "kid": APPLE_KEY_ID}
+    encoded = jwt.encode(header, payload, apple_private_key())
+    return encoded.decode("utf-8") if isinstance(encoded, bytes) else encoded
+
+
+if APPLE_OAUTH_READY:
+    oauth.register(
+        name="apple",
+        client_id=APPLE_CLIENT_ID,
+        client_secret=apple_client_secret(),
+        authorize_url="https://appleid.apple.com/auth/authorize",
+        access_token_url="https://appleid.apple.com/auth/token",
+        jwks_uri="https://appleid.apple.com/auth/keys",
+        client_kwargs={"scope": "email name"},
+        token_endpoint_auth_method="client_secret_post",
+    )
+
 if os.getenv("TRUST_PROXY", "1") == "1":
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
@@ -725,6 +773,60 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
         )
 
 
+def upsert_oauth_user(provider, email, display_name="", avatar_url="", provider_id=""):
+    email = (email or "").strip().lower()
+    display_name = (display_name or "").strip() or email.split("@")[0] or "Find The Beat Creator"
+    if not email:
+        raise ValueError("The sign-in provider did not return an email address.")
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        if row:
+            conn.execute(
+                """
+                UPDATE users
+                SET display_name = COALESCE(NULLIF(display_name, ''), ?),
+                    full_name = COALESCE(NULLIF(full_name, ''), ?),
+                    avatar_url = COALESCE(NULLIF(avatar_url, ''), ?),
+                    provider = ?, provider_id = ?, auth_provider = ?,
+                    brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (
+                    display_name,
+                    display_name,
+                    avatar_url,
+                    provider,
+                    provider_id,
+                    provider,
+                    brent_account_id(email),
+                    row["id"],
+                ),
+            )
+            return row["id"]
+        cursor = conn.execute(
+            """
+            INSERT INTO users (
+                email, password_hash, full_name, display_name, avatar_url,
+                brent_account_id, provider, provider_id, auth_provider, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (
+                email,
+                generate_password_hash(secrets.token_urlsafe(32)),
+                display_name,
+                display_name,
+                avatar_url,
+                brent_account_id(email),
+                provider,
+                provider_id,
+                provider,
+            ),
+        )
+        return cursor.lastrowid
+
+
 def create_performance(profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url=""):
     profile = get_profile(profile_id)
     media_type = (
@@ -843,6 +945,40 @@ STATE_ALIASES = {
     "la": "louisiana",
     "louisiana": "la",
 }
+STATE_COORDS = {
+    "ms": (32.7416, -89.6787),
+    "mississippi": (32.7416, -89.6787),
+    "ga": (33.0406, -83.6431),
+    "georgia": (33.0406, -83.6431),
+    "il": (40.3495, -88.9861),
+    "illinois": (40.3495, -88.9861),
+    "tx": (31.0545, -97.5635),
+    "texas": (31.0545, -97.5635),
+    "tn": (35.7478, -86.6923),
+    "tennessee": (35.7478, -86.6923),
+    "la": (31.1695, -91.8678),
+    "louisiana": (31.1695, -91.8678),
+}
+CITY_COORDS = {
+    "atlanta, ga": (33.7490, -84.3880),
+    "atlanta, georgia": (33.7490, -84.3880),
+    "brookhaven, ms": (31.5791, -90.4407),
+    "brookhaven, mississippi": (31.5791, -90.4407),
+    "chicago, il": (41.8781, -87.6298),
+    "chicago, illinois": (41.8781, -87.6298),
+    "dallas, tx": (32.7767, -96.7970),
+    "dallas, texas": (32.7767, -96.7970),
+    "houston, tx": (29.7604, -95.3698),
+    "houston, texas": (29.7604, -95.3698),
+    "jackson, ms": (32.2988, -90.1848),
+    "jackson, mississippi": (32.2988, -90.1848),
+    "mccomb, ms": (31.2438, -90.4532),
+    "mccomb, mississippi": (31.2438, -90.4532),
+    "memphis, tn": (35.1495, -90.0490),
+    "memphis, tennessee": (35.1495, -90.0490),
+    "new orleans, la": (29.9511, -90.0715),
+    "new orleans, louisiana": (29.9511, -90.0715),
+}
 
 
 def category_by_slug(slug):
@@ -855,6 +991,23 @@ def location_terms(value):
         return []
     alias = STATE_ALIASES.get(value.lower())
     return [value, alias] if alias else [value]
+
+
+def profile_coordinates(profile):
+    city = (profile.city or "").strip().lower()
+    state = (profile.state or "").strip().lower()
+    if city and state:
+        direct = CITY_COORDS.get(f"{city}, {state}")
+        if direct:
+            return direct
+        alias = STATE_ALIASES.get(state)
+        if alias:
+            direct = CITY_COORDS.get(f"{city}, {alias}")
+            if direct:
+                return direct
+    if state:
+        return STATE_COORDS.get(state) or STATE_COORDS.get(STATE_ALIASES.get(state, ""))
+    return None
 
 
 def normalize_social_url(value):
@@ -1686,11 +1839,17 @@ def search_directory(slug):
         view_mode = "list"
     map_points = []
     location_counts = {}
+    location_coords = {}
     for profile in results:
         location = ", ".join(part for part in [profile.city, profile.state] if part) or profile.country or "Location coming soon"
         location_counts[location] = location_counts.get(location, 0) + 1
+        coords = profile_coordinates(profile)
+        if coords:
+            location_coords[location] = coords
     for location, count in location_counts.items():
-        map_points.append({"location": location, "count": count})
+        coords = location_coords.get(location)
+        if coords:
+            map_points.append({"location": location, "count": count, "lat": coords[0], "lng": coords[1]})
     return render_template(
         "directory.html",
         category=category,
@@ -2094,7 +2253,96 @@ def login():
         flash("You have new messages." if count else "You are logged in.")
         return redirect(url_for("profile"))
 
-    return render_template("login.html")
+    return render_template(
+        "login.html",
+        google_ready=GOOGLE_OAUTH_READY,
+        apple_ready=APPLE_OAUTH_READY,
+    )
+
+
+@app.route("/auth/google")
+def auth_google():
+    if not GOOGLE_OAUTH_READY:
+        flash("Google sign-in needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Render first.")
+        return redirect(url_for("login"))
+    return oauth.google.authorize_redirect(url_for("auth_google_callback", _external=True))
+
+
+@app.route("/auth/google/callback")
+def auth_google_callback():
+    if not GOOGLE_OAUTH_READY:
+        flash("Google sign-in is not configured yet.")
+        return redirect(url_for("login"))
+    try:
+        token = oauth.google.authorize_access_token()
+        info = token.get("userinfo") or oauth.google.userinfo()
+        user_id = upsert_oauth_user(
+            "google",
+            info.get("email", ""),
+            info.get("name") or info.get("given_name") or "",
+            info.get("picture", ""),
+            info.get("sub", ""),
+        )
+    except Exception as exc:
+        app.logger.exception("Google OAuth failed")
+        flash(f"Google sign-in failed: {exc}")
+        return redirect(url_for("login"))
+    session.clear()
+    session["user_id"] = user_id
+    flash("You are logged in with Google.")
+    return redirect(url_for("profile"))
+
+
+@app.route("/auth/apple")
+def auth_apple():
+    if not APPLE_OAUTH_READY:
+        flash("Apple sign-in needs APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY in Render first.")
+        return redirect(url_for("login"))
+    return oauth.apple.authorize_redirect(
+        url_for("auth_apple_callback", _external=True),
+        response_mode="form_post",
+    )
+
+
+@app.route("/auth/apple/callback", methods=["GET", "POST"])
+def auth_apple_callback():
+    if not APPLE_OAUTH_READY:
+        flash("Apple sign-in is not configured yet.")
+        return redirect(url_for("login"))
+    try:
+        token = oauth.apple.authorize_access_token()
+        info = {}
+        try:
+            info = oauth.apple.parse_id_token(token) or {}
+        except Exception:
+            info = token.get("userinfo") or {}
+        apple_user = request.form.get("user", "")
+        if apple_user:
+            try:
+                apple_payload = json.loads(apple_user)
+                name = apple_payload.get("name") or {}
+                full_name = " ".join(
+                    part for part in [name.get("firstName", ""), name.get("lastName", "")] if part
+                )
+                if full_name:
+                    info["name"] = full_name
+            except json.JSONDecodeError:
+                pass
+        user_id = upsert_oauth_user(
+            "apple",
+            info.get("email", ""),
+            info.get("name") or "",
+            "",
+            info.get("sub", ""),
+        )
+    except Exception as exc:
+        app.logger.exception("Apple OAuth failed")
+        flash(f"Apple sign-in failed: {exc}")
+        return redirect(url_for("login"))
+    session.clear()
+    session["user_id"] = user_id
+    flash("You are logged in with Apple.")
+    return redirect(url_for("profile"))
 
 
 @app.route("/logout")

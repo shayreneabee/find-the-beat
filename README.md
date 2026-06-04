@@ -10,6 +10,8 @@ A full-stack web application that allows musicians and creatives to connect, col
 - Performance/video uploads stored in the database with uploader ownership
 - User-to-user messaging with inbox, conversation threads, replies, and read status
 - Profile picture and intro video uploads
+- Google/Apple OAuth-ready sign-in
+- Interactive OpenStreetMap/Leaflet talent map view
 
 ## 🛠 Tech Stack
 - Backend: Python (Flask)
@@ -70,7 +72,7 @@ Recommended manual test:
 ## Database Tables
 
 - `users`: account and profile fields, including email, password hash, display name, role, genre, city/state, bio, tags/services, profile image, profile video, timestamps.
-- `performances`: uploaded performances tied to `user_id`, including title, description, video filename, thumbnail filename, and timestamp.
+- `performances`: uploaded performances tied to `profile_id`, including title, description, video/audio/image filenames, thumbnail filename, media link, views, likes, and timestamp.
 - `messages`: user-to-user messages with `sender_id`, `recipient_id`, body, read/unread flag, and timestamp.
 
 ## Render Notes
@@ -81,6 +83,42 @@ Use a Web Service for this Flask app.
 - Start command: `gunicorn app:app`
 - Set `SECRET_KEY` to a real secret value.
 - For persistent uploads and SQLite, set up a Render persistent disk and point `INSTANCE_DIR`, `UPLOAD_DIR`, and `DATABASE_PATH` to disk-backed paths.
+
+### OAuth Environment Variables
+
+Google sign-in activates only when both values are set:
+
+```text
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
+
+Google OAuth redirect URI:
+
+```text
+https://www.findthebeatmusic.com/auth/google/callback
+```
+
+Apple sign-in activates only when all values are set:
+
+```text
+APPLE_CLIENT_ID=
+APPLE_TEAM_ID=
+APPLE_KEY_ID=
+APPLE_PRIVATE_KEY=
+```
+
+Apple redirect URI:
+
+```text
+https://www.findthebeatmusic.com/auth/apple/callback
+```
+
+Store `APPLE_PRIVATE_KEY` as the full private key, preserving line breaks or using escaped `\n` line breaks. Do not expose any of these values in frontend code.
+
+### Map Notes
+
+The search Map View uses Leaflet with OpenStreetMap tiles and server-generated location points. No private map key is exposed to the browser.
 
 ## 🌐 Live Demo
 (Add link later if deployed)

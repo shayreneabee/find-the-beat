@@ -50,12 +50,18 @@
 
   .social-button {
     min-height: 52px;
+    display: grid;
+    place-items: center;
     border: 1px solid rgba(47, 30, 13, 0.16);
     border-radius: 0 0 22px 22px;
     background: rgba(255, 250, 238, 0.84);
     box-shadow: 0 7px 0 rgba(47, 30, 13, 0.1);
     color: rgba(47, 30, 13, 0.78);
     font-weight: 900;
+  }
+
+  .social-button.disabled {
+    opacity: 0.58;
   }
 
   .login-form {
@@ -119,9 +125,17 @@
 
 <section class="social-signin" aria-label="Social sign in">
   <h2>sign in your way</h2>
-  <button class="social-button" type="button" disabled>Continue with Google</button>
-  <button class="social-button" type="button" disabled>Continue with Apple</button>
-  <button class="social-button" type="button" disabled>Email login below</button>
+  {% if google_ready %}
+    <a class="social-button" href="{{ url_for('auth_google') }}">Continue with Google</a>
+  {% else %}
+    <span class="social-button disabled">Google keys needed</span>
+  {% endif %}
+  {% if apple_ready %}
+    <a class="social-button" href="{{ url_for('auth_apple') }}">Continue with Apple</a>
+  {% else %}
+    <span class="social-button disabled">Apple keys needed</span>
+  {% endif %}
+  <span class="social-button">Email login below</span>
 </section>
 
 <form method="POST" class="login-form">
