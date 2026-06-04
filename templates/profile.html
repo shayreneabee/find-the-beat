@@ -154,6 +154,8 @@
     <div class="profile-photo">
       {% if user.profile_pic %}
         <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
+      {% elif user.avatar_url and user.avatar_url.startswith("http") %}
+        <img src="{{ user.avatar_url }}" alt="{{ user.display_name }}">
       {% else %}
         <div class="profile-initial">{{ user.initials }}</div>
       {% endif %}
@@ -185,7 +187,7 @@
     </a>
     <a class="profile-action" href="{{ url_for('inbox') }}">
       <span>▭</span>
-      <strong>Inbox{% if unread_count %}<br>{{ unread_count }} new{% endif %}</strong>
+      <strong>Inbox{% if unread_count|default(0) %}<br>{{ unread_count }} new{% endif %}</strong>
     </a>
     <a class="profile-action" href="{{ url_for('edit_profile') }}">
       <span>◉</span>
@@ -210,8 +212,8 @@
     <div class="detail-row"><small>Genre</small><strong>{{ user.genre or "Add genre" }}</strong></div>
     <div class="detail-row"><small>Instruments</small><strong>{{ user.instrument or "Add instruments" }}</strong></div>
     <div class="detail-row"><small>Services</small><strong>{{ user.services_csv or "Add services" }}</strong></div>
-    <div class="detail-row"><small>Previous Work</small><strong>{{ user.previous_work or "Add previous work" }}</strong></div>
-    <div class="detail-row"><small>Availability</small><strong>{{ user.availability or "Add availability" }}</strong></div>
+    <div class="detail-row"><small>Previous Work</small><strong>{{ user.previous_work|default("") or "Add previous work" }}</strong></div>
+    <div class="detail-row"><small>Availability</small><strong>{{ user.availability|default("") or "Add availability" }}</strong></div>
     <div class="detail-row"><small>Tags</small><strong>{{ user.tags_csv or "Add tags" }}</strong></div>
     <div class="detail-row"><small>Social</small><strong>{{ "Added" if user.social_links else "Add social links" }}</strong></div>
     <div class="detail-row"><small>Bio</small><strong>{{ user.bio or "Add bio" }}</strong></div>

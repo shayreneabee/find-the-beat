@@ -1146,16 +1146,21 @@ def unread_message_count(user_id):
 def profile_completion(user):
     if not user:
         return {"percent": 0, "items": []}
+    try:
+        has_performance = bool(get_performances(profile_id=user.id))
+    except Exception:
+        app.logger.exception("Profile completion performance check failed")
+        has_performance = False
     checks = [
-        ("Add profile photo", bool(user.profile_pic)),
-        ("Add talent", bool(user.role or user.instrument or user.services_csv)),
-        ("Add genre", bool(user.genre)),
-        ("Add city", bool(user.city)),
-        ("Add bio", bool(user.bio)),
-        ("Add previous work", bool(user.previous_work)),
-        ("Add availability", bool(user.availability)),
-        ("Add social links", bool(user.social_links)),
-        ("Add first performance", bool(get_performances(profile_id=user.id))),
+        ("Add profile photo", bool(getattr(user, "profile_pic", ""))),
+        ("Add talent", bool(getattr(user, "role", "") or getattr(user, "instrument", "") or getattr(user, "services_csv", ""))),
+        ("Add genre", bool(getattr(user, "genre", ""))),
+        ("Add city", bool(getattr(user, "city", ""))),
+        ("Add bio", bool(getattr(user, "bio", ""))),
+        ("Add previous work", bool(getattr(user, "previous_work", ""))),
+        ("Add availability", bool(getattr(user, "availability", ""))),
+        ("Add social links", bool(getattr(user, "social_links", []))),
+        ("Add first performance", has_performance),
     ]
     complete = sum(1 for _, done in checks if done)
     return {
@@ -2355,8 +2360,29 @@ def logout():
 @app.route("/profile")
 @login_required
 def profile():
-    user = current_user()
-    return render_template("profile.html", user=user, completion=profile_completion(user))
+    try:
+        user = current_user()
+        completion = profile_completion(user)
+        unread = unread_message_count(user.id) if user else 0
+    except sqlite3.OperationalError as exc:
+        app.logger.exception("Profile load failed; retrying after schema init")
+        init_db()
+        user = current_user()
+        completion = profile_completion(user)
+        unread = unread_message_count(user.id) if user else 0
+        flash("Profile data was refreshed.")
+    except Exception as exc:
+        app.logger.exception("Profile load failed")
+        user = current_user()
+        completion = {"percent": 0, "items": []}
+        unread = 0
+        flash("We had trouble loading part of your profile, but your account is safe.")
+    return render_template(
+        "profile.html",
+        user=user,
+        completion=completion,
+        unread_count=unread,
+    )
 
 
 @app.route("/profile/edit", methods=["GET", "POST"])
