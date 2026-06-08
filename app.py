@@ -934,8 +934,18 @@ def search_profiles(q="", role="", genre="", city="", instrument="", tags=""):
         )
         params.extend([needle] * 8)
     if role:
-        clauses.append("role LIKE ?")
-        params.append(f"%{role}%")
+        role_key = role.strip().lower()
+        if role_key in {"singer", "singers", "vocalist", "vocalists"}:
+            clauses.append(
+                """
+                (role LIKE ? OR role LIKE ? OR instrument LIKE ?
+                 OR tags_csv LIKE ? OR services_csv LIKE ?)
+                """
+            )
+            params.extend(["%singer%", "%vocal%", "%voice%", "%vocal%", "%vocal%"])
+        else:
+            clauses.append("role LIKE ?")
+            params.append(f"%{role}%")
     if genre:
         clauses.append("genre LIKE ?")
         params.append(f"%{genre}%")
@@ -1927,6 +1937,12 @@ def artists():
 @app.route("/musicians")
 def musicians():
     return redirect(url_for("profiles", role="musician"))
+
+
+@app.route("/singers")
+@app.route("/vocalists")
+def singers():
+    return redirect(url_for("profiles", role="vocalist"))
 
 
 @app.route("/composers")
