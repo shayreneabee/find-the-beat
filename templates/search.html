@@ -102,34 +102,23 @@
   }
 
   .search-category-tile.production { --tile-art:
-    radial-gradient(circle at 78% 18%, #32b2ff 0 0.35rem, transparent 0.45rem),
-    linear-gradient(100deg, #20120a 0 30%, #803815 31% 44%, #1b2f3d 45% 100%);
+    url("{{ url_for('static', filename='images/find-the-beat/producer.jpg') }}");
   }
 
   .search-category-tile.composers { --tile-art:
-    repeating-linear-gradient(0deg, rgba(47, 30, 13, 0.34) 0 2px, transparent 2px 17px),
-    repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.18) 0 1px, transparent 1px 34px),
-    linear-gradient(135deg, #fff4cf, #b98a56);
+    url("{{ url_for('static', filename='images/find-the-beat/composer.jpg') }}");
   }
 
   .search-category-tile.artists { --tile-art:
-    radial-gradient(circle at 38% 28%, #f5cfa8 0 1.4rem, transparent 1.5rem),
-    radial-gradient(circle at 52% 24%, #17100d 0 2.3rem, transparent 2.4rem),
-    linear-gradient(115deg, #d14a30, #23100a 58%, #f58a00);
+    url("{{ url_for('static', filename='images/find-the-beat/artist.jpg') }}");
   }
 
   .search-category-tile.musicians { --tile-art:
-    radial-gradient(circle at 50% 40%, rgba(255, 250, 238, 0.9) 0 0.3rem, transparent 0.35rem),
-    repeating-linear-gradient(90deg, rgba(255, 250, 238, 0.45) 0 8px, transparent 8px 18px),
-    linear-gradient(135deg, #27170d, #8a5a36);
+    url("{{ url_for('static', filename='images/find-the-beat/musician.jpg') }}");
   }
 
   .search-category-tile.showcases { --tile-art:
-    radial-gradient(circle at 50% 50%, #f9f2df 0 0.55rem, transparent 0.65rem),
-    radial-gradient(circle at 50% 58%, #2f1e0d 0 1.25rem, transparent 1.35rem),
-    radial-gradient(circle at 22% 34%, #f7b35a 0 1.4rem, transparent 1.5rem),
-    radial-gradient(circle at 78% 34%, #f7b35a 0 1.4rem, transparent 1.5rem),
-    linear-gradient(135deg, #3a2011, #9b4a16);
+    url("{{ url_for('static', filename='images/find-the-beat/showcase.jpg') }}");
   }
 
   .search-category-tile strong {
