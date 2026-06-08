@@ -1288,12 +1288,42 @@ INSTRUMENT_OPTIONS = [
     "Other",
 ]
 SEARCH_CATEGORIES = [
-    {"slug": "production", "title": "Production", "terms": ["producer", "production", "beats", "beat production", "engineer", "mixing", "mastering"]},
-    {"slug": "composers", "title": "Composers", "terms": ["composer", "composition", "score", "arrangement"]},
-    {"slug": "artists", "title": "Artists", "terms": ["artist", "rapper", "performer"]},
-    {"slug": "singers", "title": "Singers", "terms": ["singer", "vocalist", "vocals", "voice", "hooks", "background vocals"]},
-    {"slug": "musicians", "title": "Musicians", "terms": ["musician", "instrumentalist", "band", "live", "guitar", "bass", "drums", "piano", "keyboard", "violin", "tambourine"]},
-    {"slug": "showcases", "title": "Showcases", "terms": []},
+    {
+        "slug": "production",
+        "title": "Production",
+        "image": "images/find-the-beat/producer.jpg",
+        "terms": ["producer", "production", "beats", "beat production", "engineer", "mixing", "mastering"],
+    },
+    {
+        "slug": "composers",
+        "title": "Composers",
+        "image": "images/find-the-beat/composer.jpg",
+        "terms": ["composer", "composition", "score", "arrangement"],
+    },
+    {
+        "slug": "artists",
+        "title": "Artists",
+        "image": "images/find-the-beat/artist.jpg",
+        "terms": ["artist", "rapper", "performer"],
+    },
+    {
+        "slug": "singers",
+        "title": "Singers",
+        "image": "images/find-the-beat/singer.jpg",
+        "terms": ["singer", "vocalist", "vocals", "voice", "hooks", "background vocals"],
+    },
+    {
+        "slug": "musicians",
+        "title": "Musicians",
+        "image": "images/find-the-beat/musician.jpg",
+        "terms": ["musician", "instrumentalist", "band", "live", "guitar", "bass", "drums", "piano", "keyboard", "violin", "tambourine"],
+    },
+    {
+        "slug": "showcases",
+        "title": "Showcases",
+        "image": "images/find-the-beat/showcase.jpg",
+        "terms": [],
+    },
 ]
 INSTRUMENT_CATEGORY_REDIRECTS = {
     "guitar-players": "Guitar",

@@ -121,6 +121,8 @@
   }
 
   .category-tile {
+    position: relative;
+    overflow: hidden;
     min-height: 138px;
     display: grid;
     align-content: end;
@@ -136,20 +138,43 @@
     transition: transform var(--bc-ease, 180ms ease), box-shadow var(--bc-ease, 180ms ease);
   }
 
+  .category-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(47, 30, 13, 0.02), rgba(47, 30, 13, 0.78)),
+      var(--category-art);
+    background-size: cover;
+    background-position: center;
+    transition: transform var(--bc-ease, 180ms ease);
+  }
+
   .category-tile:hover {
     transform: translateY(-3px);
     box-shadow: var(--bc-shadow, var(--shadow));
   }
 
+  .category-tile:hover::before {
+    transform: scale(1.04);
+  }
+
   .category-tile strong {
+    position: relative;
+    z-index: 1;
+    color: #fffaf0;
     font-size: 1.18rem;
     line-height: 1.05;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   }
 
   .category-tile span {
-    color: var(--muted);
+    position: relative;
+    z-index: 1;
+    color: rgba(255, 250, 238, 0.86);
     font-size: 0.88rem;
     font-weight: 800;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.38);
   }
 
   @media (min-width: 760px) {
@@ -183,7 +208,7 @@
 <h2 class="section-band">search talent</h2>
 <section class="category-grid" aria-label="Talent categories">
   {% for category in category_tiles %}
-    <a class="category-tile" href="{{ url_for('showcase') if category.slug == 'showcases' else url_for('search_directory', slug=category.slug) }}">
+    <a class="category-tile" style="--category-art: url('{{ url_for('static', filename=category.image) }}')" href="{{ url_for('showcase') if category.slug == 'showcases' else url_for('search_directory', slug=category.slug) }}">
       <strong>{{ category.title }}</strong>
       <span>{{ "Performance feed" if category.slug == "showcases" else "Open directory" }}</span>
     </a>

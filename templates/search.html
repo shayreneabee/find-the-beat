@@ -101,30 +101,6 @@
     background-position: center;
   }
 
-  .search-category-tile.production { --tile-art:
-    url("{{ url_for('static', filename='images/find-the-beat/producer.jpg') }}");
-  }
-
-  .search-category-tile.composers { --tile-art:
-    url("{{ url_for('static', filename='images/find-the-beat/composer.jpg') }}");
-  }
-
-  .search-category-tile.artists { --tile-art:
-    url("{{ url_for('static', filename='images/find-the-beat/artist.jpg') }}");
-  }
-
-  .search-category-tile.singers { --tile-art:
-    url("{{ url_for('static', filename='images/find-the-beat/singer.jpg') }}");
-  }
-
-  .search-category-tile.musicians { --tile-art:
-    url("{{ url_for('static', filename='images/find-the-beat/musician.jpg') }}");
-  }
-
-  .search-category-tile.showcases { --tile-art:
-    url("{{ url_for('static', filename='images/find-the-beat/showcase.jpg') }}");
-  }
-
   .search-category-tile strong {
     display: block;
     min-height: 42px;
@@ -196,7 +172,7 @@
   <section class="search-category-grid" aria-label="Search categories">
     {% for category in categories %}
       {% set title = "Artist" if category.slug == "artists" else category.title %}
-      <a class="search-category-tile {{ category.slug }} {{ 'showcases-tile' if category.slug == 'showcases' else '' }}" href="{{ url_for('showcase') if category.slug == 'showcases' else url_for('search_directory', slug=category.slug) }}">
+      <a class="search-category-tile {{ category.slug }} {{ 'showcases-tile' if category.slug == 'showcases' else '' }}" style="--tile-art: url('{{ url_for('static', filename=category.image) }}')" href="{{ url_for('showcase') if category.slug == 'showcases' else url_for('search_directory', slug=category.slug) }}">
         <div class="tile-photo" aria-hidden="true"></div>
         <strong>{{ title }}</strong>
         <span>{{ "Performance feed" if category.slug == "showcases" else "Open directory" }}</span>

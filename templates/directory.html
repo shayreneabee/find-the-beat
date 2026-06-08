@@ -22,12 +22,28 @@
   }
 
   .directory-hero {
+    position: relative;
     display: grid;
     gap: 0;
+    overflow: hidden;
     text-align: center;
   }
 
+  .directory-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(47, 30, 13, 0.5), rgba(245, 138, 0, 0.44)),
+      var(--category-art);
+    background-size: cover;
+    background-position: center;
+    opacity: 0.42;
+  }
+
   .directory-hero h1 {
+    position: relative;
+    z-index: 1;
     min-height: 92px;
     display: grid;
     place-items: center;
@@ -47,6 +63,8 @@
   }
 
   .directory-subband {
+    position: relative;
+    z-index: 1;
     min-height: 72px;
     display: grid;
     place-items: center;
@@ -330,7 +348,7 @@
 </style>
 
 <section class="directory-page">
-  <header class="directory-hero">
+  <header class="directory-hero" style="--category-art: url('{{ url_for('static', filename=category.image) }}')">
     <h1>{{ category.title }}</h1>
     <p class="directory-subband">All {{ category.title }}</p>
   </header>
