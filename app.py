@@ -67,6 +67,44 @@ OWNER_BIO = (
     "Official Brent & Co founder profile for ecosystem updates, creator support, "
     "and community connection."
 )
+CATEGORY_TILES = [
+    {
+        "title": "Production",
+        "endpoint": "production",
+        "image": "images/find-the-beat/producer.jpg",
+        "label": "Find producers and beat makers",
+    },
+    {
+        "title": "Composers",
+        "endpoint": "composers",
+        "image": "images/find-the-beat/composer.jpg",
+        "label": "Find arrangers and score writers",
+    },
+    {
+        "title": "Artist",
+        "endpoint": "artists",
+        "image": "images/find-the-beat/artist.jpg",
+        "label": "Find recording artists",
+    },
+    {
+        "title": "Singers",
+        "endpoint": "singers",
+        "image": "images/find-the-beat/singer.jpg",
+        "label": "Find vocalists and singers",
+    },
+    {
+        "title": "Musicians",
+        "endpoint": "musicians",
+        "image": "images/find-the-beat/musician.jpg",
+        "label": "Find instrumentalists",
+    },
+    {
+        "title": "Showcases",
+        "endpoint": "performances",
+        "image": "images/find-the-beat/showcase.jpg",
+        "label": "Watch performances",
+    },
+]
 
 SECOND_CHANCE_CATEGORIES = [
     {
@@ -1444,6 +1482,7 @@ def home():
     return render_template(
         "index.html",
         creators=creators,
+        category_tiles=CATEGORY_TILES,
         q=q,
         role_filter=role,
         genre_filter=genre,

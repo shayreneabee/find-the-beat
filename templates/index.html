@@ -113,9 +113,74 @@
     font-weight: 900;
   }
 
+  .category-grid {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1rem;
+  }
+
+  .category-tile {
+    position: relative;
+    min-height: 142px;
+    display: grid;
+    align-content: end;
+    overflow: hidden;
+    padding: 1rem;
+    border: 1px solid rgba(78, 47, 16, 0.14);
+    border-radius: 22px;
+    background: var(--card);
+    box-shadow: var(--lift);
+    color: #fffaf0;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .category-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(47, 30, 13, 0.02), rgba(47, 30, 13, 0.78)),
+      var(--category-art);
+    background-size: cover;
+    background-position: center;
+    transition: transform 180ms ease;
+  }
+
+  .category-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+  }
+
+  .category-tile:hover::before {
+    transform: scale(1.04);
+  }
+
+  .category-tile strong,
+  .category-tile span {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.42);
+  }
+
+  .category-tile strong {
+    font-size: 1.22rem;
+    line-height: 1.05;
+  }
+
+  .category-tile span {
+    margin-top: 0.25rem;
+    color: rgba(255, 250, 238, 0.88);
+    font-size: 0.88rem;
+    font-weight: 800;
+  }
+
   @media (min-width: 760px) {
     .creator-strip {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .category-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 </style>
@@ -129,6 +194,16 @@
     <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
     <a class="button secondary" href="{{ url_for('login') }}">Sign In</a>
   </div>
+</section>
+
+<h2 class="section-band">search talent</h2>
+<section class="category-grid" aria-label="Talent categories">
+  {% for category in category_tiles %}
+    <a class="category-tile" style="--category-art: url('{{ url_for('static', filename=category.image) }}')" href="{{ url_for(category.endpoint) }}">
+      <strong>{{ category.title }}</strong>
+      <span>{{ category.label }}</span>
+    </a>
+  {% endfor %}
 </section>
 
 {% if creators %}
