@@ -1290,7 +1290,8 @@ INSTRUMENT_OPTIONS = [
 SEARCH_CATEGORIES = [
     {"slug": "production", "title": "Production", "terms": ["producer", "production", "beats", "beat production", "engineer", "mixing", "mastering"]},
     {"slug": "composers", "title": "Composers", "terms": ["composer", "composition", "score", "arrangement"]},
-    {"slug": "artists", "title": "Artists", "terms": ["artist", "rapper", "singer", "performer", "vocalist"]},
+    {"slug": "artists", "title": "Artists", "terms": ["artist", "rapper", "performer"]},
+    {"slug": "singers", "title": "Singers", "terms": ["singer", "vocalist", "vocals", "voice", "hooks", "background vocals"]},
     {"slug": "musicians", "title": "Musicians", "terms": ["musician", "instrumentalist", "band", "live", "guitar", "bass", "drums", "piano", "keyboard", "violin", "tambourine"]},
     {"slug": "showcases", "title": "Showcases", "terms": []},
 ]
@@ -3420,6 +3421,12 @@ def artists():
 @app.route("/musicians")
 def musicians():
     return redirect(url_for("search_directory", slug="musicians"))
+
+
+@app.route("/singers")
+@app.route("/vocalists")
+def singers():
+    return redirect(url_for("search_directory", slug="singers"))
 
 
 @app.route("/composers")
