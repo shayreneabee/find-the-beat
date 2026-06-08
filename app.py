@@ -1040,10 +1040,12 @@ def seed_founder_profile():
             email = founder["email"]
             if not email:
                 continue
+            full_name = founder.get("full_name") or founder.get("display_name") or email.split("@")[0]
+            display_name = founder.get("display_name") or full_name
             owner_values = {
                 "email": email,
-                "full_name": founder["full_name"],
-                "display_name": founder["display_name"],
+                "full_name": full_name,
+                "display_name": display_name,
                 "role": "admin",
                 "genre": "Brent & Co Ecosystem",
                 "city": "Brent & Co",
@@ -1059,13 +1061,18 @@ def seed_founder_profile():
                 (email,),
             ).fetchone()
             if existing:
+                password_sql = ""
+                password_args = []
+                if OWNER_INITIAL_PASSWORD and email == FOUNDER_PROFILES[0]["email"]:
+                    password_sql = ", password_hash = ?"
+                    password_args = [generate_password_hash(OWNER_INITIAL_PASSWORD)]
                 conn.execute(
-                    """
+                    f"""
                     UPDATE users
                     SET full_name = ?, display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
                         tags_csv = ?, instrument = ?, services_csv = ?,
                         brent_account_id = ?, provider = ?, auth_provider = ?,
-                        is_admin = 1, is_founder = 1, is_verified = 1,
+                        is_admin = 1, is_founder = 1, is_verified = 1{password_sql},
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
@@ -1082,6 +1089,7 @@ def seed_founder_profile():
                         owner_values["brent_account_id"],
                         owner_values["auth_provider"],
                         owner_values["auth_provider"],
+                        *password_args,
                         existing["id"],
                     ),
                 )
