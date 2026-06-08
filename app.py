@@ -1,4 +1,6 @@
 import hashlib
+import base64
+import hmac
 import json
 import os
 import secrets
@@ -9,7 +11,7 @@ from email.message import EmailMessage
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from authlib.integrations.flask_client import OAuth
 from authlib.jose import jwt
@@ -47,6 +49,10 @@ SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
     "https://secondchancecareers.org/",
 )
+LETS_COOK_URL = os.getenv("LETS_COOK_URL", "https://letscookyall.com/")
+BEU_URL = os.getenv("BEU_URL", "https://beutravel.org/")
+SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me")
+SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "300") or "300")
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
@@ -407,6 +413,14 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
 
+SSO_APP_TARGETS = {
+    "brent": BRENT_CO_URL.rstrip("/"),
+    "find-the-beat": FIND_THE_BEAT_URL.rstrip("/"),
+    "lets-cook": LETS_COOK_URL.rstrip("/"),
+    "second-chance": SECOND_CHANCE_URL.rstrip("/"),
+    "beu": BEU_URL.rstrip("/"),
+}
+
 oauth = OAuth(app)
 
 if GOOGLE_OAUTH_READY:
@@ -554,6 +568,59 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS music_profiles (
+                user_id INTEGER PRIMARY KEY,
+                role TEXT DEFAULT '',
+                instruments_csv TEXT DEFAULT '',
+                genres_csv TEXT DEFAULT '',
+                services_csv TEXT DEFAULT '',
+                settings_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cook_profiles (
+                user_id INTEGER PRIMARY KEY,
+                skill_level TEXT DEFAULT '',
+                cooking_interests TEXT DEFAULT '',
+                settings_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS career_profiles (
+                user_id INTEGER PRIMARY KEY,
+                checklist_json TEXT DEFAULT '{}',
+                job_interests TEXT DEFAULT '',
+                settings_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS travel_profiles (
+                user_id INTEGER PRIMARY KEY,
+                travel_interests TEXT DEFAULT '',
+                preferences_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -579,6 +646,8 @@ def init_db():
             "provider": "TEXT DEFAULT 'local'",
             "provider_id": "TEXT DEFAULT ''",
             "auth_provider": "TEXT DEFAULT 'local'",
+            "authentication_provider": "TEXT DEFAULT 'local'",
+            "profile_photo": "TEXT DEFAULT ''",
             "is_admin": "INTEGER DEFAULT 0",
             "is_founder": "INTEGER DEFAULT 0",
             "is_verified": "INTEGER DEFAULT 0",
@@ -652,6 +721,81 @@ def brent_account_id(email):
     normalized = (email or "").strip().lower()
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:24]
     return f"brent-local-{digest}"
+
+
+def sso_b64encode(data):
+    return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
+
+
+def sso_b64decode(value):
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
+
+
+def sign_sso_payload(payload):
+    body = sso_b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    signature = hmac.new(
+        SSO_SHARED_SECRET.encode("utf-8"),
+        body.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    return f"{body}.{sso_b64encode(signature)}"
+
+
+def verify_sso_token(token):
+    try:
+        body, signature = token.split(".", 1)
+        expected = hmac.new(
+            SSO_SHARED_SECRET.encode("utf-8"),
+            body.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        if not hmac.compare_digest(sso_b64decode(signature), expected):
+            return None
+        payload = json.loads(sso_b64decode(body).decode("utf-8"))
+    except (ValueError, json.JSONDecodeError, TypeError):
+        return None
+    if int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    return payload
+
+
+def ensure_app_profile(conn, user_id, app_key="find-the-beat"):
+    table_by_app = {
+        "find-the-beat": "music_profiles",
+        "lets-cook": "cook_profiles",
+        "second-chance": "career_profiles",
+        "beu": "travel_profiles",
+    }
+    table = table_by_app.get(app_key)
+    if not table:
+        return
+    conn.execute(
+        f"INSERT OR IGNORE INTO {table} (user_id, updated_at) VALUES (?, CURRENT_TIMESTAMP)",
+        (user_id,),
+    )
+
+
+def sso_user_payload(user, target_app):
+    display_name = user["display_name"] or user["full_name"] or user["email"].split("@")[0]
+    provider = user["authentication_provider"] if "authentication_provider" in user.keys() else ""
+    provider = provider or user["auth_provider"] or user["provider"] or AUTH_PROVIDER
+    profile_photo = user["profile_photo"] if "profile_photo" in user.keys() else ""
+    profile_photo = profile_photo or user["avatar_url"] or user["profile_pic"] or ""
+    return {
+        "iss": "brent-co-sso",
+        "aud": target_app,
+        "sub": user["brent_account_id"] or brent_account_id(user["email"]),
+        "user_id": user["id"],
+        "email": user["email"],
+        "authentication_provider": provider,
+        "display_name": display_name,
+        "profile_photo": profile_photo,
+        "is_admin": bool(user["is_admin"]),
+        "is_founder": bool(user["is_founder"]),
+        "iat": int(time.time()),
+        "exp": int(time.time()) + SSO_TOKEN_TTL_SECONDS,
+    }
 
 
 def log_activity(user_id, event_type, description="", metadata=None):
@@ -790,9 +934,9 @@ def create_user(email, password, fields, profile_pic):
                 previous_work, availability,
                 tags_csv, instrument, services_csv, profile_pic,
                 instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url,
-                brent_account_id, provider, auth_provider, updated_at
+                brent_account_id, provider, auth_provider, authentication_provider, profile_photo, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -819,9 +963,12 @@ def create_user(email, password, fields, profile_pic):
                 brent_account_id(email),
                 AUTH_PROVIDER,
                 AUTH_PROVIDER,
+                AUTH_PROVIDER,
+                profile_pic,
             ),
         )
         user_id = cursor.lastrowid
+        ensure_app_profile(conn, user_id, "find-the-beat")
     log_activity(
         user_id,
         "user_signed_up",
@@ -887,7 +1034,8 @@ def upsert_oauth_user(provider, email, display_name="", avatar_url="", provider_
                 SET display_name = COALESCE(NULLIF(display_name, ''), ?),
                     full_name = COALESCE(NULLIF(full_name, ''), ?),
                     avatar_url = COALESCE(NULLIF(avatar_url, ''), ?),
-                    provider = ?, provider_id = ?, auth_provider = ?,
+                    profile_photo = COALESCE(NULLIF(profile_photo, ''), ?),
+                    provider = ?, provider_id = ?, auth_provider = ?, authentication_provider = ?,
                     brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
                     last_login_at = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
@@ -897,22 +1045,26 @@ def upsert_oauth_user(provider, email, display_name="", avatar_url="", provider_
                     display_name,
                     display_name,
                     avatar_url,
+                    avatar_url,
                     provider,
                     provider_id,
+                    provider,
                     provider,
                     brent_account_id(email),
                     row["id"],
                 ),
             )
+            ensure_app_profile(conn, row["id"], "find-the-beat")
             log_activity(row["id"], "user_logged_in", f"{provider.title()} login")
             return row["id"]
         cursor = conn.execute(
             """
             INSERT INTO users (
                 email, password_hash, full_name, display_name, avatar_url,
-                brent_account_id, provider, provider_id, auth_provider, last_login_at, updated_at
+                brent_account_id, provider, provider_id, auth_provider, authentication_provider,
+                profile_photo, last_login_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -924,9 +1076,12 @@ def upsert_oauth_user(provider, email, display_name="", avatar_url="", provider_
                 provider,
                 provider_id,
                 provider,
+                provider,
+                avatar_url,
             ),
         )
         user_id = cursor.lastrowid
+        ensure_app_profile(conn, user_id, "find-the-beat")
     fields = {
         "display_name": display_name,
         "full_name": display_name,
@@ -1579,13 +1734,20 @@ def seed_founder_profile():
                 (email,),
             ).fetchone()
             if existing:
+                password_sql = ", password_hash = ?" if OWNER_INITIAL_PASSWORD else ""
+                password_args = (
+                    [generate_password_hash(OWNER_INITIAL_PASSWORD)]
+                    if OWNER_INITIAL_PASSWORD
+                    else []
+                )
                 conn.execute(
-                    """
+                    f"""
                     UPDATE users
                     SET full_name = ?, display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
                         tags_csv = ?, instrument = ?, services_csv = ?,
                         brent_account_id = ?, provider = ?, auth_provider = ?,
-                        is_admin = 1, is_founder = 1, is_verified = 1,
+                        authentication_provider = COALESCE(NULLIF(authentication_provider, ''), ?),
+                        is_admin = 1, is_founder = 1, is_verified = 1{password_sql},
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
@@ -1602,18 +1764,21 @@ def seed_founder_profile():
                         owner_values["brent_account_id"],
                         owner_values["auth_provider"],
                         owner_values["auth_provider"],
+                        owner_values["auth_provider"],
+                        *password_args,
                         existing["id"],
                     ),
                 )
+                ensure_app_profile(conn, existing["id"], "find-the-beat")
                 continue
             conn.execute(
                 """
                 INSERT INTO users (
                     email, password_hash, full_name, display_name, role, genre, city, bio,
                     tags_csv, instrument, services_csv, brent_account_id,
-                    provider, auth_provider, is_admin, is_founder, is_verified
+                    provider, auth_provider, authentication_provider, is_admin, is_founder, is_verified
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
                 """,
                 (
                     owner_values["email"],
@@ -1632,8 +1797,12 @@ def seed_founder_profile():
                     owner_values["brent_account_id"],
                     owner_values["auth_provider"],
                     owner_values["auth_provider"],
+                    owner_values["auth_provider"],
                 ),
             )
+            new_owner = conn.execute("SELECT id FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()
+            if new_owner:
+                ensure_app_profile(conn, new_owner["id"], "find-the-beat")
 
 
 def second_chance_category(slug):
@@ -1962,9 +2131,22 @@ def admin_dashboard():
             "profile_count": conn.execute(
                 "SELECT COUNT(*) FROM users WHERE COALESCE(display_name, '') != ''"
             ).fetchone()[0],
+            "active_week": conn.execute(
+                "SELECT COUNT(*) FROM users WHERE datetime(last_login_at) >= datetime('now', '-7 days')"
+            ).fetchone()[0],
             "upload_count": conn.execute("SELECT COUNT(*) FROM performances").fetchone()[0],
             "message_count": conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0],
+            "music_profiles": conn.execute("SELECT COUNT(*) FROM music_profiles").fetchone()[0],
+            "cook_profiles": conn.execute("SELECT COUNT(*) FROM cook_profiles").fetchone()[0],
+            "career_profiles": conn.execute("SELECT COUNT(*) FROM career_profiles").fetchone()[0],
+            "travel_profiles": conn.execute("SELECT COUNT(*) FROM travel_profiles").fetchone()[0],
         }
+        users_per_app = [
+            {"name": "Find The Beat", "count": stats["music_profiles"], "url": url_for("sso_start", app="find-the-beat")},
+            {"name": "Let's Cook Y'all", "count": stats["cook_profiles"], "url": url_for("sso_start", app="lets-cook")},
+            {"name": "Second Chance", "count": stats["career_profiles"], "url": url_for("sso_start", app="second-chance")},
+            {"name": "BEU", "count": stats["travel_profiles"], "url": url_for("sso_start", app="beu")},
+        ]
         latest_users = conn.execute(
             """
             SELECT id, email, display_name, role, city, state, provider, created_at, last_login_at
@@ -2010,6 +2192,7 @@ def admin_dashboard():
         latest_messages=latest_messages,
         latest_uploads=latest_uploads,
         latest_activity=latest_activity,
+        users_per_app=users_per_app,
     )
 
 
@@ -2478,6 +2661,7 @@ def login():
             flash("Invalid email or password.")
             return redirect(url_for("login"))
 
+        post_login_redirect = session.get("post_login_redirect")
         session.clear()
         session["user_id"] = row["id"]
         with get_db() as conn:
@@ -2487,16 +2671,18 @@ def login():
                 SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
                     provider = COALESCE(NULLIF(provider, ''), ?),
                     auth_provider = COALESCE(NULLIF(auth_provider, ''), ?),
+                    authentication_provider = COALESCE(NULLIF(authentication_provider, ''), ?),
                     last_login_at = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
-                (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
+                (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
             )
+            ensure_app_profile(conn, row["id"], "find-the-beat")
         log_activity(row["id"], "user_logged_in", "Email/password login")
         count = unread_message_count(row["id"])
         flash("You have new messages." if count else "You are logged in.")
-        return redirect(url_for("profile"))
+        return redirect(post_login_redirect or url_for("profile"))
 
     return render_template(
         "login.html",
@@ -2532,10 +2718,11 @@ def auth_google_callback():
         app.logger.exception("Google OAuth failed")
         flash(f"Google sign-in failed: {exc}")
         return redirect(url_for("login"))
+    post_login_redirect = session.get("post_login_redirect")
     session.clear()
     session["user_id"] = user_id
     flash("You are logged in with Google.")
-    return redirect(url_for("profile"))
+    return redirect(post_login_redirect or url_for("profile"))
 
 
 @app.route("/auth/apple")
@@ -2584,10 +2771,72 @@ def auth_apple_callback():
         app.logger.exception("Apple OAuth failed")
         flash(f"Apple sign-in failed: {exc}")
         return redirect(url_for("login"))
+    post_login_redirect = session.get("post_login_redirect")
     session.clear()
     session["user_id"] = user_id
     flash("You are logged in with Apple.")
-    return redirect(url_for("profile"))
+    return redirect(post_login_redirect or url_for("profile"))
+
+
+@app.route("/sso/start")
+def sso_start():
+    target_app = request.args.get("app", "find-the-beat").strip().lower()
+    next_path = request.args.get("next", "").strip()
+    if target_app not in SSO_APP_TARGETS:
+        flash("That Brent & Co app is not configured for SSO yet.")
+        return redirect(url_for("profile" if current_user() else "login"))
+
+    user_id = session.get("user_id")
+    if not user_id:
+        session["post_login_redirect"] = request.full_path
+        flash("Sign in once with your Brent & Co account, then you can open the app.")
+        return redirect(url_for("login"))
+
+    with get_db() as conn:
+        user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not user:
+            session.clear()
+            return redirect(url_for("login"))
+        ensure_app_profile(conn, user_id, "find-the-beat")
+        if target_app in {"find-the-beat", "brent"}:
+            ensure_app_profile(conn, user_id, target_app)
+
+    if target_app == "find-the-beat":
+        return redirect(next_path or url_for("profile"))
+    if target_app == "brent":
+        return redirect(SSO_APP_TARGETS[target_app])
+
+    token = sign_sso_payload(sso_user_payload(user, target_app))
+    callback = f"{SSO_APP_TARGETS[target_app]}/sso/consume"
+    query = {"token": token}
+    if next_path:
+        query["next"] = next_path
+    return redirect(f"{callback}?{urlencode(query)}")
+
+
+@app.route("/sso/consume")
+def sso_consume():
+    token = request.args.get("token", "")
+    payload = verify_sso_token(token)
+    if not payload or payload.get("aud") != "find-the-beat":
+        flash("That Brent & Co sign-in link expired. Please sign in again.")
+        return redirect(url_for("login"))
+    email = (payload.get("email") or "").strip().lower()
+    if not email:
+        flash("That Brent & Co sign-in link did not include an email.")
+        return redirect(url_for("login"))
+    user_id = upsert_oauth_user(
+        payload.get("authentication_provider") or "brent-sso",
+        email,
+        payload.get("display_name") or "",
+        payload.get("profile_photo") or "",
+        payload.get("sub") or "",
+    )
+    session.clear()
+    session["user_id"] = user_id
+    with get_db() as conn:
+        ensure_app_profile(conn, user_id, "find-the-beat")
+    return redirect(request.args.get("next") or url_for("profile"))
 
 
 @app.route("/logout")

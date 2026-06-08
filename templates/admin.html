@@ -109,12 +109,26 @@
     <article class="stat-card"><strong>{{ stats.total_users }}</strong><span>Total users</span></article>
     <article class="stat-card"><strong>{{ stats.new_today }}</strong><span>New today</span></article>
     <article class="stat-card"><strong>{{ stats.new_week }}</strong><span>New this week</span></article>
+    <article class="stat-card"><strong>{{ stats.active_week }}</strong><span>Active this week</span></article>
     <article class="stat-card"><strong>{{ stats.profile_count }}</strong><span>Profiles</span></article>
     <article class="stat-card"><strong>{{ stats.upload_count }}</strong><span>Uploads</span></article>
     <article class="stat-card"><strong>{{ stats.message_count }}</strong><span>Messages</span></article>
   </section>
 
   <section class="admin-panels">
+    <article class="admin-panel">
+      <h2>Users Per App</h2>
+      <ul class="admin-list">
+        {% for app in users_per_app %}
+          <li>
+            <strong>{{ app.name }}</strong>
+            <span>{{ app.count }} linked profile{% if app.count != 1 %}s{% endif %}</span>
+            <span class="admin-meta"><a href="{{ app.url }}">Open with Brent SSO</a></span>
+          </li>
+        {% endfor %}
+      </ul>
+    </article>
+
     <article class="admin-panel">
       <h2>Latest Users</h2>
       <ul class="admin-list">
