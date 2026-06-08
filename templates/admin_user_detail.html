@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}{{ record.display_name or record.email }} | Control Room{% endblock %}
+
+{% block head %}
+  <style>
+    .detail-shell {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .detail-hero,
+    .detail-card {
+      border: 1px solid rgba(89, 54, 23, 0.15);
+      border-radius: 1.1rem;
+      background: rgba(255, 250, 238, 0.96);
+      box-shadow: 0 14px 34px rgba(74, 39, 11, 0.11);
+    }
+
+    .detail-hero {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding: clamp(1rem, 3vw, 1.5rem);
+    }
+
+    .detail-avatar {
+      width: 86px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #321b0d, #f58a00);
+      color: #fff7e9;
+      font-size: 1.8rem;
+      font-weight: 950;
+    }
+
+    .detail-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .detail-hero h1 {
+      margin: 0;
+      color: #321b0d;
+      font-size: clamp(1.9rem, 6vw, 3.2rem);
+      line-height: 1;
+    }
+
+    .detail-meta,
+    .admin-list {
+      display: grid;
+      gap: 0.55rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: #5f4a3f;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .detail-card {
+      padding: 1rem;
+    }
+
+    .detail-card h2 {
+      margin: 0 0 0.75rem;
+      color: #321b0d;
+      font-size: 1.12rem;
+    }
+
+    .kv {
+      display: grid;
+      gap: 0.2rem;
+      padding: 0.55rem 0;
+      border-top: 1px solid rgba(89, 54, 23, 0.12);
+    }
+
+    .kv strong {
+      color: #2b1a12;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.65rem;
+      margin: 0.1rem 0.2rem 0.1rem 0;
+      padding: 0 0.55rem;
+      border-radius: 999px;
+      background: rgba(245, 138, 0, 0.12);
+      color: #6b3818;
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .status-online {
+      background: rgba(27, 126, 78, 0.14);
+      color: #195f3d;
+    }
+
+    .status-offline {
+      background: rgba(89, 54, 23, 0.10);
+      color: #6c4a2b;
+    }
+
+    @media (max-width: 680px) {
+      .detail-hero {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <section class="detail-shell">
+    <a class="button secondary" href="{{ url_for('admin_dashboard') }}">Back to Control Room</a>
+
+    <header class="detail-hero">
+      <div class="detail-avatar">
+        {% if record.avatar_url or record.profile_pic or record.profile_photo %}
+          {% set avatar = record.avatar_url or record.profile_photo %}
+          {% if avatar and avatar.startswith('http') %}
+            <img src="{{ avatar }}" alt="{{ record.display_name or record.email }}">
+          {% elif record.profile_pic %}
+            <img src="{{ url_for('uploaded_photo', filename=record.profile_pic) }}" alt="{{ record.display_name or record.email }}">
+          {% else %}
+            {{ (record.display_name or record.email)[:2].upper() }}
+          {% endif %}
+        {% else %}
+          {{ (record.display_name or record.email)[:2].upper() }}
+        {% endif %}
+      </div>
+      <div>
+        <p class="eyebrow">Master Brent & Co account</p>
+        <h1>{{ record.display_name or record.full_name or "Unnamed user" }}</h1>
+        <ul class="detail-meta">
+          <li>{{ record.email }}</li>
+          <li>{{ record.city or "No city" }}{% if record.state %}, {{ record.state }}{% endif %}</li>
+          <li>
+            <span class="pill status-{{ record.status }}">{{ record.status }}</span>
+            <span class="pill">{{ record.completion.percent }}% profile</span>
+            {% if record.is_admin %}<span class="pill">Admin</span>{% endif %}
+            {% if record.is_founder %}<span class="pill">Founder</span>{% endif %}
+          </li>
+        </ul>
+      </div>
+    </header>
+
+    <section class="detail-grid">
+      <article class="detail-card">
+        <h2>Account Info</h2>
+        <div class="kv"><strong>Email</strong><span>{{ record.email }}</span></div>
+        <div class="kv"><strong>Auth Provider</strong><span>{{ record.authentication_provider or record.auth_provider or record.provider }}</span></div>
+        <div class="kv"><strong>Signup Date</strong><span>{{ record.created_at or "unknown" }}</span></div>
+        <div class="kv"><strong>Last Login</strong><span>{{ record.last_login_at or "never" }}</span></div>
+        <div class="kv"><strong>Role</strong><span>{{ record.role or "Profile pending" }}</span></div>
+        <div class="kv"><strong>Apps Used</strong><span>{{ record.app_labels }}</span></div>
+      </article>
+
+      <article class="detail-card">
+        <h2>Find The Beat Profile</h2>
+        <div class="kv"><strong>Role</strong><span>{{ record.role or "Not set" }}</span></div>
+        <div class="kv"><strong>Instruments</strong><span>{{ record.instrument or "Not set" }}</span></div>
+        <div class="kv"><strong>Genres</strong><span>{{ record.genre or "Not set" }}</span></div>
+        <div class="kv"><strong>Services</strong><span>{{ record.services_csv or "Not set" }}</span></div>
+        <div class="kv"><strong>Availability</strong><span>{{ record.availability or "Not set" }}</span></div>
+      </article>
+
+      <article class="detail-card">
+        <h2>Let's Cook Profile</h2>
+        {% set cook = app_profiles.lets_cook %}
+        <div class="kv"><strong>Skill Level</strong><span>{{ cook.skill_level if cook else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Favorite Cuisines</strong><span>{{ cook.favorite_cuisines if cook else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Hosting Interests</strong><span>{{ cook.hosting_interests if cook else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Meal Plans</strong><span>{{ cook.meal_plans if cook else "No profile yet" }}</span></div>
+      </article>
+
+      <article class="detail-card">
+        <h2>Second Chance Profile</h2>
+        {% set career = app_profiles.second_chance %}
+        <div class="kv"><strong>Career Goal</strong><span>{{ career.career_goal if career else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Certifications</strong><span>{{ career.certifications if career else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Resume Status</strong><span>{{ career.resume_status if career else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Applications</strong><span>{{ career.applications if career else "No profile yet" }}</span></div>
+      </article>
+
+      <article class="detail-card">
+        <h2>BEU Profile</h2>
+        {% set beu = app_profiles.beu %}
+        <div class="kv"><strong>Travel Interests</strong><span>{{ beu.travel_interests if beu else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Saved Places</strong><span>{{ beu.saved_places if beu else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Cities Visited</strong><span>{{ beu.cities_visited if beu else "No profile yet" }}</span></div>
+        <div class="kv"><strong>Recommendations</strong><span>{{ beu.recommendations if beu else "No profile yet" }}</span></div>
+      </article>
+
+      <article class="detail-card">
+        <h2>Engagement</h2>
+        <div class="kv"><strong>Uploads</strong><span>{{ uploads|length }}</span></div>
+        <div class="kv"><strong>Messages</strong><span>{{ message_count }}</span></div>
+        <div class="kv"><strong>Showcases</strong><span>{{ showcase_count }}</span></div>
+      </article>
+    </section>
+
+    <section class="detail-grid">
+      <article class="detail-card">
+        <h2>Activity History</h2>
+        <ul class="admin-list">
+          {% for row in activity %}
+            <li><strong>{{ row.event_type.replace("_", " ")|title }}</strong><span>{{ row.description or "Activity recorded" }}</span><span>{{ row.created_at }}</span></li>
+          {% else %}
+            <li>No activity yet.</li>
+          {% endfor %}
+        </ul>
+      </article>
+
+      <article class="detail-card">
+        <h2>Uploads</h2>
+        <ul class="admin-list">
+          {% for row in uploads %}
+            <li><strong>{{ row.title }}</strong><span>{{ row.media_type or "media" }} · {{ row.created_at }}</span></li>
+          {% else %}
+            <li>No uploads yet.</li>
+          {% endfor %}
+        </ul>
+      </article>
+
+      <article class="detail-card">
+        <h2>Recent Visits</h2>
+        <ul class="admin-list">
+          {% for row in analytics %}
+            <li><strong>{{ row.feature or row.path }}</strong><span>{{ row.path }} · {{ row.created_at }}</span></li>
+          {% else %}
+            <li>No visit data yet.</li>
+          {% endfor %}
+        </ul>
+      </article>
+    </section>
+  </section>
+{% endblock %}

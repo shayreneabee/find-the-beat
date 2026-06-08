@@ -570,6 +570,23 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS analytics_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                visitor_hash TEXT DEFAULT '',
+                app_key TEXT DEFAULT 'find-the-beat',
+                event_type TEXT NOT NULL,
+                path TEXT DEFAULT '',
+                feature TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                metadata_json TEXT DEFAULT '',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS music_profiles (
                 user_id INTEGER PRIMARY KEY,
                 role TEXT DEFAULT '',
@@ -583,6 +600,7 @@ def init_db():
             )
             """
         )
+
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS cook_profiles (
@@ -621,6 +639,40 @@ def init_db():
             )
             """
         )
+
+        for table, columns in {
+            "music_profiles": {
+                "instruments": "TEXT DEFAULT ''",
+                "genres": "TEXT DEFAULT ''",
+                "city": "TEXT DEFAULT ''",
+                "state": "TEXT DEFAULT ''",
+                "bio": "TEXT DEFAULT ''",
+                "services": "TEXT DEFAULT ''",
+                "availability": "TEXT DEFAULT ''",
+            },
+            "cook_profiles": {
+                "favorite_cuisines": "TEXT DEFAULT ''",
+                "saved_recipes": "TEXT DEFAULT ''",
+                "hosting_interests": "TEXT DEFAULT ''",
+                "meal_plans": "TEXT DEFAULT ''",
+            },
+            "career_profiles": {
+                "career_goal": "TEXT DEFAULT ''",
+                "certifications": "TEXT DEFAULT ''",
+                "resume_status": "TEXT DEFAULT ''",
+                "applications": "TEXT DEFAULT ''",
+                "checklist_progress": "TEXT DEFAULT ''",
+            },
+            "travel_profiles": {
+                "saved_places": "TEXT DEFAULT ''",
+                "cities_visited": "TEXT DEFAULT ''",
+                "recommendations": "TEXT DEFAULT ''",
+            },
+        }.items():
+            existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            for column, definition in columns.items():
+                if column not in existing:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -815,6 +867,48 @@ def log_activity(user_id, event_type, description="", metadata=None):
             )
     except Exception as exc:
         app.logger.warning("Activity log skipped: %s", exc)
+
+
+def log_analytics_event(event_type="page_visit", feature="", metadata=None):
+    if request.endpoint in {"uploaded_photo", "uploaded_video", "uploaded_audio", "static"}:
+        return
+    if request.path.startswith(("/static/", "/uploads/", "/favicon")):
+        return
+    try:
+        visitor_id = session.setdefault("visitor_id", secrets.token_urlsafe(18))
+        visitor_hash = hashlib.sha256(visitor_id.encode("utf-8")).hexdigest()[:24]
+        user_id = session.get("user_id")
+        state = ""
+        if user_id:
+            with get_db() as conn:
+                row = conn.execute("SELECT state FROM users WHERE id = ?", (user_id,)).fetchone()
+                state = row["state"] if row else ""
+        with get_db() as conn:
+            conn.execute(
+                """
+                INSERT INTO analytics_events
+                    (user_id, visitor_hash, app_key, event_type, path, feature, state, metadata_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    visitor_hash,
+                    "find-the-beat",
+                    event_type,
+                    request.path,
+                    feature or request.endpoint or "",
+                    state or "",
+                    json.dumps(metadata or {}, separators=(",", ":")),
+                ),
+            )
+    except Exception as exc:
+        app.logger.debug("Analytics event skipped: %s", exc)
+
+
+@app.before_request
+def track_request_analytics():
+    if request.method == "GET":
+        log_analytics_event("page_visit")
 
 
 def send_signup_notification(email, fields, provider="email/password"):
@@ -1504,6 +1598,159 @@ def admin_required(view):
     return wrapped
 
 
+ADMIN_APP_TABLES = {
+    "find-the-beat": ("Find The Beat", "music_profiles"),
+    "lets-cook": ("Let's Cook Y'all", "cook_profiles"),
+    "second-chance": ("Second Chance Careers", "career_profiles"),
+    "beu": ("BEU", "travel_profiles"),
+}
+
+
+def admin_user_apps(conn, user_id):
+    apps = []
+    for key, (label, table) in ADMIN_APP_TABLES.items():
+        row = conn.execute(f"SELECT user_id FROM {table} WHERE user_id = ?", (user_id,)).fetchone()
+        if row:
+            apps.append({"key": key, "label": label})
+    return apps
+
+
+def admin_profile_completion(row, apps=None):
+    fields = [
+        row["display_name"],
+        row["role"],
+        row["genre"],
+        row["city"],
+        row["state"],
+        row["bio"],
+        row["instrument"],
+        row["services_csv"],
+        row["avatar_url"] or row["profile_pic"] or row["profile_photo"],
+    ]
+    completed = sum(1 for value in fields if (value or "").strip())
+    if apps:
+        completed += 1
+    total = len(fields) + 1
+    percent = int(round((completed / total) * 100))
+    return {
+        "percent": percent,
+        "label": "Complete" if percent >= 80 else "In progress" if percent >= 40 else "Needs info",
+    }
+
+
+def admin_is_online(row):
+    return bool(row["last_login_at"] and "0000" not in str(row["last_login_at"]))
+
+
+def admin_user_card(conn, row):
+    apps = admin_user_apps(conn, row["id"])
+    data = dict(row)
+    data["apps"] = apps
+    data["app_labels"] = ", ".join(app["label"] for app in apps) or "Not linked yet"
+    data["status"] = "online" if admin_is_online(row) else "offline"
+    data["completion"] = admin_profile_completion(row, apps)
+    return data
+
+
+def admin_user_directory(conn, filters):
+    clauses = []
+    params = []
+    search = filters.get("q", "").strip()
+    if search:
+        like = f"%{search}%"
+        clauses.append(
+            "(u.display_name LIKE ? OR u.full_name LIKE ? OR u.email LIKE ? OR u.city LIKE ? OR u.state LIKE ?)"
+        )
+        params.extend([like, like, like, like, like])
+    for field in ("role", "state", "city"):
+        value = filters.get(field, "").strip()
+        if value:
+            clauses.append(f"lower(u.{field}) = lower(?)")
+            params.append(value)
+    if filters.get("active"):
+        clauses.append("u.last_login_at IS NOT NULL AND u.last_login_at != ''")
+    signup_date = filters.get("signup_date", "").strip()
+    if signup_date:
+        clauses.append("date(u.created_at) = date(?)")
+        params.append(signup_date)
+
+    app_key = filters.get("app", "").strip()
+    join_sql = ""
+    if app_key in ADMIN_APP_TABLES:
+        join_sql = f"INNER JOIN {ADMIN_APP_TABLES[app_key][1]} ap ON ap.user_id = u.id"
+
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = conn.execute(
+        f"""
+        SELECT DISTINCT u.*
+        FROM users u
+        {join_sql}
+        {where_sql}
+        ORDER BY datetime(u.created_at) DESC, u.id DESC
+        LIMIT 200
+        """,
+        tuple(params),
+    ).fetchall()
+    users = [admin_user_card(conn, row) for row in rows]
+    if filters.get("incomplete"):
+        users = [user for user in users if user["completion"]["percent"] < 80]
+    return users
+
+
+def admin_distinct_options(conn, column):
+    return [
+        row[column]
+        for row in conn.execute(
+            f"SELECT DISTINCT {column} FROM users WHERE COALESCE({column}, '') != '' ORDER BY {column}"
+        ).fetchall()
+    ]
+
+
+def admin_analytics_summary(conn):
+    return {
+        "page_visits": conn.execute("SELECT COUNT(*) FROM analytics_events WHERE event_type = 'page_visit'").fetchone()[0],
+        "unique_visitors": conn.execute("SELECT COUNT(DISTINCT visitor_hash) FROM analytics_events").fetchone()[0],
+        "most_active_app": conn.execute(
+            """
+            SELECT app_key, COUNT(*) AS count
+            FROM analytics_events
+            GROUP BY app_key
+            ORDER BY count DESC
+            LIMIT 1
+            """
+        ).fetchone(),
+        "most_active_state": conn.execute(
+            """
+            SELECT state, COUNT(*) AS count
+            FROM analytics_events
+            WHERE COALESCE(state, '') != ''
+            GROUP BY state
+            ORDER BY count DESC
+            LIMIT 1
+            """
+        ).fetchone(),
+        "top_features": conn.execute(
+            """
+            SELECT feature, COUNT(*) AS count
+            FROM analytics_events
+            WHERE COALESCE(feature, '') != ''
+            GROUP BY feature
+            ORDER BY count DESC
+            LIMIT 5
+            """
+        ).fetchall(),
+    }
+
+
+def admin_app_profile_context(conn, user_id):
+    return {
+        "find_the_beat": conn.execute("SELECT * FROM music_profiles WHERE user_id = ?", (user_id,)).fetchone(),
+        "lets_cook": conn.execute("SELECT * FROM cook_profiles WHERE user_id = ?", (user_id,)).fetchone(),
+        "second_chance": conn.execute("SELECT * FROM career_profiles WHERE user_id = ?", (user_id,)).fetchone(),
+        "beu": conn.execute("SELECT * FROM travel_profiles WHERE user_id = ?", (user_id,)).fetchone(),
+    }
+
+
 @app.context_processor
 def inject_user():
     try:
@@ -2119,14 +2366,30 @@ def healthz():
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
+    filters = {
+        "q": request.args.get("q", "").strip(),
+        "app": request.args.get("app", "").strip(),
+        "role": request.args.get("role", "").strip(),
+        "state": request.args.get("state", "").strip(),
+        "city": request.args.get("city", "").strip(),
+        "signup_date": request.args.get("signup_date", "").strip(),
+        "active": request.args.get("active", "").strip(),
+        "incomplete": request.args.get("incomplete", "").strip(),
+    }
     with get_db() as conn:
         stats = {
             "total_users": conn.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+            "online_now": conn.execute(
+                "SELECT COUNT(*) FROM users WHERE datetime(last_login_at) >= datetime('now', '-15 minutes')"
+            ).fetchone()[0],
             "new_today": conn.execute(
                 "SELECT COUNT(*) FROM users WHERE date(created_at) = date('now')"
             ).fetchone()[0],
             "new_week": conn.execute(
                 "SELECT COUNT(*) FROM users WHERE datetime(created_at) >= datetime('now', '-7 days')"
+            ).fetchone()[0],
+            "new_month": conn.execute(
+                "SELECT COUNT(*) FROM users WHERE datetime(created_at) >= datetime('now', '-30 days')"
             ).fetchone()[0],
             "profile_count": conn.execute(
                 "SELECT COUNT(*) FROM users WHERE COALESCE(display_name, '') != ''"
@@ -2136,6 +2399,9 @@ def admin_dashboard():
             ).fetchone()[0],
             "upload_count": conn.execute("SELECT COUNT(*) FROM performances").fetchone()[0],
             "message_count": conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0],
+            "showcase_count": conn.execute(
+                "SELECT COUNT(*) FROM performances WHERE is_featured = 1 OR COALESCE(media_type, '') != ''"
+            ).fetchone()[0],
             "music_profiles": conn.execute("SELECT COUNT(*) FROM music_profiles").fetchone()[0],
             "cook_profiles": conn.execute("SELECT COUNT(*) FROM cook_profiles").fetchone()[0],
             "career_profiles": conn.execute("SELECT COUNT(*) FROM career_profiles").fetchone()[0],
@@ -2147,14 +2413,22 @@ def admin_dashboard():
             {"name": "Second Chance", "count": stats["career_profiles"], "url": url_for("sso_start", app="second-chance")},
             {"name": "BEU", "count": stats["travel_profiles"], "url": url_for("sso_start", app="beu")},
         ]
-        latest_users = conn.execute(
+        latest_user_rows = conn.execute(
             """
-            SELECT id, email, display_name, role, city, state, provider, created_at, last_login_at
+            SELECT *
             FROM users
             ORDER BY datetime(created_at) DESC, id DESC
             LIMIT 8
             """
         ).fetchall()
+        latest_users = [admin_user_card(conn, row) for row in latest_user_rows]
+        directory_users = admin_user_directory(conn, filters)
+        filter_options = {
+            "roles": admin_distinct_options(conn, "role"),
+            "states": admin_distinct_options(conn, "state"),
+            "cities": admin_distinct_options(conn, "city"),
+            "apps": [{"key": key, "label": label} for key, (label, _) in ADMIN_APP_TABLES.items()],
+        }
         latest_messages = conn.execute(
             """
             SELECT m.id, m.body, m.created_at,
@@ -2185,14 +2459,89 @@ def admin_dashboard():
             LIMIT 12
             """
         ).fetchall()
+        analytics = admin_analytics_summary(conn)
     return render_template(
         "admin.html",
         stats=stats,
         latest_users=latest_users,
+        directory_users=directory_users,
+        filters=filters,
+        filter_options=filter_options,
         latest_messages=latest_messages,
         latest_uploads=latest_uploads,
         latest_activity=latest_activity,
         users_per_app=users_per_app,
+        analytics=analytics,
+    )
+
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    return admin_dashboard()
+
+
+@app.route("/admin/users/<int:user_id>")
+@admin_required
+def admin_user_detail(user_id):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not row:
+            flash("User not found.")
+            return redirect(url_for("admin_dashboard"))
+        user_record = admin_user_card(conn, row)
+        app_profiles = admin_app_profile_context(conn, user_id)
+        activity = conn.execute(
+            """
+            SELECT *
+            FROM activity_log
+            WHERE user_id = ?
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT 40
+            """,
+            (user_id,),
+        ).fetchall()
+        uploads = conn.execute(
+            """
+            SELECT *
+            FROM performances
+            WHERE profile_id = ?
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT 40
+            """,
+            (user_id,),
+        ).fetchall()
+        message_count = conn.execute(
+            "SELECT COUNT(*) FROM messages WHERE sender_id = ? OR recipient_id = ?",
+            (user_id, user_id),
+        ).fetchone()[0]
+        showcase_count = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM performances
+            WHERE profile_id = ? AND (is_featured = 1 OR COALESCE(media_type, '') != '')
+            """,
+            (user_id,),
+        ).fetchone()[0]
+        analytics = conn.execute(
+            """
+            SELECT path, feature, created_at
+            FROM analytics_events
+            WHERE user_id = ?
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT 20
+            """,
+            (user_id,),
+        ).fetchall()
+    return render_template(
+        "admin_user_detail.html",
+        record=user_record,
+        app_profiles=app_profiles,
+        activity=activity,
+        uploads=uploads,
+        message_count=message_count,
+        showcase_count=showcase_count,
+        analytics=analytics,
     )
 
 
