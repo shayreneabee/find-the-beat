@@ -45,6 +45,7 @@ SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
     "https://secondchancecareers.org/",
 )
+BEU_URL = os.getenv("BEU_URL", "https://beutravel.org/")
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
@@ -66,6 +67,10 @@ APP_SSO_TARGETS = {
     "second-chance": {
         "callback": os.getenv("SECOND_CHANCE_SSO_CONSUME_URL", "https://secondchancecareers.org/sso/consume"),
         "default_next": "/second-chance/profile",
+    },
+    "beu": {
+        "callback": os.getenv("BEU_SSO_CONSUME_URL", "https://beutravel.org/sso/consume"),
+        "default_next": "/#beu-profile",
     },
     "find-the-beat": {
         "callback": "",

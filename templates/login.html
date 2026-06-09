@@ -102,14 +102,14 @@
   </div>
   <div class="login-actions">
     <button type="submit" class="button primary">Sign-In</button>
-    <a href="{{ url_for('signup') }}" class="button secondary">Create Profile</a>
+    <a href="{{ url_for('signup') }}" class="button secondary">Create Account</a>
   </div>
   <div class="oauth-prep" aria-label="Future social sign in">
     <button type="button" disabled>Continue with Google</button>
     <button type="button" disabled>Continue with Apple</button>
-    <button type="button" disabled>Continue with Email</button>
-    <button type="button" disabled>Facebook later</button>
+    <button type="button" disabled>Continue with Facebook</button>
+    <a href="{{ url_for('signup') }}">Continue with Email</a>
   </div>
-  <p class="login-note">Use the email and password from your Find the Beat profile.</p>
+  <p class="login-note">Use email and password now. Social sign-in turns on after provider keys are configured.</p>
 </form>
 {% endblock %}
