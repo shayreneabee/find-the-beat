@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Create Profile | Find the Beat{% endblock %}
+{% block title %}Create Account | Find the Beat{% endblock %}
 
 {% block content %}
 <style>
@@ -121,6 +121,25 @@
     font-size: 0.92rem;
   }
 
+  .signup-optional {
+    margin: 1rem 0;
+  }
+
+  .signup-optional summary {
+    cursor: pointer;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 138, 0, 0.18);
+    color: var(--text);
+    box-shadow: var(--lift);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .signup-optional[open] summary {
+    margin-bottom: 1rem;
+  }
+
   @media (min-width: 560px) {
     .signup-actions {
       grid-template-columns: 1fr 1fr;
@@ -128,28 +147,10 @@
   }
 </style>
 
-<div class="section-band">create profile</div>
+<div class="section-band">create account</div>
 
 <section class="app-panel signup-form">
   <form method="POST" enctype="multipart/form-data">
-    <div class="photo-row">
-      <label class="photo-upload">
-        Upload<br>a<br>Photo
-        <input id="profile_pic" name="profile_pic" type="file" accept="image/*">
-      </label>
-
-      <div class="field-stack">
-        <div class="field">
-          <label for="display_name">Name:</label>
-          <input id="display_name" name="display_name" required>
-        </div>
-        <div class="field">
-          <label for="city">Location:</label>
-          <input id="city" name="city" placeholder="Chicago, IL">
-        </div>
-      </div>
-    </div>
-
     <div class="field">
       <label for="email">Email:</label>
       <input id="email" name="email" type="email" required>
@@ -159,63 +160,80 @@
       <label for="password">Password:</label>
       <input id="password" name="password" type="password" required>
     </div>
-    <div class="field">
-      <label for="confirm_password">Confirm Password:</label>
-      <input id="confirm_password" name="confirm_password" type="password" required>
-    </div>
-    <p class="signup-note">Required: name, email, and an 8+ character password. Everything else can be updated later.</p>
+    <p class="signup-note">Required: email and an 8+ character password. You can complete your music profile whenever you are ready.</p>
 
-    <div class="role-title" style="margin-top:1rem;">I play the:</div>
-    <div class="field">
-      <input id="instrument" name="instrument" placeholder="Instruments">
-    </div>
+    <details class="signup-optional">
+      <summary>Optional: start my music profile</summary>
+      <div class="photo-row">
+        <label class="photo-upload">
+          Upload<br>a<br>Photo
+          <input id="profile_pic" name="profile_pic" type="file" accept="image/*">
+        </label>
 
-    <div class="role-title" style="margin-top:1rem;">I work in:</div>
-    <div class="role-grid">
-      <label class="role-card">
-        <input type="radio" name="role" value="Artist" hidden>
-        <span>◖</span>
-        Artist
-      </label>
-      <label class="role-card">
-        <input type="radio" name="role" value="Musician" hidden>
-        <span>▥</span>
-        Musician
-      </label>
-      <label class="role-card">
-        <input type="radio" name="role" value="Production" hidden>
-        <span>◠</span>
-        Production
-      </label>
-      <label class="role-card">
-        <input type="radio" name="role" value="Composition" hidden>
-        <span>▣</span>
-        Composition
-      </label>
-    </div>
+        <div class="field-stack">
+          <div class="field">
+            <label for="display_name">Name:</label>
+            <input id="display_name" name="display_name">
+          </div>
+          <div class="field">
+            <label for="city">Location:</label>
+            <input id="city" name="city" placeholder="Chicago, IL">
+          </div>
+        </div>
+      </div>
 
-    <div class="field">
-      <label for="genre">Genre:</label>
-      <input id="genre" name="genre" placeholder="R&B, gospel, trap, jazz">
-    </div>
+      <div class="role-title" style="margin-top:1rem;">I play the:</div>
+      <div class="field">
+        <input id="instrument" name="instrument" placeholder="Instruments">
+      </div>
 
-    <div class="field">
-      <label for="services_csv">Services:</label>
-      <input id="services_csv" name="services_csv" placeholder="Mixing, songwriting, beats, vocals">
-    </div>
+      <div class="role-title" style="margin-top:1rem;">I work in:</div>
+      <div class="role-grid">
+        <label class="role-card">
+          <input type="radio" name="role" value="Artist" hidden>
+          <span>◖</span>
+          Artist
+        </label>
+        <label class="role-card">
+          <input type="radio" name="role" value="Musician" hidden>
+          <span>▥</span>
+          Musician
+        </label>
+        <label class="role-card">
+          <input type="radio" name="role" value="Production" hidden>
+          <span>◠</span>
+          Production
+        </label>
+        <label class="role-card">
+          <input type="radio" name="role" value="Composition" hidden>
+          <span>▣</span>
+          Composition
+        </label>
+      </div>
 
-    <div class="field">
-      <label for="tags_csv">Tags:</label>
-      <input id="tags_csv" name="tags_csv" placeholder="studio, live, hooks, beats">
-    </div>
+      <div class="field">
+        <label for="genre">Genre:</label>
+        <input id="genre" name="genre" placeholder="R&B, gospel, trap, jazz">
+      </div>
 
-    <div class="field">
-      <label for="bio">Bio:</label>
-      <textarea id="bio" name="bio" placeholder="Tell people what you do and who you want to connect with."></textarea>
-    </div>
+      <div class="field">
+        <label for="services_csv">Services:</label>
+        <input id="services_csv" name="services_csv" placeholder="Mixing, songwriting, beats, vocals">
+      </div>
+
+      <div class="field">
+        <label for="tags_csv">Tags:</label>
+        <input id="tags_csv" name="tags_csv" placeholder="studio, live, hooks, beats">
+      </div>
+
+      <div class="field">
+        <label for="bio">Bio:</label>
+        <textarea id="bio" name="bio" placeholder="Tell people what you do and who you want to connect with."></textarea>
+      </div>
+    </details>
 
     <div class="signup-actions">
-      <button class="button primary" type="submit">Create Profile</button>
+      <button class="button primary" type="submit">Create Account</button>
       <a class="button secondary" href="{{ url_for('login') }}">Sign In Instead</a>
     </div>
     <div class="oauth-prep" aria-label="Future social sign in">
