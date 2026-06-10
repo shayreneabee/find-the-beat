@@ -83,11 +83,15 @@ FOUNDER_PROFILES = [
         "full_name": os.getenv("BRENT_OWNER_FULL_NAME", "Shalanda Brent"),
         "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay"),
     },
-    {
-        "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
-        "display_name": os.getenv("BRENT_COFOUNDER_DISPLAY_NAME", "Jerod / Brent & Co Founder"),
-    },
 ]
+REMOVED_FOUNDER_ACCOUNT_IDS = {
+    "brent-local-5d8164cc79cd29c886ce672de9ce801e5583e968504d3390524812cc204b37be",
+}
+REMOVED_FOUNDER_EMAILS = {
+    email.strip().lower()
+    for email in os.getenv("BRENT_REMOVED_FOUNDER_EMAILS", "").split(",")
+    if email.strip()
+}
 OWNER_BIO = (
     "Official Brent & Co founder profile for ecosystem updates, creator support, "
     "and community connection."
@@ -1330,6 +1334,33 @@ def seed_founder_profile():
                 ),
             )
             ensure_master_profile(conn, cursor.lastrowid, "find-the-beat", "admin")
+        cleanup_removed_founders(conn)
+
+
+def cleanup_removed_founders(conn):
+    account_ids = {account_id for account_id in REMOVED_FOUNDER_ACCOUNT_IDS if account_id}
+    account_ids.update(brent_account_id(email) for email in REMOVED_FOUNDER_EMAILS)
+    if not account_ids:
+        return
+    placeholders = ",".join("?" for _ in account_ids)
+    rows = conn.execute(
+        f"SELECT id FROM users WHERE brent_account_id IN ({placeholders})",
+        tuple(account_ids),
+    ).fetchall()
+    for row in rows:
+        conn.execute(
+            """
+            UPDATE users
+            SET full_name = '', display_name = 'User',
+                role = 'user', genre = '', city = '', bio = '', tags_csv = '',
+                instrument = '', services_csv = '',
+                is_admin = 0, is_founder = 0, is_verified = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (row["id"],),
+        )
+        conn.execute("UPDATE app_memberships SET role = 'user' WHERE user_id = ?", (row["id"],))
 
 
 def second_chance_category(slug):
