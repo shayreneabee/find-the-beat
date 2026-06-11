@@ -582,6 +582,20 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS onboarding_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                session_id TEXT DEFAULT '',
+                event_name TEXT NOT NULL,
+                app_name TEXT DEFAULT 'find-the-beat',
+                metadata_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -755,6 +769,61 @@ def safe_relative_next(value, default="/"):
     if value.startswith("#"):
         return f"/{value}"
     return default
+
+
+ONBOARDING_STEPS = [
+    ("landing_page_view", "Landing Page Views"),
+    ("signup_click", "Signup Clicks"),
+    ("account_created", "Account Created"),
+    ("profile_started", "Profile Started"),
+    ("profile_completed", "Profile Completed"),
+    ("first_action_taken", "First Action Taken"),
+]
+
+
+def analytics_session_id():
+    if "analytics_session_id" not in session:
+        session["analytics_session_id"] = secrets.token_urlsafe(16)
+    return session["analytics_session_id"]
+
+
+def track_onboarding_event(event_name, user_id=None, metadata=None, conn=None):
+    def insert_event(active_conn):
+        active_conn.execute(
+            """
+            INSERT INTO onboarding_events (user_id, session_id, event_name, app_name, metadata_json)
+            VALUES (?, ?, ?, 'find-the-beat', ?)
+            """,
+            (user_id, analytics_session_id(), event_name, json.dumps(metadata or {})),
+        )
+
+    if conn is not None:
+        insert_event(conn)
+    else:
+        with get_db() as event_conn:
+            insert_event(event_conn)
+
+
+def funnel_metrics(conn, app_name="find-the-beat"):
+    rows = conn.execute(
+        """
+        SELECT event_name, COUNT(DISTINCT COALESCE(CAST(user_id AS TEXT), session_id)) AS total
+        FROM onboarding_events
+        WHERE app_name = ?
+        GROUP BY event_name
+        """,
+        (app_name,),
+    ).fetchall()
+    counts = {row["event_name"]: int(row["total"] or 0) for row in rows}
+    previous = None
+    metrics = []
+    for event_name, label in ONBOARDING_STEPS:
+        total = counts.get(event_name, 0)
+        conversion = 100 if previous in (None, 0) else round((total / previous) * 100)
+        dropoff = 0 if previous in (None, 0) else max(previous - total, 0)
+        metrics.append({"event": event_name, "label": label, "total": total, "conversion": conversion, "dropoff": dropoff})
+        previous = total
+    return metrics
 
 
 def ensure_master_profile(conn, user_id, app_name="find-the-beat", role="user"):
@@ -967,7 +1036,6 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
             ),
         )
         ensure_master_profile(conn, user_id, "find-the-beat", fields["role"] or "user")
-        ensure_master_profile(conn, user_id, "find-the-beat", fields["role"] or "user")
 
 
 def create_performance(profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url=""):
@@ -980,6 +1048,7 @@ def create_performance(profile_id, title, description, video_filename, audio_fil
             """,
             (profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url),
         )
+        track_onboarding_event("first_action_taken", profile_id, {"action": "performance_upload"}, conn)
         return cursor.lastrowid
 
 
@@ -992,6 +1061,7 @@ def create_message(sender_id, recipient_id, body):
             """,
             (sender_id, recipient_id, body),
         )
+        track_onboarding_event("first_action_taken", sender_id, {"action": "message_sent"}, conn)
         return cursor.lastrowid
 
 
@@ -1144,19 +1214,21 @@ def unread_message_count(user_id):
 def profile_completion(user):
     if not user:
         return {"percent": 0, "items": []}
+    performances = get_performances(profile_id=user.id)
     checks = [
-        ("Add profile photo", bool(user.profile_pic)),
-        ("Add talent", bool(user.role or user.instrument or user.services_csv)),
-        ("Add genre", bool(user.genre)),
-        ("Add city", bool(user.city)),
-        ("Add bio", bool(user.bio)),
-        ("Add social links", bool(user.social_links)),
-        ("Add first performance", bool(get_performances(profile_id=user.id))),
+        ("Profile Picture", 15, bool(user.profile_pic or user.avatar_url or user.profile_photo)),
+        ("Bio", 15, bool(user.bio)),
+        ("Location", 10, bool(user.city and user.state)),
+        ("Account Type", 10, bool(user.account_type or user.role)),
+        ("Social Links", 10, bool(user.social_links)),
+        ("Uploads", 20, bool(performances)),
+        ("Additional Details", 20, bool(user.genre or user.instrument or user.services_csv or user.tags_csv)),
     ]
-    complete = sum(1 for _, done in checks if done)
+    percent = sum(weight for _, weight, done in checks if done)
     return {
-        "percent": round((complete / len(checks)) * 100),
-        "items": checks,
+        "percent": min(percent, 100),
+        "items": [(label, done) for label, _, done in checks],
+        "weighted_items": checks,
     }
 
 
@@ -1761,6 +1833,7 @@ def second_chance_profile():
 
 @app.route("/")
 def home():
+    track_onboarding_event("landing_page_view")
     q = request.args.get("q", "").strip()
     role = request.args.get("role", "").strip()
     genre = request.args.get("genre", "").strip()
@@ -2016,12 +2089,14 @@ def signup():
             flash("An account with that email already exists.")
             return redirect(url_for("signup"))
 
+        track_onboarding_event("account_created", user_id)
         post_login_redirect = session.get("post_login_redirect")
         session.clear()
         session["user_id"] = user_id
         flash("Welcome to Find the Beat. Complete your profile to help other creators find you.")
         return redirect(post_login_redirect or url_for("profile"))
 
+    track_onboarding_event("signup_click")
     return render_template("signup.html")
 
 
@@ -2144,9 +2219,12 @@ def edit_profile(profile_id=None):
             return redirect(url_for("edit_profile"))
 
         update_user_profile(user.id, fields, profile_pic, profile_video)
+        completion = profile_completion(current_user())
+        track_onboarding_event("profile_completed" if completion["percent"] >= 100 else "profile_started", user.id, {"completion": completion["percent"]})
         flash("Profile updated.")
         return redirect(url_for("profile"))
 
+    track_onboarding_event("profile_started", user.id)
     return render_template("edit_profile.html", user=user)
 
 
@@ -2440,6 +2518,7 @@ def admin_dashboard():
             f"SELECT COALESCE(ROUND(AVG(p.profile_completion_percentage)), 0) FROM profiles p JOIN users u ON u.id = p.user_id {user_filter_sql}",
             params,
         ).fetchone()[0]
+        funnel = funnel_metrics(conn)
         latest_users = conn.execute(
             f"""
             SELECT u.*, p.profile_completion_percentage
@@ -2462,6 +2541,11 @@ def admin_dashboard():
     app_rows = "".join(
         f"<tr><td>{escape(row['app_name'])}</td><td>{row['total']}</td></tr>" for row in apps
     ) or "<tr><td colspan='2'>No app memberships yet</td></tr>"
+    max_funnel = max([step["total"] for step in funnel] or [1]) or 1
+    funnel_rows = "".join(
+        f"<tr><td>{escape(step['label'])}</td><td><div style='height:12px;border-radius:999px;background:#f28a22;width:{max(6, round((step['total'] / max_funnel) * 100))}%'></div></td><td>{step['total']}</td><td>{step['conversion']}%</td><td>{step['dropoff']}</td></tr>"
+        for step in funnel
+    )
     user_rows = "".join(
         "<tr>"
         f"<td><a href='/profiles/{row['id']}'>{escape(row['display_name'] or row['full_name'] or row['email'])}</a></td>"
@@ -2480,6 +2564,7 @@ def admin_dashboard():
 <p class="eyebrow">Brent & Co founder control center</p><h1>Founder Dashboard</h1>
 <p>Filter: {escape(platform_filter)}</p><nav class="hero-actions">{''.join(filters)}</nav>
 <section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{new_today}</strong><span>New users today</span></article><article><strong>{active_users}</strong><span>Active users</span></article><article><strong>{avg_completion}%</strong><span>Avg profile completion</span></article><article><strong>{total_messages}</strong><span>Messages sent</span></article><article><strong>{total_showcases}</strong><span>Showcases uploaded</span></article><article><strong>0</strong><span>Recipes submitted</span></article><article><strong>0</strong><span>Resumes uploaded</span></article></section>
+<section class="admin-panel"><h2>Onboarding funnel</h2><table><thead><tr><th>Step</th><th>Visual</th><th>Users</th><th>Conversion</th><th>Drop-off</th></tr></thead><tbody>{funnel_rows}</tbody></table></section>
 <section class="admin-panel"><h2>Users by app</h2><table><tbody>{app_rows}</tbody></table></section>
 <section class="admin-panel"><h2>User directory</h2><table><thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Location</th><th>Profile</th><th>Last login</th></tr></thead><tbody>{user_rows}</tbody></table></section>
 </main></body></html>"""
