@@ -87,12 +87,17 @@
       </div>
 
       <div class="field">
-        <label for="role">Role</label>
-        <input id="role" name="role" value="{{ user.role or '' }}">
+        <label for="username">Username</label>
+        <input id="username" name="username" value="{{ user.username or '' }}" placeholder="shay-brent">
       </div>
     </div>
 
     <div class="two">
+      <div class="field">
+        <label for="role">Role</label>
+        <input id="role" name="role" value="{{ user.role or '' }}">
+      </div>
+
       <div class="field">
         <label for="genre">Genre</label>
         <input id="genre" name="genre" value="{{ user.genre or '' }}">

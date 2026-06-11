@@ -203,6 +203,9 @@
       <div>
         <p class="artist-meta">{{ profile.role or "Add talent" }} • {{ profile.city or "Add city" }}</p>
         <h1>{{ profile.display_name }}</h1>
+        {% if profile.username %}
+          <p class="artist-meta">@{{ profile.username }}{% if profile.join_date %} • Joined {{ profile.join_date[:10] }}{% endif %}</p>
+        {% endif %}
       </div>
       <p>{{ profile.bio or "Add bio" }}</p>
       <div class="badge-line">
