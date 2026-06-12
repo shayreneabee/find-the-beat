@@ -559,6 +559,11 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS profiles (
                 user_id INTEGER PRIMARY KEY,
+                email TEXT DEFAULT '',
+                display_name TEXT DEFAULT '',
+                username TEXT DEFAULT '',
+                source_app TEXT DEFAULT 'find-the-beat',
+                profile_completion_status TEXT DEFAULT 'incomplete',
                 profile_completion_percentage INTEGER DEFAULT 0,
                 profile_visibility TEXT DEFAULT 'public',
                 social_links TEXT DEFAULT '{}',
@@ -639,6 +644,11 @@ def init_db():
             row["name"] for row in conn.execute("PRAGMA table_info(profiles)").fetchall()
         }
         for column, definition in {
+            "email": "TEXT DEFAULT ''",
+            "display_name": "TEXT DEFAULT ''",
+            "username": "TEXT DEFAULT ''",
+            "source_app": "TEXT DEFAULT 'find-the-beat'",
+            "profile_completion_status": "TEXT DEFAULT 'incomplete'",
             "profile_completion_percentage": "INTEGER DEFAULT 0",
             "profile_visibility": "TEXT DEFAULT 'public'",
             "social_links": "TEXT DEFAULT '{}'",
@@ -664,8 +674,8 @@ def init_db():
             if column not in performance_columns:
                 conn.execute(f"ALTER TABLE performances ADD COLUMN {column} {definition}")
 
-        for row in conn.execute("SELECT id FROM users WHERE username = '' OR username IS NULL OR brent_account_id = '' OR brent_account_id IS NULL").fetchall():
-            ensure_user_identity(conn, row["id"])
+        for row in conn.execute("SELECT id, role FROM users").fetchall():
+            ensure_master_profile(conn, row["id"], "find-the-beat", row["role"] or "user")
 
 
 def allowed_file(filename, allowed_extensions):
@@ -832,6 +842,7 @@ def ensure_master_profile(conn, user_id, app_name="find-the-beat", role="user"):
     if not user:
         return
     completion = profile_completion(row_to_profile(user))["percent"]
+    completion_status = "complete" if completion >= 100 else "incomplete"
     social_links = {
         "instagram": user["instagram_url"] or "",
         "tiktok": user["tiktok_url"] or "",
@@ -842,11 +853,17 @@ def ensure_master_profile(conn, user_id, app_name="find-the-beat", role="user"):
     conn.execute(
         """
         INSERT INTO profiles (
-            user_id, profile_completion_percentage, profile_visibility,
+            user_id, email, display_name, username, source_app,
+            profile_completion_status, profile_completion_percentage, profile_visibility,
             social_links, interests, updated_at
         )
-        VALUES (?, ?, 'public', ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'public', ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(user_id) DO UPDATE SET
+            email = excluded.email,
+            display_name = excluded.display_name,
+            username = excluded.username,
+            source_app = excluded.source_app,
+            profile_completion_status = excluded.profile_completion_status,
             profile_completion_percentage = excluded.profile_completion_percentage,
             social_links = excluded.social_links,
             interests = excluded.interests,
@@ -854,6 +871,11 @@ def ensure_master_profile(conn, user_id, app_name="find-the-beat", role="user"):
         """,
         (
             user_id,
+            user["email"] or "",
+            user["display_name"] or user["full_name"] or user["email"].split("@")[0],
+            user["username"] or "",
+            app_name,
+            completion_status,
             completion,
             json.dumps(social_links),
             ", ".join([user["genre"] or "", user["instrument"] or "", user["tags_csv"] or ""]).strip(", "),
@@ -2567,6 +2589,115 @@ def admin_dashboard():
 <section class="admin-panel"><h2>Onboarding funnel</h2><table><thead><tr><th>Step</th><th>Visual</th><th>Users</th><th>Conversion</th><th>Drop-off</th></tr></thead><tbody>{funnel_rows}</tbody></table></section>
 <section class="admin-panel"><h2>Users by app</h2><table><tbody>{app_rows}</tbody></table></section>
 <section class="admin-panel"><h2>User directory</h2><table><thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Location</th><th>Profile</th><th>Last login</th></tr></thead><tbody>{user_rows}</tbody></table></section>
+</main></body></html>"""
+
+
+@app.route("/admin/profile-debug")
+@login_required
+def profile_debug_dashboard():
+    user = current_user()
+    if not (user.is_admin or user.is_founder or user.email.lower() == FOUNDER_PROFILES[0]["email"]):
+        return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
+
+    def table_rows(rows, columns, empty_message):
+        if not rows:
+            return f"<tr><td colspan='{len(columns)}'>{escape(empty_message)}</td></tr>"
+        output = []
+        for row in rows:
+            output.append(
+                "<tr>"
+                + "".join(f"<td>{escape(str(row[column] if row[column] is not None else ''))}</td>" for column in columns)
+                + "</tr>"
+            )
+        return "".join(output)
+
+    with get_db() as conn:
+        existing_tables = {
+            row["name"] for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        }
+        total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        total_profiles = conn.execute("SELECT COUNT(*) FROM profiles").fetchone()[0] if "profiles" in existing_tables else 0
+        total_music_profiles = conn.execute("SELECT COUNT(*) FROM music_profiles").fetchone()[0] if "music_profiles" in existing_tables else 0
+        orphan_users = conn.execute(
+            """
+            SELECT u.id, u.email, u.display_name, u.username, u.role, u.created_at
+            FROM users u
+            LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE p.user_id IS NULL
+            ORDER BY u.id DESC
+            """
+        ).fetchall()
+        profiles_without_users = conn.execute(
+            """
+            SELECT p.user_id, p.email, p.display_name, p.username, p.source_app, p.created_at
+            FROM profiles p
+            LEFT JOIN users u ON u.id = p.user_id
+            WHERE u.id IS NULL
+            ORDER BY p.user_id DESC
+            """
+        ).fetchall()
+        recent_users = conn.execute(
+            """
+            SELECT id, email, display_name, username, role, city, state, created_at
+            FROM users
+            ORDER BY id DESC
+            LIMIT 25
+            """
+        ).fetchall()
+        recent_profiles = conn.execute(
+            """
+            SELECT user_id, email, display_name, username, source_app,
+                   profile_completion_status, profile_completion_percentage, created_at
+            FROM profiles
+            ORDER BY COALESCE(NULLIF(created_at, ''), updated_at) DESC, user_id DESC
+            LIMIT 25
+            """
+        ).fetchall()
+        chelsie_matches = conn.execute(
+            """
+            SELECT u.id, u.email, u.display_name, u.username, u.role, u.city, u.state, u.created_at
+            FROM users u
+            LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE lower(u.email) LIKE '%chelsie%'
+               OR lower(u.email) LIKE '%cloy%'
+               OR lower(u.full_name) LIKE '%chelsie%'
+               OR lower(u.full_name) LIKE '%cloy%'
+               OR lower(u.display_name) LIKE '%chelsie%'
+               OR lower(u.display_name) LIKE '%cloy%'
+               OR lower(u.username) LIKE '%chelsie%'
+               OR lower(u.username) LIKE '%cloy%'
+               OR lower(p.email) LIKE '%chelsie%'
+               OR lower(p.email) LIKE '%cloy%'
+               OR lower(p.display_name) LIKE '%chelsie%'
+               OR lower(p.display_name) LIKE '%cloy%'
+               OR lower(p.username) LIKE '%chelsie%'
+               OR lower(p.username) LIKE '%cloy%'
+            ORDER BY u.id DESC
+            """
+        ).fetchall()
+
+    orphan_rows = table_rows(orphan_users, ["id", "email", "display_name", "username", "role", "created_at"], "No orphaned users without profiles.")
+    missing_user_rows = table_rows(profiles_without_users, ["user_id", "email", "display_name", "username", "source_app", "created_at"], "No profiles without linked users.")
+    recent_user_rows = table_rows(recent_users, ["id", "email", "display_name", "username", "role", "city", "state", "created_at"], "No users found.")
+    recent_profile_rows = table_rows(recent_profiles, ["user_id", "email", "display_name", "username", "source_app", "profile_completion_status", "profile_completion_percentage", "created_at"], "No profiles found.")
+    chelsie_rows = table_rows(chelsie_matches, ["id", "email", "display_name", "username", "role", "city", "state", "created_at"], "No Chelsie/Cloy records found in this database.")
+    db_path = escape(str(DB_PATH))
+    table_list = escape(", ".join(sorted(existing_tables)))
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile Debug | Find The Beat</title><link rel="stylesheet" href="/static/css/styles.css"></head>
+<body class="page-shell"><main class="admin-dashboard">
+<p class="eyebrow">Founder-only diagnostics</p><h1>Signup & Profile Storage Debug</h1>
+<p>This page shows where Find The Beat users and profiles exist in the current database.</p>
+<p><strong>Database path:</strong> {db_path}</p>
+<p><strong>Tables:</strong> {table_list}</p>
+<section class="stats-grid"><article><strong>{total_users}</strong><span>Total auth users</span></article><article><strong>{total_profiles}</strong><span>Total profile records</span></article><article><strong>{len(orphan_users)}</strong><span>Users without profiles</span></article><article><strong>{len(profiles_without_users)}</strong><span>Profiles without users</span></article><article><strong>{total_music_profiles}</strong><span>Legacy music profiles</span></article></section>
+<section class="admin-panel"><h2>Chelsie / Cloy search</h2><table><thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Username</th><th>Role</th><th>City</th><th>State</th><th>Created</th></tr></thead><tbody>{chelsie_rows}</tbody></table></section>
+<section class="admin-panel"><h2>Orphaned users without profiles</h2><table><thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Username</th><th>Role</th><th>Created</th></tr></thead><tbody>{orphan_rows}</tbody></table></section>
+<section class="admin-panel"><h2>Profiles without linked users</h2><table><thead><tr><th>User ID</th><th>Email</th><th>Name</th><th>Username</th><th>Source app</th><th>Created</th></tr></thead><tbody>{missing_user_rows}</tbody></table></section>
+<section class="admin-panel"><h2>Recently created users</h2><table><thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Username</th><th>Role</th><th>City</th><th>State</th><th>Created</th></tr></thead><tbody>{recent_user_rows}</tbody></table></section>
+<section class="admin-panel"><h2>Recently created profiles</h2><table><thead><tr><th>User ID</th><th>Email</th><th>Name</th><th>Username</th><th>Source app</th><th>Status</th><th>Completion</th><th>Created</th></tr></thead><tbody>{recent_profile_rows}</tbody></table></section>
+<p><a class="button secondary" href="/admin">Back to admin</a></p>
 </main></body></html>"""
 
 
