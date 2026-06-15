@@ -104,12 +104,12 @@
     <button type="submit" class="button primary">Sign-In</button>
     <a href="{{ url_for('signup') }}" class="button secondary">Create Account</a>
   </div>
-  <div class="oauth-prep" aria-label="Future social sign in">
-    <button type="button" disabled>Continue with Google</button>
+  <div class="oauth-prep" aria-label="Brent and Co social sign in">
+    <a href="{{ url_for('sso_login', next='/profile') }}">Continue with Google</a>
     <button type="button" disabled>Continue with Apple</button>
     <button type="button" disabled>Continue with Facebook</button>
     <a href="{{ url_for('signup') }}">Continue with Email</a>
   </div>
-  <p class="login-note">Use email and password now. Social sign-in turns on after provider keys are configured.</p>
+  <p class="login-note">Google sign-in uses your Brent &amp; Co account. Apple and Facebook are next.</p>
 </form>
 {% endblock %}

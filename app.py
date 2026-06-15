@@ -42,6 +42,7 @@ ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
 ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "m4a", "aac", "ogg", "webm"}
 BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentandco.org/")
+BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://brentandco.org/sso/start")
 FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://findthebeatmusic.com")
 SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
@@ -772,6 +773,29 @@ def sso_b64encode(value):
     return base64.urlsafe_b64encode(value).decode("utf-8").rstrip("=")
 
 
+def sso_b64decode(value):
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
+
+
+def verify_sso_token(token, audience="find-the-beat"):
+    try:
+        body, signature = token.split(".", 1)
+        expected = hmac.new(
+            SSO_SHARED_SECRET.encode("utf-8"),
+            body.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        if not hmac.compare_digest(sso_b64decode(signature), expected):
+            return None
+        payload = json.loads(sso_b64decode(body).decode("utf-8"))
+    except (ValueError, json.JSONDecodeError, TypeError):
+        return None
+    if payload.get("aud") != audience or int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    return payload
+
+
 def safe_relative_next(value, default="/"):
     value = (value or "").strip()
     if value.startswith("/") and not value.startswith("//"):
@@ -1058,6 +1082,78 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
             ),
         )
         ensure_master_profile(conn, user_id, "find-the-beat", fields["role"] or "user")
+
+
+def upsert_sso_user(payload):
+    email = (payload.get("email") or "").strip().lower()
+    if not email:
+        return None
+    display_name = payload.get("display_name") or email.split("@")[0]
+    photo = payload.get("profile_photo") or ""
+    provider = payload.get("authentication_provider") or "brent-sso"
+    with get_db() as conn:
+        existing = conn.execute("SELECT * FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()
+        if existing:
+            user_id = existing["id"]
+            username = existing["username"] or unique_username(conn, display_name, email, user_id)
+            conn.execute(
+                """
+                UPDATE users
+                SET full_name = COALESCE(NULLIF(full_name, ''), ?),
+                    display_name = COALESCE(NULLIF(display_name, ''), ?),
+                    username = ?,
+                    avatar_url = COALESCE(NULLIF(avatar_url, ''), ?),
+                    profile_photo = COALESCE(NULLIF(profile_photo, ''), ?),
+                    brent_account_id = ?, provider = ?, auth_provider = ?,
+                    is_admin = MAX(is_admin, ?),
+                    is_founder = MAX(is_founder, ?),
+                    last_login_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (
+                    display_name,
+                    display_name,
+                    username,
+                    photo,
+                    photo,
+                    payload.get("sub") or brent_account_id(email),
+                    provider,
+                    provider,
+                    int(bool(payload.get("is_admin"))),
+                    int(bool(payload.get("is_founder"))),
+                    user_id,
+                ),
+            )
+        else:
+            cursor = conn.execute(
+                """
+                INSERT INTO users (
+                    email, password_hash, full_name, display_name, username, avatar_url, profile_photo,
+                    brent_account_id, provider, auth_provider, is_admin, is_founder, is_verified,
+                    last_login_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (
+                    email,
+                    generate_password_hash(secrets.token_urlsafe(32)),
+                    display_name,
+                    display_name,
+                    unique_username(conn, display_name, email),
+                    photo,
+                    photo,
+                    payload.get("sub") or brent_account_id(email),
+                    provider,
+                    provider,
+                    int(bool(payload.get("is_admin"))),
+                    int(bool(payload.get("is_founder"))),
+                    int(bool(payload.get("is_founder"))),
+                ),
+            )
+            user_id = cursor.lastrowid
+        ensure_master_profile(conn, user_id, "find-the-beat", "user")
+        return row_to_profile(conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone())
 
 
 def create_performance(profile_id, title, description, video_filename, audio_filename, image_filename, thumb_filename, external_url=""):
@@ -2146,6 +2242,28 @@ def sso_start():
     token = make_sso_token(user, app_name)
     separator = "&" if "?" in target["callback"] else "?"
     return redirect(f"{target['callback']}{separator}{urlencode({'token': token, 'next': next_path})}")
+
+
+@app.route("/sso/login")
+def sso_login():
+    next_path = request.args.get("next") or "/profile"
+    query = urlencode({"app": "find-the-beat", "next": next_path})
+    return redirect(f"{BRENT_SSO_URL}?{query}")
+
+
+@app.route("/sso/consume")
+def sso_consume():
+    payload = verify_sso_token(request.args.get("token", ""))
+    if not payload:
+        flash("That Brent & Co sign-in link expired. Please try again.")
+        return redirect(url_for("login"))
+    user = upsert_sso_user(payload)
+    if not user:
+        flash("We could not read that Brent & Co account.")
+        return redirect(url_for("login"))
+    session.clear()
+    session["user_id"] = user.id
+    return redirect(safe_relative_next(request.args.get("next"), "/profile"))
 
 
 @app.route("/login", methods=["GET", "POST"])

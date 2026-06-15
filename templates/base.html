@@ -192,10 +192,6 @@
     .nav-pill.showcase-link::before { content: "✦"; }
     .nav-pill.search-link::before,
     .nav-pill.browse-link::before { content: "⌕"; }
-    .nav-pill.musicians-link::before { content: "♫"; }
-    .nav-pill.producers-link::before { content: "◍"; }
-    .nav-pill.composers-link::before { content: "♬"; }
-    .nav-pill.artists-link::before { content: "★"; }
     .nav-pill.performances-link::before { content: "✦"; }
     .nav-pill.inbox-link::before,
     .nav-pill.messages-link::before { content: "▭"; }
@@ -204,6 +200,7 @@
     .nav-pill.logout-link::before { content: "↗"; }
     .nav-pill.brent-link::before { content: "&"; }
     .nav-pill.about-link::before { content: "i"; }
+    .nav-pill.join-link::before { content: "+"; }
 
     .nav-badge {
       position: absolute;
@@ -228,6 +225,13 @@
       transform: translateY(-1px);
     }
 
+    .nav-pill.is-active,
+    .nav-pill[aria-current="page"] {
+      background: #fff7e8;
+      border-color: rgba(47, 30, 13, 0.24);
+      box-shadow: inset 0 -4px 0 rgba(47, 30, 13, 0.18), 0 8px 18px rgba(47, 30, 13, 0.12);
+    }
+
     .nav-pill.primary {
       display: none;
     }
@@ -249,6 +253,88 @@
       border-radius: 28px;
       background: linear-gradient(135deg, rgba(255, 250, 238, 0.98), rgba(255, 224, 181, 0.78));
       box-shadow: var(--shadow);
+    }
+
+    .mission-values {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      padding: 1rem;
+      border: 1px solid rgba(78, 47, 16, 0.14);
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(255, 250, 238, 0.98), rgba(255, 224, 181, 0.78));
+      box-shadow: var(--shadow);
+    }
+
+    .mv-header h2 {
+      margin: 0.15rem 0 0.5rem;
+      color: var(--text);
+      font-size: clamp(1.8rem, 7vw, 2.7rem);
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .mv-tagline {
+      display: inline-flex;
+      width: fit-content;
+      margin: 0.4rem 0 0;
+      padding: 0.5rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(245, 138, 0, 0.14);
+      color: var(--accent-dark);
+      font-weight: 900;
+    }
+
+    .mv-grid {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .mv-card {
+      display: grid;
+      gap: 0.55rem;
+      padding: 1rem;
+      border: 1px solid rgba(78, 47, 16, 0.14);
+      border-radius: 22px;
+      background: rgba(255, 250, 238, 0.78);
+      box-shadow: var(--lift);
+    }
+
+    .mv-card span {
+      color: var(--accent-dark);
+      font-size: 0.72rem;
+      font-weight: 950;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .mv-card h3 {
+      margin: 0;
+      color: var(--text);
+      font-size: 1.25rem;
+      line-height: 1.08;
+    }
+
+    .mv-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .value-list {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .value-list div {
+      padding: 0.7rem;
+      border-radius: 16px;
+      background: rgba(245, 138, 0, 0.08);
+    }
+
+    .value-list strong {
+      display: block;
+      color: var(--text);
     }
 
     .founder-photo {
@@ -294,6 +380,10 @@
         grid-template-columns: minmax(14rem, 20rem) 1fr;
         align-items: center;
         padding: 1.25rem;
+      }
+
+      .mv-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
@@ -758,23 +848,21 @@
         <div class="brand-mark">♪</div>
       </a>
 
+      {% set current_endpoint = request.endpoint or "" %}
       <nav class="nav" aria-label="Main navigation">
-        <a href="{{ url_for('home') }}" class="nav-pill home-link">Home</a>
-        <a href="{{ url_for('about') }}" class="nav-pill about-link">About</a>
-        <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link">Showcase</a>
-        <a href="{{ url_for('musicians') }}" class="nav-pill musicians-link">Musicians</a>
-        <a href="{{ url_for('producers') }}" class="nav-pill producers-link">Producers</a>
-        <a href="{{ url_for('composers') }}" class="nav-pill composers-link">Composers</a>
-        <a href="{{ url_for('artists') }}" class="nav-pill artists-link">Artists</a>
-
+        <a href="{{ url_for('home') }}" class="nav-pill home-link{% if current_endpoint == 'home' %} is-active{% endif %}"{% if current_endpoint == 'home' %} aria-current="page"{% endif %}>Home</a>
         {% if user %}
-          <a href="{{ url_for('inbox') }}" class="nav-pill messages-link">Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
-          <a href="{{ url_for('profile') }}" class="nav-pill profile-link">Profile</a>
+          <a href="{{ url_for('search') }}" class="nav-pill search-link{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} is-active{% endif %}"{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} aria-current="page"{% endif %}>Search</a>
+          <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link{% if current_endpoint in ['showcase', 'performance_detail'] %} is-active{% endif %}"{% if current_endpoint in ['showcase', 'performance_detail'] %} aria-current="page"{% endif %}>Showcase</a>
+          <a href="{{ url_for('inbox') }}" class="nav-pill messages-link{% if current_endpoint in ['inbox', 'thread', 'new_message'] %} is-active{% endif %}"{% if current_endpoint in ['inbox', 'thread', 'new_message'] %} aria-current="page"{% endif %}>Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
+          <a href="{{ url_for('profile') }}" class="nav-pill profile-link{% if current_endpoint in ['profile', 'edit_profile', 'profile_by_username'] %} is-active{% endif %}"{% if current_endpoint in ['profile', 'edit_profile', 'profile_by_username'] %} aria-current="page"{% endif %}>Profile</a>
           <a href="{{ url_for('logout') }}" class="nav-pill logout-link">Logout</a>
         {% else %}
-          <a href="{{ url_for('login') }}" class="nav-pill messages-link">Messages</a>
-          <a href="{{ url_for('login') }}" class="nav-pill login-link">Sign In</a>
-          <a href="{{ url_for('signup') }}" class="nav-pill primary">Join</a>
+          <a href="{{ url_for('about') }}" class="nav-pill about-link{% if current_endpoint == 'about' %} is-active{% endif %}"{% if current_endpoint == 'about' %} aria-current="page"{% endif %}>About</a>
+          <a href="{{ url_for('search') }}" class="nav-pill search-link{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} is-active{% endif %}"{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} aria-current="page"{% endif %}>Search</a>
+          <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link{% if current_endpoint in ['showcase', 'performance_detail'] %} is-active{% endif %}"{% if current_endpoint in ['showcase', 'performance_detail'] %} aria-current="page"{% endif %}>Showcase</a>
+          <a href="{{ url_for('login') }}" class="nav-pill login-link{% if current_endpoint == 'login' %} is-active{% endif %}"{% if current_endpoint == 'login' %} aria-current="page"{% endif %}>Login</a>
+          <a href="{{ url_for('signup') }}" class="nav-pill primary join-link{% if current_endpoint == 'signup' %} is-active{% endif %}"{% if current_endpoint == 'signup' %} aria-current="page"{% endif %}>Join</a>
         {% endif %}
       </nav>
     </header>
