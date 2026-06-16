@@ -51,8 +51,10 @@ SECOND_CHANCE_URL = os.getenv(
 )
 LETS_COOK_URL = os.getenv("LETS_COOK_URL", "https://letscookyall.com/")
 BEU_URL = os.getenv("BEU_URL", "https://beutravel.org/")
+BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
 SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me")
 SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "300") or "300")
+DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
@@ -430,6 +432,19 @@ if GOOGLE_OAUTH_READY:
         client_secret=GOOGLE_CLIENT_SECRET,
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid email profile"},
+    )
+
+
+def log_sso_debug(event, app_name="find-the-beat", callback_url=""):
+    if not DEBUG_SSO:
+        return
+    app.logger.info(
+        "SSO %s app=%s BRENT_SSO_URL=%s SSO_SHARED_SECRET_PRESENT=%s callback=%s",
+        event,
+        app_name,
+        BRENT_SSO_URL,
+        bool(SSO_SHARED_SECRET),
+        callback_url,
     )
 
 
@@ -3158,6 +3173,14 @@ def auth_apple_callback():
     return redirect(post_login_redirect or url_for("profile"))
 
 
+@app.route("/sso/login")
+def sso_login():
+    next_path = request.args.get("next") or "/profile"
+    query = urlencode({"app": "find-the-beat", "next": next_path})
+    log_sso_debug("login_redirect", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
+    return redirect(f"{BRENT_SSO_URL}?{query}")
+
+
 @app.route("/sso/start")
 def sso_start():
     target_app = request.args.get("app", "find-the-beat").strip().lower()
@@ -3194,8 +3217,10 @@ def sso_start():
     return redirect(f"{callback}?{urlencode(query)}")
 
 
+@app.route("/sso/callback")
 @app.route("/sso/consume")
 def sso_consume():
+    log_sso_debug("consume", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     token = request.args.get("token", "")
     payload = verify_sso_token(token)
     if not payload or payload.get("aud") != "find-the-beat":
