@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: find-the-beat
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 4 --timeout 120
+    disk:
+      name: find-the-beat-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_PATH
+        value: /var/data/find_the_beat_v2.db
+      - key: INSTANCE_DIR
+        value: /var/data/instance
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: "1"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: BRENT_SSO_URL
+        value: https://www.brentandco.org/sso/start
+      - key: SSO_SHARED_SECRET
+        sync: false
+      - key: DEBUG_SSO
+        value: "0"

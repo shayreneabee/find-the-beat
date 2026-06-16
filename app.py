@@ -42,7 +42,7 @@ ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
 ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "m4a", "aac", "ogg", "webm"}
 BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentandco.org/")
-BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://brentandco.org/sso/start")
+BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
 FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://findthebeatmusic.com")
 SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
@@ -54,6 +54,7 @@ OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
 SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me")
 SSO_TOKEN_SECONDS = int(os.getenv("SSO_TOKEN_SECONDS", "300"))
+DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "")
@@ -462,6 +463,19 @@ app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") ==
 
 if os.getenv("TRUST_PROXY", "1") == "1":
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+
+def log_sso_debug(event, app_name="find-the-beat", callback_url=""):
+    if not DEBUG_SSO:
+        return
+    app.logger.info(
+        "SSO %s app=%s BRENT_SSO_URL=%s SSO_SHARED_SECRET_PRESENT=%s callback=%s",
+        event,
+        app_name,
+        BRENT_SSO_URL,
+        bool(SSO_SHARED_SECRET),
+        callback_url,
+    )
 
 
 for folder in (INSTANCE_DIR, UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR, AUDIO_DIR):
@@ -2248,11 +2262,14 @@ def sso_start():
 def sso_login():
     next_path = request.args.get("next") or "/profile"
     query = urlencode({"app": "find-the-beat", "next": next_path})
+    log_sso_debug("login_redirect", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     return redirect(f"{BRENT_SSO_URL}?{query}")
 
 
+@app.route("/sso/callback")
 @app.route("/sso/consume")
 def sso_consume():
+    log_sso_debug("consume", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     payload = verify_sso_token(request.args.get("token", ""))
     if not payload:
         flash("That Brent & Co sign-in link expired. Please try again.")
