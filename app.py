@@ -51,8 +51,8 @@ SECOND_CHANCE_URL = os.getenv(
 )
 LETS_COOK_URL = os.getenv("LETS_COOK_URL", "https://letscookyall.com/")
 BEU_URL = os.getenv("BEU_URL", "https://beutravel.org/")
-BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
-SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me")
+BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start").strip()
+SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me").strip()
 SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "300") or "300")
 DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
@@ -826,6 +826,8 @@ def sign_sso_payload(payload):
 
 
 def verify_sso_token(token):
+    if not token:
+        return None, "missing"
     try:
         body, signature = token.split(".", 1)
         expected = hmac.new(
@@ -834,13 +836,13 @@ def verify_sso_token(token):
             hashlib.sha256,
         ).digest()
         if not hmac.compare_digest(sso_b64decode(signature), expected):
-            return None
+            return None, "bad_signature"
         payload = json.loads(sso_b64decode(body).decode("utf-8"))
     except (ValueError, json.JSONDecodeError, TypeError):
-        return None
+        return None, "malformed"
     if int(payload.get("exp", 0)) < int(time.time()):
-        return None
-    return payload
+        return None, "expired"
+    return payload, ""
 
 
 def ensure_app_profile(conn, user_id, app_key="find-the-beat"):
@@ -2689,6 +2691,8 @@ def admin_media_status():
             "database_exists": DB_PATH.exists(),
             "upload_dir": str(UPLOAD_DIR),
             "upload_dir_exists": UPLOAD_DIR.exists(),
+            "sso_shared_secret_present": bool(SSO_SHARED_SECRET),
+            "sso_shared_secret_fingerprint": hashlib.sha256(SSO_SHARED_SECRET.encode("utf-8")).hexdigest()[:12],
             "video_dir": str(VIDEO_DIR),
             "audio_dir": str(AUDIO_DIR),
             "photo_dir": str(PHOTO_DIR),
@@ -3335,9 +3339,19 @@ def sso_start():
 def sso_consume():
     log_sso_debug("consume", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     token = request.args.get("token", "")
-    payload = verify_sso_token(token)
-    if not payload or payload.get("aud") != "find-the-beat":
-        flash("That Brent & Co sign-in link expired. Please sign in again.")
+    payload, error = verify_sso_token(token)
+    if not payload:
+        app.logger.warning("Brent SSO token rejected: %s", error)
+        if error == "expired":
+            flash("That Brent & Co sign-in link expired. Please sign in again.")
+        elif error == "bad_signature":
+            flash("Brent & Co sign-in could not be verified. The SSO secret needs to match on Brent & Co and Find The Beat.")
+        else:
+            flash("That Brent & Co sign-in link was invalid. Please sign in again.")
+        return redirect(url_for("login"))
+    if payload.get("aud") != "find-the-beat":
+        app.logger.warning("Brent SSO token audience mismatch: %s", payload.get("aud"))
+        flash("That Brent & Co sign-in link was made for another app. Please sign in again.")
         return redirect(url_for("login"))
     email = (payload.get("email") or "").strip().lower()
     if not email:
