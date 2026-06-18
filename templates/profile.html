@@ -154,7 +154,7 @@
     <div class="profile-photo">
       {% if user.profile_pic %}
         <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
-      {% elif user.avatar_url and user.avatar_url.startswith("http") %}
+      {% elif user.avatar_url and (user.avatar_url.startswith("http") or user.avatar_url.startswith("/static/")) %}
         <img src="{{ user.avatar_url }}" alt="{{ user.display_name }}">
       {% else %}
         <div class="profile-initial">{{ user.initials }}</div>

@@ -207,6 +207,10 @@
       <div class="artist-photo">
         <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
       </div>
+    {% elif profile.avatar_url and (profile.avatar_url.startswith("http") or profile.avatar_url.startswith("/static/")) %}
+      <div class="artist-photo">
+        <img src="{{ profile.avatar_url }}" alt="{{ profile.display_name }}">
+      </div>
     {% else %}
       <div class="artist-placeholder">{{ profile.initials }}</div>
     {% endif %}
@@ -231,7 +235,13 @@
         </a>
       {% endfor %}
     {% else %}
-      <div class="empty-performances">No performances yet. Upload your first performance to start this showcase.</div>
+      <div class="empty-performances">
+        {% if profile.is_founder %}
+          No founder showcase media is saved yet. Upload a performance from this account to feature it here.
+        {% else %}
+          No performances yet. Upload your first performance to start this showcase.
+        {% endif %}
+      </div>
     {% endif %}
   </section>
 

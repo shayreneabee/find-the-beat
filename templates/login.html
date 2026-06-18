@@ -125,16 +125,8 @@
 
 <section class="social-signin" aria-label="Social sign in">
   <h2>sign in your way</h2>
-  {% if google_ready %}
-    <a class="social-button" href="{{ url_for('auth_google') }}">Continue with Google</a>
-  {% else %}
-    <span class="social-button disabled">Google keys needed</span>
-  {% endif %}
-  {% if apple_ready %}
-    <a class="social-button" href="{{ url_for('auth_apple') }}">Continue with Apple</a>
-  {% else %}
-    <span class="social-button disabled">Apple keys needed</span>
-  {% endif %}
+  <a class="social-button" href="{{ url_for('sso_login') }}">Continue with Brent &amp; Co</a>
+  <span class="social-button disabled">Google, Apple, and Facebook live through Brent SSO</span>
   <span class="social-button">Email login below</span>
 </section>
 
@@ -151,6 +143,6 @@
     <a href="{{ url_for('signup') }}" class="button secondary">Register</a>
     <button type="submit" class="button primary">Login</button>
   </div>
-  <p class="login-note">Use the email and password from your Find the Beat profile.</p>
+  <p class="login-note">Use your Brent &amp; Co account or the email and password from your Find the Beat profile.</p>
 </form>
 {% endblock %}

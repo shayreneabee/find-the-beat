@@ -58,14 +58,14 @@ DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "")
-APPLE_TEAM_ID = os.getenv("APPLE_TEAM_ID", "")
-APPLE_KEY_ID = os.getenv("APPLE_KEY_ID", "")
-APPLE_PRIVATE_KEY = os.getenv("APPLE_PRIVATE_KEY", "")
-FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID", "")
-FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "").strip()
+APPLE_TEAM_ID = os.getenv("APPLE_TEAM_ID", "").strip()
+APPLE_KEY_ID = os.getenv("APPLE_KEY_ID", "").strip()
+APPLE_PRIVATE_KEY = os.getenv("APPLE_PRIVATE_KEY", "").strip()
+FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID", "").strip()
+FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET", "").strip()
 GOOGLE_OAUTH_READY = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 APPLE_OAUTH_READY = bool(APPLE_CLIENT_ID and APPLE_TEAM_ID and APPLE_KEY_ID and APPLE_PRIVATE_KEY)
 GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "").strip()
@@ -89,9 +89,17 @@ LEGACY_REMOVED_FOUNDER_EMAILS = {
     "jerod.l.cotton@gmail.com",
 }
 OWNER_BIO = (
-    "Official Brent & Co founder profile for ecosystem updates, creator support, "
-    "and community connection."
+    "Founder of Brent & Co and builder of Find The Beat, a creative network for "
+    "musicians, producers, composers, artists, and collaborators."
 )
+FOUNDER_AVATAR_URL = os.getenv(
+    "BRENT_OWNER_AVATAR_URL",
+    "/static/images/find-the-beat/founder-shalanda-brent.png",
+).strip()
+FOUNDER_LINK_URL = os.getenv(
+    "BRENT_OWNER_LINK_URL",
+    "https://www.brentandco.org/founder",
+).strip()
 
 SECOND_CHANCE_CATEGORIES = [
     {
@@ -657,6 +665,8 @@ def init_db():
 
         for table, columns in {
             "music_profiles": {
+                "source_app": "TEXT DEFAULT 'find-the-beat'",
+                "profile_completion_status": "TEXT DEFAULT 'incomplete'",
                 "instruments": "TEXT DEFAULT ''",
                 "genres": "TEXT DEFAULT ''",
                 "city": "TEXT DEFAULT ''",
@@ -666,12 +676,16 @@ def init_db():
                 "availability": "TEXT DEFAULT ''",
             },
             "cook_profiles": {
+                "source_app": "TEXT DEFAULT 'lets-cook'",
+                "profile_completion_status": "TEXT DEFAULT 'incomplete'",
                 "favorite_cuisines": "TEXT DEFAULT ''",
                 "saved_recipes": "TEXT DEFAULT ''",
                 "hosting_interests": "TEXT DEFAULT ''",
                 "meal_plans": "TEXT DEFAULT ''",
             },
             "career_profiles": {
+                "source_app": "TEXT DEFAULT 'second-chance'",
+                "profile_completion_status": "TEXT DEFAULT 'incomplete'",
                 "career_goal": "TEXT DEFAULT ''",
                 "certifications": "TEXT DEFAULT ''",
                 "resume_status": "TEXT DEFAULT ''",
@@ -679,6 +693,8 @@ def init_db():
                 "checklist_progress": "TEXT DEFAULT ''",
             },
             "travel_profiles": {
+                "source_app": "TEXT DEFAULT 'beu'",
+                "profile_completion_status": "TEXT DEFAULT 'incomplete'",
                 "saved_places": "TEXT DEFAULT ''",
                 "cities_visited": "TEXT DEFAULT ''",
                 "recommendations": "TEXT DEFAULT ''",
@@ -838,8 +854,12 @@ def ensure_app_profile(conn, user_id, app_key="find-the-beat"):
     if not table:
         return
     conn.execute(
-        f"INSERT OR IGNORE INTO {table} (user_id, updated_at) VALUES (?, CURRENT_TIMESTAMP)",
-        (user_id,),
+        f"""
+        INSERT OR IGNORE INTO {table}
+            (user_id, source_app, profile_completion_status, updated_at)
+        VALUES (?, ?, 'incomplete', CURRENT_TIMESTAMP)
+        """,
+        (user_id, app_key),
     )
 
 
@@ -1571,7 +1591,7 @@ def profile_completion(user):
         app.logger.exception("Profile completion performance check failed")
         has_performance = False
     checks = [
-        ("Add profile photo", bool(getattr(user, "profile_pic", ""))),
+        ("Add profile photo", bool(getattr(user, "profile_pic", "") or getattr(user, "avatar_url", "") or getattr(user, "profile_photo", ""))),
         ("Add talent", bool(getattr(user, "role", "") or getattr(user, "instrument", "") or getattr(user, "services_csv", ""))),
         ("Add genre", bool(getattr(user, "genre", ""))),
         ("Add city", bool(getattr(user, "city", ""))),
@@ -2013,12 +2033,19 @@ def seed_founder_profile():
                 "full_name": founder.get("full_name") or founder["display_name"],
                 "display_name": founder["display_name"],
                 "role": "admin",
-                "genre": "Brent & Co Ecosystem",
-                "city": "Brent & Co",
+                "genre": "Music technology, creator community",
+                "city": "Jackson",
+                "state": "MS",
+                "country": "United States",
                 "bio": OWNER_BIO,
                 "tags_csv": "Founder, Brent & Co, Verified",
                 "instrument": "Ecosystem Builder",
                 "services_csv": "Creator connection, community support, app ecosystem",
+                "previous_work": "Founder of Brent & Co, Find The Beat, Let's Cook Y'all, and Second Chance Careers.",
+                "availability": "Available for Brent & Co updates, creator support, partnerships, and ecosystem questions.",
+                "avatar_url": FOUNDER_AVATAR_URL,
+                "profile_photo": FOUNDER_AVATAR_URL,
+                "linkedin_url": FOUNDER_LINK_URL,
                 "brent_account_id": brent_account_id(email),
                 "auth_provider": OWNER_AUTH_PROVIDER,
             }
@@ -2036,8 +2063,12 @@ def seed_founder_profile():
                 conn.execute(
                     f"""
                     UPDATE users
-                    SET full_name = ?, display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
-                        tags_csv = ?, instrument = ?, services_csv = ?,
+                    SET full_name = ?, display_name = ?, role = ?, genre = ?, city = ?,
+                        state = ?, country = ?, bio = ?, tags_csv = ?, instrument = ?,
+                        services_csv = ?, previous_work = ?, availability = ?,
+                        avatar_url = COALESCE(NULLIF(avatar_url, ''), ?),
+                        profile_photo = COALESCE(NULLIF(profile_photo, ''), ?),
+                        linkedin_url = COALESCE(NULLIF(linkedin_url, ''), ?),
                         brent_account_id = ?, provider = ?, auth_provider = ?,
                         authentication_provider = COALESCE(NULLIF(authentication_provider, ''), ?),
                         is_admin = 1, is_founder = 1, is_verified = 1{password_sql},
@@ -2050,10 +2081,17 @@ def seed_founder_profile():
                         owner_values["role"],
                         owner_values["genre"],
                         owner_values["city"],
+                        owner_values["state"],
+                        owner_values["country"],
                         owner_values["bio"],
                         owner_values["tags_csv"],
                         owner_values["instrument"],
                         owner_values["services_csv"],
+                        owner_values["previous_work"],
+                        owner_values["availability"],
+                        owner_values["avatar_url"],
+                        owner_values["profile_photo"],
+                        owner_values["linkedin_url"],
                         owner_values["brent_account_id"],
                         owner_values["auth_provider"],
                         owner_values["auth_provider"],
@@ -2067,11 +2105,13 @@ def seed_founder_profile():
             conn.execute(
                 """
                 INSERT INTO users (
-                    email, password_hash, full_name, display_name, role, genre, city, bio,
-                    tags_csv, instrument, services_csv, brent_account_id,
+                    email, password_hash, full_name, display_name, role, genre, city,
+                    state, country, bio, tags_csv, instrument, services_csv,
+                    previous_work, availability, avatar_url, profile_photo, linkedin_url,
+                    brent_account_id,
                     provider, auth_provider, authentication_provider, is_admin, is_founder, is_verified
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
                 """,
                 (
                     owner_values["email"],
@@ -2083,10 +2123,17 @@ def seed_founder_profile():
                     owner_values["role"],
                     owner_values["genre"],
                     owner_values["city"],
+                    owner_values["state"],
+                    owner_values["country"],
                     owner_values["bio"],
                     owner_values["tags_csv"],
                     owner_values["instrument"],
                     owner_values["services_csv"],
+                    owner_values["previous_work"],
+                    owner_values["availability"],
+                    owner_values["avatar_url"],
+                    owner_values["profile_photo"],
+                    owner_values["linkedin_url"],
                     owner_values["brent_account_id"],
                     owner_values["auth_provider"],
                     owner_values["auth_provider"],
@@ -2589,6 +2636,72 @@ def admin_user_detail(user_id):
         showcase_count=showcase_count,
         analytics=analytics,
     )
+
+
+@app.route("/admin/media-status")
+@admin_required
+def admin_media_status():
+    owner_email = (FOUNDER_PROFILES[0].get("email") or ADMIN_EMAIL).lower()
+
+    def upload_exists(folder, filename):
+        if not filename:
+            return False
+        return (folder / filename).exists()
+
+    with get_db() as conn:
+        owner = conn.execute(
+            "SELECT * FROM users WHERE lower(email) = lower(?)",
+            (owner_email,),
+        ).fetchone()
+        owner_profile = row_to_profile(owner) if owner else None
+        owner_perfs = []
+        if owner:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM performances
+                WHERE profile_id = ?
+                ORDER BY datetime(created_at) DESC, id DESC
+                """,
+                (owner["id"],),
+            ).fetchall()
+            for row in rows:
+                owner_perfs.append({
+                    "id": row["id"],
+                    "title": row["title"],
+                    "media_type": row["media_type"],
+                    "created_at": row["created_at"],
+                    "external_url": row["external_url"],
+                    "video_filename": row["video_filename"],
+                    "video_file_exists": upload_exists(VIDEO_DIR, row["video_filename"]),
+                    "audio_filename": row["audio_filename"],
+                    "audio_file_exists": upload_exists(AUDIO_DIR, row["audio_filename"]),
+                    "image_filename": row["image_filename"],
+                    "image_file_exists": upload_exists(PHOTO_DIR, row["image_filename"]),
+                    "thumb_filename": row["thumb_filename"],
+                    "thumb_file_exists": upload_exists(PHOTO_DIR, row["thumb_filename"]),
+                    "is_featured": bool(row["is_featured"]),
+                })
+
+        report = {
+            "app": "Find The Beat",
+            "database_path": str(DB_PATH),
+            "database_exists": DB_PATH.exists(),
+            "upload_dir": str(UPLOAD_DIR),
+            "upload_dir_exists": UPLOAD_DIR.exists(),
+            "video_dir": str(VIDEO_DIR),
+            "audio_dir": str(AUDIO_DIR),
+            "photo_dir": str(PHOTO_DIR),
+            "founder_email": owner_email,
+            "founder_user_exists": bool(owner),
+            "founder_profile_completion": profile_completion(owner_profile)["percent"] if owner_profile else 0,
+            "founder_performance_count": len(owner_perfs),
+            "founder_performances": owner_perfs,
+            "total_users": conn.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+            "total_profiles": conn.execute("SELECT COUNT(*) FROM music_profiles").fetchone()[0],
+            "total_performances": conn.execute("SELECT COUNT(*) FROM performances").fetchone()[0],
+        }
+    return jsonify(report)
 
 
 @app.route("/search")

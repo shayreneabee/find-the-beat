@@ -901,16 +901,10 @@
         <a href="{{ url_for('home') }}" class="nav-pill home-link">Home</a>
         <a href="{{ url_for('search') }}" class="nav-pill search-link">Search</a>
         <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link">Showcases</a>
-        <a href="{{ url_for('sso_start', app='lets-cook') }}" class="nav-pill">Let's Cook</a>
-        <a href="{{ url_for('sso_start', app='second-chance') }}" class="nav-pill">Second Chance</a>
-        <a href="{{ url_for('sso_start', app='beu') }}" class="nav-pill">BEU</a>
 
         {% if user %}
           <a href="{{ url_for('inbox') }}" class="nav-pill messages-link">Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
           <a href="{{ url_for('profile') }}" class="nav-pill profile-link">Profile</a>
-          {% if user.email|lower == admin_email %}
-            <a href="{{ url_for('admin_dashboard') }}" class="nav-pill profile-link">Control Room</a>
-          {% endif %}
         {% else %}
           <a href="{{ url_for('login') }}" class="nav-pill messages-link">Messages</a>
           <a href="{{ url_for('login') }}" class="nav-pill profile-link">Profile</a>
