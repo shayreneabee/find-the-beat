@@ -1,5 +1,6 @@
 import hashlib
 import base64
+import binascii
 import hmac
 import json
 import os
@@ -54,7 +55,13 @@ LETS_COOK_URL = os.getenv("LETS_COOK_URL", "https://letscookyall.com/")
 BEU_URL = os.getenv("BEU_URL", "https://beutravel.org/")
 BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start").strip()
 SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me").strip()
-SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "300") or "300")
+SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "900") or "900")
+SSO_CLOCK_SKEW_SECONDS = int(os.getenv("SSO_CLOCK_SKEW_SECONDS", "120") or "120")
+SSO_ACCEPTED_ISSUERS = {
+    value.strip()
+    for value in os.getenv("SSO_ACCEPTED_ISSUERS", "brent-co-identity,brent-co-sso").split(",")
+    if value.strip()
+}
 DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
@@ -866,6 +873,43 @@ def sso_b64decode(value):
     return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
 
 
+def sso_secret_fingerprint():
+    return hashlib.sha256(SSO_SHARED_SECRET.encode("utf-8")).hexdigest()[:12]
+
+
+def unverified_sso_payload(token):
+    try:
+        body, _signature = token.split(".", 1)
+        return json.loads(sso_b64decode(body).decode("utf-8"))
+    except (ValueError, json.JSONDecodeError, TypeError, binascii.Error, UnicodeDecodeError):
+        return {}
+
+
+def sso_failure_details(error, token):
+    payload = unverified_sso_payload(token) if token else {}
+    now = int(time.time())
+    exp = int(payload.get("exp") or 0)
+    iat = int(payload.get("iat") or 0)
+    return {
+        "error": error,
+        "secret_present": bool(SSO_SHARED_SECRET),
+        "secret_is_default": SSO_SHARED_SECRET == "dev-sso-change-me",
+        "secret_fingerprint": sso_secret_fingerprint(),
+        "brent_sso_url": BRENT_SSO_URL,
+        "accepted_issuers": sorted(SSO_ACCEPTED_ISSUERS),
+        "expected_audience": "find-the-beat",
+        "token_has_separator": bool(token and "." in token),
+        "token_issuer": payload.get("iss"),
+        "token_audience": payload.get("aud"),
+        "issued_at": iat,
+        "expires_at": exp,
+        "server_now": now,
+        "token_age_seconds": now - iat if iat else None,
+        "seconds_until_expiry": exp - now if exp else None,
+        "clock_skew_seconds": SSO_CLOCK_SKEW_SECONDS,
+    }
+
+
 def sign_sso_payload(payload):
     body = sso_b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     signature = hmac.new(
@@ -889,9 +933,12 @@ def verify_sso_token(token):
         if not hmac.compare_digest(sso_b64decode(signature), expected):
             return None, "bad_signature"
         payload = json.loads(sso_b64decode(body).decode("utf-8"))
-    except (ValueError, json.JSONDecodeError, TypeError):
+    except (ValueError, json.JSONDecodeError, TypeError, binascii.Error, UnicodeDecodeError):
         return None, "malformed"
-    if int(payload.get("exp", 0)) < int(time.time()):
+    issuer = payload.get("iss")
+    if issuer and issuer not in SSO_ACCEPTED_ISSUERS:
+        return None, "invalid_issuer"
+    if int(payload.get("exp", 0)) + SSO_CLOCK_SKEW_SECONDS < int(time.time()):
         return None, "expired"
     return payload, ""
 
@@ -3446,16 +3493,26 @@ def sso_consume():
     token = request.args.get("token", "")
     payload, error = verify_sso_token(token)
     if not payload:
-        app.logger.warning("Brent SSO token rejected: %s", error)
+        app.logger.warning(
+            "Brent SSO token rejected: %s details=%s",
+            error,
+            json.dumps(sso_failure_details(error, token), sort_keys=True),
+        )
         if error == "expired":
             flash("That Brent & Co sign-in link expired. Please sign in again.")
         elif error == "bad_signature":
             flash("Brent & Co sign-in could not be verified. The SSO secret needs to match on Brent & Co and Find The Beat.")
+        elif error == "invalid_issuer":
+            flash("That Brent & Co sign-in link came from an unrecognized issuer. Please sign in again.")
         else:
             flash("That Brent & Co sign-in link was invalid. Please sign in again.")
         return redirect(url_for("login"))
     if payload.get("aud") != "find-the-beat":
-        app.logger.warning("Brent SSO token audience mismatch: %s", payload.get("aud"))
+        app.logger.warning(
+            "Brent SSO token audience mismatch: %s details=%s",
+            payload.get("aud"),
+            json.dumps(sso_failure_details("invalid_audience", token), sort_keys=True),
+        )
         flash("That Brent & Co sign-in link was made for another app. Please sign in again.")
         return redirect(url_for("login"))
     email = (payload.get("email") or "").strip().lower()
