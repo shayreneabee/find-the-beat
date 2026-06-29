@@ -3,6 +3,7 @@ import base64
 import hmac
 import json
 import os
+import re
 import secrets
 import sqlite3
 import smtplib
@@ -662,6 +663,33 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS profiles (
+                user_id INTEGER PRIMARY KEY,
+                profile_completion_percentage INTEGER DEFAULT 0,
+                profile_visibility TEXT DEFAULT 'public',
+                social_links TEXT DEFAULT '{}',
+                interests TEXT DEFAULT '',
+                settings_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS app_memberships (
+                user_id INTEGER NOT NULL,
+                app_name TEXT NOT NULL,
+                role TEXT DEFAULT 'user',
+                joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(user_id, app_name),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
 
         for table, columns in {
             "music_profiles": {
@@ -806,6 +834,29 @@ def brent_account_id(email):
     return f"brent-local-{digest}"
 
 
+def username_slug(value, fallback="creator"):
+    base = re.sub(r"[^a-z0-9]+", "-", (value or "").strip().lower()).strip("-")
+    return base or fallback
+
+
+def unique_username(conn, preferred, email="", user_id=None):
+    base = username_slug(preferred or (email or "").split("@")[0], "creator")
+    candidate = base
+    suffix = 2
+    while True:
+        if user_id is None:
+            row = conn.execute("SELECT id FROM users WHERE lower(username) = lower(?)", (candidate,)).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT id FROM users WHERE lower(username) = lower(?) AND id != ?",
+                (candidate, user_id),
+            ).fetchone()
+        if not row:
+            return candidate
+        candidate = f"{base}-{suffix}"
+        suffix += 1
+
+
 def sso_b64encode(data):
     return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
 
@@ -860,6 +911,41 @@ def ensure_app_profile(conn, user_id, app_key="find-the-beat"):
         INSERT OR IGNORE INTO {table}
             (user_id, source_app, profile_completion_status, updated_at)
         VALUES (?, ?, 'incomplete', CURRENT_TIMESTAMP)
+        """,
+        (user_id, app_key),
+    )
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not user:
+        return
+    if not (user["username"] or "").strip():
+        conn.execute(
+            "UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (unique_username(conn, user["display_name"] or user["email"].split("@")[0], user["email"], user_id), user_id),
+        )
+        user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    profile = row_to_profile(user)
+    completion = profile_completion(profile)["percent"]
+    interests = ", ".join(
+        item for item in [profile.role, profile.genre, profile.instrument, profile.services_csv, profile.city] if item
+    )
+    conn.execute(
+        """
+        INSERT INTO profiles (
+            user_id, profile_completion_percentage, profile_visibility,
+            social_links, interests, updated_at
+        )
+        VALUES (?, ?, 'public', '{}', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET
+            profile_completion_percentage = excluded.profile_completion_percentage,
+            interests = excluded.interests,
+            updated_at = CURRENT_TIMESTAMP
+        """,
+        (user_id, completion, interests),
+    )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO app_memberships (user_id, app_name, role)
+        VALUES (?, ?, 'user')
         """,
         (user_id, app_key),
     )
@@ -1099,6 +1185,11 @@ def create_user(email, password, fields, profile_pic):
             ),
         )
         user_id = cursor.lastrowid
+        username = unique_username(conn, fields["display_name"], email, user_id)
+        conn.execute(
+            "UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (username, user_id),
+        )
         ensure_app_profile(conn, user_id, "find-the-beat")
     log_activity(
         user_id,
@@ -2933,6 +3024,20 @@ def profile_detail(profile_id):
 @app.route("/users/<int:user_id>")
 def user_detail(user_id):
     return profile_detail(user_id)
+
+
+@app.route("/profile/<username>")
+def profile_by_username(username):
+    normalized = username_slug(username)
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id FROM users WHERE lower(username) = lower(?)",
+            (normalized,),
+        ).fetchone()
+    if not row:
+        flash("Profile not found.")
+        return redirect(url_for("profiles"))
+    return profile_detail(row["id"])
 
 
 @app.route("/perfomances")
