@@ -182,11 +182,13 @@
                             <source src="{{ url_for('uploaded_video', filename=perf.video_filename) }}">
                             Your browser does not support the video tag.
                         </video>
+                        <p class="media-access-note">Caption or transcript details should be included in the performance description when available.</p>
                     {% elif perf.audio_filename %}
                         <audio controls preload="metadata">
                             <source src="{{ url_for('uploaded_audio', filename=perf.audio_filename) }}">
                             Your browser does not support the audio tag.
                         </audio>
+                        <p class="media-access-note">Transcript or performance notes should be included in the description when available.</p>
                     {% elif perf.image_filename %}
                         <img src="{{ url_for('uploaded_photo', filename=perf.image_filename) }}" alt="{{ perf.title }}">
                     {% elif perf.thumb_filename %}

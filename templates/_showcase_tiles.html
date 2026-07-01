@@ -17,7 +17,7 @@
             {% if item.thumbnail_filename %}
               <img src="{{ url_for('uploaded_photo', filename=item.thumbnail_filename) }}" alt="{{ item.title }}">
             {% elif item.video_filename %}
-              <video preload="metadata" muted playsinline>
+              <video preload="metadata" muted playsinline aria-hidden="true">
                 <source src="{{ url_for('uploaded_video', filename=item.video_filename) }}">
               </video>
             {% elif item.image_filename %}
