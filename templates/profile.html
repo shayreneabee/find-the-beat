@@ -6,7 +6,9 @@
 <style>
   .profile-greeting,
   .profile-line {
-    background: var(--accent);
+    background:
+      linear-gradient(135deg, rgba(255, 176, 0, 0.98), rgba(255, 61, 141, 0.88)),
+      var(--accent);
     text-align: center;
     padding: 0.7rem 1rem;
     margin-bottom: 0.75rem;
@@ -22,10 +24,14 @@
 
   .profile-photo {
     width: min(248px, 78vw);
-    aspect-ratio: 1.62 / 1;
+    aspect-ratio: 1;
     overflow: hidden;
-    background: var(--cream);
-    box-shadow: var(--lift);
+    border: 6px solid rgba(255, 255, 255, 0.72);
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.5), transparent 38%),
+      linear-gradient(135deg, var(--pink), var(--accent-dark));
+    box-shadow: var(--shadow);
   }
 
   .profile-photo img {
@@ -41,7 +47,8 @@
     background:
       repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.16) 0 4px, transparent 4px 12px),
       radial-gradient(circle at 25% 20%, rgba(255, 224, 181, 0.78), transparent 38%),
-      linear-gradient(135deg, #f58a00, #ffe0b5);
+      linear-gradient(135deg, var(--pink), var(--accent-dark));
+    color: #fff8ef;
     font-size: 4rem;
     font-weight: 800;
   }
@@ -51,6 +58,61 @@
     gap: 0.8rem;
     margin: 0 1rem 1rem;
     padding: 1rem;
+  }
+
+  .creator-dashboard-hero {
+    position: relative;
+    overflow: hidden;
+    margin: 0 0 1rem;
+    padding: clamp(1.2rem, 5vw, 2.2rem) 1rem 1.4rem;
+    border-radius: 0 0 34px 34px;
+    background:
+      radial-gradient(circle at 88% 8%, rgba(255, 61, 141, 0.38), transparent 12rem),
+      radial-gradient(circle at 8% 18%, rgba(53, 216, 255, 0.2), transparent 10rem),
+      linear-gradient(135deg, rgba(22, 10, 38, 0.98), rgba(43, 18, 77, 0.96));
+    color: #fff8ef;
+    box-shadow: var(--shadow);
+  }
+
+  .creator-dashboard-hero h1,
+  .creator-dashboard-hero p {
+    margin: 0;
+  }
+
+  .creator-dashboard-hero h1 {
+    font-size: clamp(2.2rem, 10vw, 4.8rem);
+    line-height: 0.92;
+    letter-spacing: -0.06em;
+    text-align: center;
+  }
+
+  .creator-dashboard-hero p {
+    color: rgba(255, 248, 239, 0.78);
+    text-align: center;
+  }
+
+  .profile-identity-card {
+    display: grid;
+    gap: 0.9rem;
+    align-items: center;
+    max-width: 760px;
+    margin: 1.2rem auto 0;
+  }
+
+  .profile-signal {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .profile-signal span {
+    border-radius: 999px;
+    padding: 0.42rem 0.7rem;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 248, 239, 0.86);
+    font-size: 0.78rem;
+    font-weight: 900;
   }
 
   .completion-meter {
@@ -90,30 +152,50 @@
 
   .profile-actions-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 0.8rem;
     padding: 1.2rem 1rem;
-    text-align: center;
   }
 
   .profile-action {
-    min-height: 118px;
+    min-height: 126px;
     display: grid;
-    place-items: center;
+    grid-template-columns: auto 1fr;
+    gap: 0.85rem;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid rgba(27, 17, 36, 0.1);
+    border-radius: 24px;
+    background: var(--card);
     color: var(--text);
+    box-shadow: var(--lift);
   }
 
   .profile-action span {
     display: block;
-    font-size: 2.65rem;
+    width: 3.35rem;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--pink), var(--accent-dark));
+    color: #fff8ef;
+    font-size: 1.55rem;
     line-height: 1;
-    margin-bottom: 0.3rem;
   }
 
   .profile-action strong {
-    font-size: 1.1rem;
+    font-size: 1.08rem;
     line-height: 1.12;
-    font-weight: 500;
+    font-weight: 950;
+  }
+
+  .profile-action small {
+    display: block;
+    margin-top: 0.28rem;
+    color: var(--muted);
+    line-height: 1.35;
+    font-weight: 700;
   }
 
   .profile-video,
@@ -144,26 +226,43 @@
     display: grid;
     gap: 0.65rem;
   }
+
+  @media (min-width: 720px) {
+    .profile-actions-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .profile-action {
+      grid-template-columns: 1fr;
+      align-content: start;
+    }
+  }
 </style>
 
 {% if user %}
-  <div class="section-band">my profile</div>
-  <div class="profile-greeting">Hi {{ user.display_name }}!</div>
-
-  <div class="profile-photo-wrap">
-    <div class="profile-photo">
-      {% if user.profile_pic %}
-        <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
-      {% elif user.avatar_url and (user.avatar_url.startswith("http") or user.avatar_url.startswith("/static/")) %}
-        <img src="{{ user.avatar_url }}" alt="{{ user.display_name }}">
-      {% else %}
-        <div class="profile-initial">{{ user.initials }}</div>
-      {% endif %}
+  <section class="creator-dashboard-hero">
+    <h1>{{ user.display_name }}'s Studio</h1>
+    <div class="profile-identity-card">
+      <div class="profile-photo-wrap">
+        <div class="profile-photo">
+          {% if user.profile_pic %}
+            <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
+          {% elif user.avatar_url and (user.avatar_url.startswith("http") or user.avatar_url.startswith("/static/")) %}
+            <img src="{{ user.avatar_url }}" alt="{{ user.display_name }}">
+          {% else %}
+            <div class="profile-initial">{{ user.initials }}</div>
+          {% endif %}
+        </div>
+      </div>
+      <p>{{ user.role or "Creative" }}{% if user.instrument %} / {{ user.instrument }}{% endif %}</p>
+      <p>{{ user.city or "Add your city" }}{% if user.state %}, {{ user.state }}{% endif %} {% if user.genre %}/ {{ user.genre }}{% endif %}</p>
+      <div class="profile-signal">
+        <span>{{ completion.percent }}% complete</span>
+        <span>{{ "Open to connect" if not user.availability else user.availability }}</span>
+        <span>{{ user.services_csv or "Add services" }}</span>
+      </div>
     </div>
-  </div>
-
-  <div class="profile-line">{{ user.city or "Add your city" }}{% if user.state %}, {{ user.state }}{% endif %}</div>
-  <div class="profile-line">{{ user.role or "Add talent" }}{% if user.instrument %} • {{ user.instrument }}{% endif %}</div>
+  </section>
 
   <section class="app-panel completion-card">
     <strong>Profile {{ completion.percent }}% complete</strong>
@@ -179,23 +278,31 @@
   <section class="profile-actions-grid">
     <a class="profile-action" href="{{ url_for('upload_performance') }}">
       <span>✦</span>
-      <strong>Upload a<br>Performance</strong>
+      <strong>Upload Performance<small>No performances yet? Upload your first sound and let the community hear you.</small></strong>
     </a>
     <a class="profile-action" href="{{ url_for('my_uploads') }}">
       <span>▣</span>
-      <strong>My<br>Uploads</strong>
+      <strong>My Uploads<small>Manage videos, audio, media links, and showcase moments.</small></strong>
     </a>
     <a class="profile-action" href="{{ url_for('inbox') }}">
       <span>▭</span>
-      <strong>Inbox{% if unread_count|default(0) %}<br>{{ unread_count }} new{% endif %}</strong>
+      <strong>Check Messages{% if unread_count|default(0) %}<small>{{ unread_count }} new conversation{{ '' if unread_count == 1 else 's' }} waiting.</small>{% else %}<small>Keep collaborations, bookings, and introductions moving.</small>{% endif %}</strong>
     </a>
     <a class="profile-action" href="{{ url_for('edit_profile') }}">
       <span>◉</span>
-      <strong>Edit<br>Profile</strong>
+      <strong>Edit My Profile<small>Update your sound, city, role, bio, and availability.</small></strong>
     </a>
     <a class="profile-action" href="{{ url_for('profiles') }}">
       <span>⌕</span>
-      <strong>Find<br>Creatives</strong>
+      <strong>Browse Talent<small>Find artists, producers, players, engineers, and creatives.</small></strong>
+    </a>
+    <a class="profile-action" href="{{ url_for('showcase') }}">
+      <span>★</span>
+      <strong>View Showcase<small>See fresh uploads and featured performances from the community.</small></strong>
+    </a>
+    <a class="profile-action" href="{{ url_for('search') }}">
+      <span>♫</span>
+      <strong>Find Collaborators<small>Search lanes by role, genre, instrument, city, or availability.</small></strong>
     </a>
   </section>
 
