@@ -672,6 +672,118 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS opportunities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                opportunity_type TEXT DEFAULT '',
+                role_needed TEXT DEFAULT '',
+                instrument_needed TEXT DEFAULT '',
+                genre TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                location_name TEXT DEFAULT '',
+                latitude REAL,
+                longitude REAL,
+                paid_status TEXT DEFAULT '',
+                compensation TEXT DEFAULT '',
+                event_date TEXT DEFAULT '',
+                application_deadline TEXT DEFAULT '',
+                contact_method TEXT DEFAULT '',
+                application_url TEXT DEFAULT '',
+                created_by INTEGER,
+                source_type TEXT DEFAULT 'user',
+                source_name TEXT DEFAULT '',
+                external_id TEXT DEFAULT '',
+                is_featured INTEGER DEFAULT 0,
+                is_seeded_demo INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'active',
+                FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                event_type TEXT DEFAULT '',
+                performer TEXT DEFAULT '',
+                venue TEXT DEFAULT '',
+                address TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                postal_code TEXT DEFAULT '',
+                latitude REAL,
+                longitude REAL,
+                start_datetime TEXT DEFAULT '',
+                end_datetime TEXT DEFAULT '',
+                price_min REAL,
+                price_max REAL,
+                ticket_url TEXT DEFAULT '',
+                source_url TEXT DEFAULT '',
+                source_name TEXT DEFAULT '',
+                external_id TEXT DEFAULT '',
+                image_url TEXT DEFAULT '',
+                genre TEXT DEFAULT '',
+                is_featured INTEGER DEFAULT 0,
+                is_seeded_demo INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                verification_status TEXT DEFAULT 'pending'
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS feed_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                activity_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                actor_user_id INTEGER,
+                related_profile_id INTEGER,
+                related_event_id INTEGER,
+                related_opportunity_id INTEGER,
+                related_performance_id INTEGER,
+                image_url TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                occurred_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                source_type TEXT DEFAULT 'platform',
+                source_name TEXT DEFAULT '',
+                external_url TEXT DEFAULT '',
+                visibility TEXT DEFAULT 'public',
+                is_seeded_demo INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY(related_profile_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY(related_event_id) REFERENCES events(id) ON DELETE SET NULL,
+                FOREIGN KEY(related_opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL,
+                FOREIGN KEY(related_performance_id) REFERENCES performances(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS event_import_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_name TEXT NOT NULL,
+                source_type TEXT DEFAULT '',
+                status TEXT DEFAULT 'pending',
+                imported_count INTEGER DEFAULT 0,
+                duplicate_count INTEGER DEFAULT 0,
+                error_message TEXT DEFAULT '',
+                started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                completed_at TEXT DEFAULT ''
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS profiles (
                 user_id INTEGER PRIMARY KEY,
                 profile_completion_percentage INTEGER DEFAULT 0,
@@ -769,6 +881,8 @@ def init_db():
             "is_admin": "INTEGER DEFAULT 0",
             "is_founder": "INTEGER DEFAULT 0",
             "is_verified": "INTEGER DEFAULT 0",
+            "is_seeded_demo": "INTEGER DEFAULT 0",
+            "demo_label": "TEXT DEFAULT ''",
             "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
             "last_login_at": "TEXT DEFAULT ''",
             "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
@@ -797,6 +911,44 @@ def init_db():
         }.items():
             if column not in performance_columns:
                 conn.execute(f"ALTER TABLE performances ADD COLUMN {column} {definition}")
+
+        for table, columns in {
+            "opportunities": {
+                "is_featured": "INTEGER DEFAULT 0",
+                "is_seeded_demo": "INTEGER DEFAULT 0",
+                "status": "TEXT DEFAULT 'active'",
+                "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+            },
+            "events": {
+                "is_featured": "INTEGER DEFAULT 0",
+                "is_seeded_demo": "INTEGER DEFAULT 0",
+                "verification_status": "TEXT DEFAULT 'pending'",
+                "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+            },
+            "feed_items": {
+                "is_seeded_demo": "INTEGER DEFAULT 0",
+                "visibility": "TEXT DEFAULT 'public'",
+            },
+        }.items():
+            existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            for column, definition in columns.items():
+                if column not in existing:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+        conn.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_opportunity_external_source
+            ON opportunities(source_name, external_id)
+            WHERE COALESCE(source_name, '') != '' AND COALESCE(external_id, '') != ''
+            """
+        )
+        conn.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_event_external_source
+            ON events(source_name, external_id)
+            WHERE COALESCE(source_name, '') != '' AND COALESCE(external_id, '') != ''
+            """
+        )
 
 
 def allowed_file(filename, allowed_extensions):
@@ -1629,6 +1781,8 @@ def row_to_profile(row):
     data["is_admin"] = bool(data.get("is_admin"))
     data["is_founder"] = bool(data.get("is_founder"))
     data["is_verified"] = bool(data.get("is_verified"))
+    data["is_seeded_demo"] = bool(data.get("is_seeded_demo"))
+    data["demo_label"] = data.get("demo_label") or ""
     data["photo_filename"] = data.get("profile_pic") or ""
     data["avatar_url"] = data.get("avatar_url") or data["photo_filename"] or ""
     data["video_filename"] = data.get("profile_video") or ""
@@ -1767,7 +1921,7 @@ def current_user():
 def inject_user_context():
     try:
         user = current_user()
-        unread = unread_message_count(user.id) if user else 0
+        unread = unread_message_count(user.get("id") if isinstance(user, dict) else user.id) if user else 0
     except Exception:
         app.logger.exception("Template user context failed")
         user = None
@@ -1796,7 +1950,8 @@ def admin_required(view):
         if not user:
             flash("Please log in first.")
             return redirect(url_for("login"))
-        if (user.email or "").strip().lower() != ADMIN_EMAIL:
+        email = user.get("email", "") if isinstance(user, dict) else user.email
+        if (email or "").strip().lower() != ADMIN_EMAIL:
             flash("That area is only available to the Brent & Co founder account.")
             return redirect(url_for("home"))
         return view(*args, **kwargs)
@@ -2072,79 +2227,397 @@ def search_category_profiles(category, filters):
     return [profile for profile in profiles if profile_matches_category(profile, category)]
 
 
+DEMO_PROFILE_IMAGE_URLS = [
+    "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1521337581100-8ca9a73a5f79?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1517230878791-4d28214057c2?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1525201548942-d8732f6617a0?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1526328828355-69b01701ca6a?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1461784121038-f088ca1e7714?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1531651008558-ed1740375b39?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1000&q=80&sat=-15",
+]
+
+
+DEMO_PROFILES = [
+    ("sample.jasmine.reed@example.com", "Jasmine Reed", "Singer", "R&B / Soul", "Jackson", "MS", "Voice", "Hooks, Background Vocals, Live Performance", "Warm vocals, harmony stacks, and live-show poise for studio sessions and showcases."),
+    ("sample.marcus.bell@example.com", "Marcus Bell", "Gospel Musician", "Gospel / Worship", "McComb", "MS", "Keyboard, Organ", "Sunday service, choir support, MD support", "Church-ready keys player available for worship teams, rehearsals, and recordings."),
+    ("sample.delta.pulse@example.com", "Delta Pulse Band", "Band", "Blues / Southern Soul", "Hattiesburg", "MS", "Guitar, Bass, Drums", "Festivals, Openers, Collaborations", "Working southern soul band seeking horn players and regional opener slots."),
+    ("sample.ari.stone@example.com", "Ari Stone", "Producer", "Hip-Hop / Pop", "Memphis", "TN", "Beat Production, Keys", "Production, Vocal Arrangement, Mixing Prep", "Producer building polished records with vocalists, rappers, and writers across the Mid-South."),
+    ("sample.nyla.marie@example.com", "Nyla Marie", "Rapper", "Hip-Hop", "New Orleans", "LA", "Voice", "Features, Live Sets, Writing", "Sharp verse writer with high-energy stage presence and collaborative studio focus."),
+    ("sample.eli.brooks@example.com", "Eli Brooks", "Bassist", "Jazz / Funk", "Biloxi", "MS", "Bass", "Live Bass, Studio Tracking, Rehearsals", "Pocket-first bassist for jazz sets, gospel services, funk bands, and studio dates."),
+    ("sample.camille.price@example.com", "Camille Price", "Audio Engineer", "R&B / Gospel", "Baton Rouge", "LA", "Console, Pro Tools", "Recording, Mixing, Live Sound", "Engineer focused on clean vocals, church events, and artist-friendly studio sessions."),
+    ("sample.noah.king@example.com", "Noah King", "Drummer", "Gospel / Rock", "Gulfport", "MS", "Drums", "Live Drums, Session Tracking, Auditions", "Dynamic drummer available for churches, touring artists, and weekend showcases."),
+    ("sample.sofia.valdez@example.com", "Sofia Valdez", "Violinist", "Classical / Pop", "Oxford", "MS", "Violin", "Strings, Weddings, Studio Layers", "Violinist adding strings to recordings, weddings, worship nights, and acoustic showcases."),
+    ("sample.miles.carter@example.com", "Miles Carter", "Jazz Musician", "Jazz / Blues", "Tupelo", "MS", "Saxophone", "Live Horns, Sessions, Arrangements", "Saxophonist with blues roots and smooth jazz phrasing for bands and studio work."),
+    ("sample.kenya.ross@example.com", "Kenya Ross", "Choir Director", "Gospel", "Meridian", "MS", "Voice, Piano", "Choir Direction, Vocal Coaching", "Choir director helping churches build confident, modern worship teams."),
+    ("sample.dj.ren@example.com", "DJ Ren", "DJ", "Hip-Hop / Club", "Mobile", "AL", "DJ", "DJ Bookings, Event Hosting", "Open-format DJ for college nights, showcases, private events, and artist release parties."),
+    ("sample.lena.gray@example.com", "Lena Gray", "Country Artist", "Country / Americana", "Hattiesburg", "MS", "Guitar, Voice", "Acoustic Sets, Songwriting", "Country storyteller booking acoustic sets and co-writing sessions."),
+    ("sample.rivercity.brass@example.com", "River City Brass", "Brass Section", "Soul / Marching Band", "New Orleans", "LA", "Trumpet, Trombone, Saxophone", "Horn Section, Parade Sets, Studio Horns", "Brass collective available for stage punch, second-line energy, and studio sections."),
+    ("sample.zion.walker@example.com", "Zion Walker", "Guitarist", "Blues / Gospel", "Jackson", "MS", "Guitar", "Lead Guitar, Worship Nights, Studio Tracking", "Expressive guitarist available for church services, blues sets, and artist sessions."),
+    ("sample.maya.hart@example.com", "Maya Hart", "Music Teacher", "Classical / Pop", "Baton Rouge", "LA", "Piano, Voice", "Lessons, Audition Prep, Vocal Coaching", "Teacher and coach helping new musicians build confidence for stage and studio."),
+    ("sample.coastline.collective@example.com", "Coastline Collective", "Band", "R&B / Funk", "Gulfport", "MS", "Full Band", "Private Events, Festivals, Openers", "Flexible live band booking polished sets for weddings, festivals, and artist showcases."),
+    ("sample.omar.price@example.com", "Omar Price", "Producer", "Trap / Gospel", "Memphis", "TN", "MPC, Keys", "Beat Production, Session Direction, Artist Development", "Producer blending church chords, trunk knock, and artist-first studio direction."),
+    ("sample.alana.brooks@example.com", "Alana Brooks", "Classical Musician", "Classical / Film", "Meridian", "MS", "Cello", "Strings, Scores, Weddings, Studio Layers", "Cellist available for string sections, ceremonies, scoring sessions, and live ensembles."),
+    ("sample.kai.morgan@example.com", "Kai Morgan", "Live Sound Engineer", "Rock / Gospel / Country", "Mobile", "AL", "Live Sound", "FOH, Monitors, Festival Support", "Live engineer supporting churches, venues, outdoor events, and touring artists."),
+]
+
+
+DEMO_OPPORTUNITIES = [
+    ("Gospel keys player needed for Sunday services", "Church Music", "Keyboard Player", "Keyboard, Organ", "Gospel", "Jackson", "MS", "New Hope Worship Center", "Paid", "$175 per service", "2026-08-02 09:00", "2026-07-30", "Email", "", "church-jackson-keys", 1),
+    ("Wedding band hiring bassist for August dates", "Paid Performance", "Bassist", "Bass", "R&B, Soul, Pop", "McComb", "MS", "Magnolia Event Band", "Paid", "$300 per event", "2026-08-15 18:00", "2026-08-05", "Message", "", "mccomb-wedding-bass", 1),
+    ("Producer seeking vocalist for EP sessions", "Collaboration", "Vocalist", "Voice", "R&B, Pop", "Memphis", "TN", "Southside Studio", "Collaboration", "Split agreement", "2026-08-07 13:00", "2026-08-01", "Message", "", "memphis-vocalist-ep", 1),
+    ("Venue seeking opening act for Friday concert", "Opening Act", "Band or Solo Artist", "Any", "Blues, Soul, Rock", "Hattiesburg", "MS", "The Rail Room", "Paid", "$250 flat", "2026-07-31 20:00", "2026-07-26", "Application URL", "", "hattiesburg-opener", 1),
+    ("Studio booking session drummer", "Recording Session", "Drummer", "Drums", "Gospel, Funk", "Gulfport", "MS", "Coastline Recording", "Paid", "$80/hour", "2026-08-10 11:00", "2026-08-03", "Email", "", "gulfport-session-drums", 0),
+    ("Auditions for regional touring choir", "Audition", "Singers", "Voice", "Gospel, Classical", "Meridian", "MS", "Queen City Arts Hall", "Unpaid", "Travel stipend for selected singers", "2026-08-18 17:30", "2026-08-12", "Application URL", "", "meridian-choir-audition", 0),
+    ("DJ needed for college welcome-week event", "DJ Booking", "DJ", "DJ", "Hip-Hop, Pop", "Oxford", "MS", "Campus Activities Board", "Paid", "$500", "2026-08-23 19:00", "2026-08-10", "Email", "", "oxford-dj-welcome", 0),
+    ("Singer-songwriter seeks violinist for live session", "Collaboration", "Violinist", "Violin", "Country, Americana", "Tupelo", "MS", "Warehouse Studio", "Collaboration", "Video credit plus split", "2026-08-05 15:00", "2026-07-29", "Message", "", "tupelo-violin-live", 0),
+    ("Audio engineer for church music conference", "Sound Engineer", "Live Sound Engineer", "Live Sound", "Gospel", "Baton Rouge", "LA", "River Center", "Paid", "$650 weekend rate", "2026-09-04 10:00", "2026-08-20", "Email", "", "baton-rouge-sound", 1),
+    ("Battle of the bands looking for contestants", "Showcase", "Band", "Full Band", "Rock, Hip-Hop, Blues", "Biloxi", "MS", "Coast Music Hall", "Paid", "Prize pool", "2026-08-29 18:00", "2026-08-16", "Application URL", "", "biloxi-band-battle", 0),
+    ("Producer needs rapper for weekend studio lock-in", "Collaboration", "Rapper", "Voice", "Hip-Hop", "Memphis", "TN", "Memphis Music Lab", "Collaboration", "Split agreement", "2026-08-09 14:00", "2026-08-04", "Message", "", "memphis-rapper-lockin", 0),
+    ("Choir needs alto section leader", "Church Music", "Alto Section Leader", "Voice", "Gospel", "Meridian", "MS", "Queen City Choirs", "Paid", "$125 rehearsal stipend", "2026-08-12 18:30", "2026-08-08", "Email", "", "meridian-alto-leader", 0),
+    ("Country artist seeking pedal steel player", "Recording Session", "Pedal Steel Player", "Pedal Steel", "Country, Americana", "Hattiesburg", "MS", "Pine Belt Studio", "Paid", "$200 session", "2026-08-16 12:00", "2026-08-09", "Message", "", "hattiesburg-pedal-steel", 0),
+    ("Mobile venue needs Saturday DJ", "DJ Booking", "DJ", "DJ", "Hip-Hop, R&B, Pop", "Mobile", "AL", "Saenger Lounge", "Paid", "$400", "2026-08-17 21:00", "2026-08-11", "Email", "", "mobile-saturday-dj", 0),
+    ("Jazz trio looking for upright bassist", "Band Member", "Bassist", "Upright Bass", "Jazz", "New Orleans", "LA", "Frenchmen Street Co-op", "Paid", "$150 plus tips", "2026-08-20 20:00", "2026-08-13", "Message", "", "nola-upright-bass", 0),
+]
+
+
+DEMO_EVENTS = [
+    ("Jackson Soul Night", "Concert", "Jasmine Reed and friends", "Duling Hall", "Jackson", "MS", "2026-07-25 20:00", "R&B / Soul", 18, 35, "Venue Calendar", "https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&fit=crop&w=1200&q=80", "jackson-soul-night", 1),
+    ("McComb Gospel Choir Workshop", "Workshop", "Kenya Ross", "Summit Arts Center", "McComb", "MS", "2026-07-26 10:00", "Gospel", 0, 15, "Local Arts Feed", "https://images.unsplash.com/photo-1521337581100-8ca9a73a5f79?auto=format&fit=crop&w=1200&q=80", "mccomb-gospel-workshop", 1),
+    ("Hattiesburg Open Mic", "Open Mic", "Hosted by The Rail Room", "The Rail Room", "Hattiesburg", "MS", "2026-07-24 19:30", "Open Mic", 0, 0, "Venue Calendar", "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1200&q=80", "hattiesburg-open-mic", 1),
+    ("Gulfport Jazz on the Coast", "Festival", "Miles Carter Quartet", "Jones Park", "Gulfport", "MS", "2026-08-01 17:00", "Jazz", 20, 45, "Tourism Calendar", "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=1200&q=80", "gulfport-jazz-coast", 1),
+    ("Biloxi Band Battle", "Battle", "Coast Music Hall", "Coast Music Hall", "Biloxi", "MS", "2026-08-29 18:00", "Rock / Hip-Hop", 12, 20, "Venue Calendar", "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?auto=format&fit=crop&w=1200&q=80", "biloxi-band-battle-event", 0),
+    ("Oxford Songwriters Circle", "Artist Meetup", "Lena Gray", "Proud Larry's", "Oxford", "MS", "2026-08-08 18:30", "Country / Americana", 10, 10, "Community Feed", "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=1200&q=80", "oxford-songwriters", 0),
+    ("Memphis Producer Meetup", "Networking", "Ari Stone", "Memphis Music Lab", "Memphis", "TN", "2026-08-06 19:00", "Hip-Hop / R&B", 0, 0, "Public Community Feed", "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80", "memphis-producer-meetup", 1),
+    ("New Orleans Brass Jam", "Jam Session", "River City Brass", "Frenchmen Street Co-op", "New Orleans", "LA", "2026-08-03 21:00", "Brass / Soul", 8, 15, "Venue Calendar", "https://images.unsplash.com/photo-1461784121038-f088ca1e7714?auto=format&fit=crop&w=1200&q=80", "nola-brass-jam", 0),
+    ("Baton Rouge Music Conference", "Conference", "River Center Music Network", "River Center", "Baton Rouge", "LA", "2026-09-04 10:00", "Industry", 35, 95, "Arts Organization", "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80", "baton-rouge-conference", 1),
+    ("Mobile DJ Showcase", "Showcase", "DJ Ren", "Saenger Theatre Lounge", "Mobile", "AL", "2026-08-14 21:00", "DJ / Club", 15, 25, "Venue Calendar", "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=1200&q=80", "mobile-dj-showcase", 0),
+    ("Tupelo Studio Strings Session", "Workshop", "Sofia Valdez", "Warehouse Studio", "Tupelo", "MS", "2026-08-05 15:00", "Strings", 20, 30, "University Music Feed", "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=1200&q=80", "tupelo-strings", 0),
+    ("Meridian Choir Night", "Church Music Event", "Queen City Choirs", "Queen City Arts Hall", "Meridian", "MS", "2026-08-18 19:00", "Gospel", 0, 12, "Local Arts Feed", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=1200&q=80", "meridian-choir-night", 0),
+    ("Jackson Battle of the Bands", "Battle of the Bands", "Capital City Music League", "Hal and Mal's", "Jackson", "MS", "2026-08-22 19:00", "Rock / Soul / Hip-Hop", 10, 20, "Venue Calendar", "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?auto=format&fit=crop&w=1200&q=80", "jackson-battle-bands", 0),
+    ("Baton Rouge Song Camp", "Workshop", "Maya Hart and River Center writers", "River Center Studio", "Baton Rouge", "LA", "2026-08-27 11:00", "Songwriting", 25, 45, "Arts Organization", "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80", "baton-rouge-song-camp", 0),
+    ("Memphis Studio Open House", "Artist Meetup", "Memphis Music Lab", "Memphis Music Lab", "Memphis", "TN", "2026-08-30 16:00", "Production / Networking", 0, 0, "Public Community Feed", "https://images.unsplash.com/photo-1525201548942-d8732f6617a0?auto=format&fit=crop&w=1200&q=80", "memphis-studio-open-house", 0),
+]
+
+
+def ns(row):
+    return SimpleNamespace(**dict(row)) if row is not None else None
+
+
 def seed_demo_profiles_if_empty():
-    demo_profiles = [
-        {
-            "email": "sample.producer.dallas@example.com",
-            "display_name": "Sample Dallas Producer",
-            "role": "Producer",
-            "genre": "Hip-Hop, R&B",
-            "city": "Dallas, TX",
-            "bio": "Sample profile only: a Dallas producer looking for artists, songwriters, and engineers to build polished records.",
-            "tags_csv": "Sample Data, Available for Collabs, Producer",
-            "instrument": "Keys, Beat Production",
-            "services_csv": "Production, Arrangement, Mixing Prep",
-        },
-        {
-            "email": "sample.vocalist.atlanta@example.com",
-            "display_name": "Sample Atlanta Vocalist",
-            "role": "Vocalist",
-            "genre": "Soul, Pop, Gospel",
-            "city": "Atlanta, GA",
-            "bio": "Sample profile only: a vocalist with warm tone, harmony skills, and interest in studio sessions or live features.",
-            "tags_csv": "Sample Data, Vocalist, Available for Collabs",
-            "instrument": "Voice",
-            "services_csv": "Hooks, Background Vocals, Live Performance",
-        },
-        {
-            "email": "sample.drummer.houston@example.com",
-            "display_name": "Sample Houston Drummer",
-            "role": "Musician",
-            "genre": "Funk, Gospel, Live Band",
-            "city": "Houston, TX",
-            "bio": "Sample profile only: a drummer available for live shows, rehearsals, and studio tracking.",
-            "tags_csv": "Sample Data, Drummer, Live Ready",
-            "instrument": "Drums",
-            "services_csv": "Live Drums, Studio Tracking, Rehearsals",
-        },
-        {
-            "email": "sample.songwriter.memphis@example.com",
-            "display_name": "Sample Memphis Songwriter",
-            "role": "Songwriter",
-            "genre": "Country Soul, R&B",
-            "city": "Memphis, TN",
-            "bio": "Sample profile only: a songwriter focused on hooks, storytelling, and artist development sessions.",
-            "tags_csv": "Sample Data, Songwriter, Available for Collabs",
-            "instrument": "Lyrics, Melody",
-            "services_csv": "Topline Writing, Lyrics, Song Concepts",
-        },
-    ]
     with get_db() as conn:
-        count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        if count:
+        existing = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE is_seeded_demo = 1 OR email LIKE 'sample.%@example.com'"
+        ).fetchone()[0]
+        if existing >= len(DEMO_PROFILES):
             return
-        for profile in demo_profiles:
+        for index, profile in enumerate(DEMO_PROFILES):
+            (
+                email, display_name, role, genre, city, state, instrument,
+                services_csv, bio,
+            ) = profile
             conn.execute(
                 """
                 INSERT INTO users (
-                    email, password_hash, display_name, role, genre, city, bio,
-                    tags_csv, instrument, services_csv
+                    email, password_hash, display_name, role, genre, city, state, country,
+                    bio, tags_csv, instrument, services_csv, availability, avatar_url,
+                    profile_photo, is_seeded_demo, demo_label, is_verified
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'United States', ?, ?, ?, ?, ?, ?, ?, 1, 'Community Spotlight', 1)
+                ON CONFLICT(email) DO UPDATE SET
+                    display_name = excluded.display_name,
+                    role = excluded.role,
+                    genre = excluded.genre,
+                    city = excluded.city,
+                    state = excluded.state,
+                    bio = excluded.bio,
+                    tags_csv = excluded.tags_csv,
+                    instrument = excluded.instrument,
+                    services_csv = excluded.services_csv,
+                    availability = excluded.availability,
+                    avatar_url = excluded.avatar_url,
+                    profile_photo = excluded.profile_photo,
+                    is_seeded_demo = 1,
+                    demo_label = 'Community Spotlight',
+                    updated_at = CURRENT_TIMESTAMP
                 """,
                 (
-                    profile["email"],
+                    email,
                     generate_password_hash(secrets.token_urlsafe(24)),
-                    profile["display_name"],
-                    profile["role"],
-                    profile["genre"],
-                    profile["city"],
-                    profile["bio"],
-                    profile["tags_csv"],
-                    profile["instrument"],
-                    profile["services_csv"],
+                    display_name,
+                    role,
+                    genre,
+                    city,
+                    state,
+                    bio,
+                    "Seeded Demo, Community Spotlight, Available for Work",
+                    instrument,
+                    services_csv,
+                    "Available for bookings, collaborations, and selected opportunities.",
+                    DEMO_PROFILE_IMAGE_URLS[index % len(DEMO_PROFILE_IMAGE_URLS)],
+                    DEMO_PROFILE_IMAGE_URLS[index % len(DEMO_PROFILE_IMAGE_URLS)],
                 ),
             )
+            row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            if row:
+                ensure_app_profile(conn, row["id"], "find-the-beat")
+
+
+def seed_community_content():
+    with get_db() as conn:
+        for item in DEMO_OPPORTUNITIES:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO opportunities (
+                    title, opportunity_type, role_needed, instrument_needed, genre, city, state,
+                    location_name, paid_status, compensation, event_date, application_deadline,
+                    contact_method, application_url, source_type, source_name, external_id,
+                    is_featured, is_seeded_demo, status, description
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'seeded', 'FindTheBeat Demo Seed', ?, ?, 1, 'active', ?)
+                """,
+                (
+                    item[0], item[1], item[2], item[3], item[4], item[5], item[6],
+                    item[7], item[8], item[9], item[10], item[11], item[12], item[13],
+                    item[14], item[15],
+                    f"{item[1]} opportunity in {item[5]} for {item[2].lower()}."
+                ),
+            )
+
+        for item in DEMO_EVENTS:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO events (
+                    title, event_type, performer, venue, city, state, start_datetime, genre,
+                    price_min, price_max, source_name, image_url, external_id, is_featured,
+                    is_seeded_demo, verification_status, description, source_url
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'reviewed', ?, '')
+                """,
+                (
+                    item[0], item[1], item[2], item[3], item[4], item[5],
+                    item[6], item[7], item[8], item[9], item[10], item[11],
+                    item[12], item[13],
+                    f"{item[1]} listing sourced from {item[10]} for Find The Beat discovery."
+                ),
+            )
+
+        feed_count = conn.execute("SELECT COUNT(*) FROM feed_items WHERE is_seeded_demo = 1").fetchone()[0]
+        if feed_count < 20:
+            conn.execute("DELETE FROM feed_items WHERE is_seeded_demo = 1")
+            feed_items = [
+                ("Upload", "Jasmine Reed uploaded a live R&B performance", "A new vocal showcase is live from Jackson.", "Jackson", "MS", "platform"),
+                ("Opportunity", "New church keys opportunity posted", "A Jackson worship team needs a keyboard player this month.", "Jackson", "MS", "platform"),
+                ("Event", "Hattiesburg open mic is happening this week", "Local singers, rappers, and bands can sign up at the venue.", "Hattiesburg", "MS", "Venue Calendar"),
+                ("Profile", "Ari Stone is available for vocal production", "Producer profile updated with studio availability.", "Memphis", "TN", "platform"),
+                ("Audition", "Regional choir auditions were added", "Singers can review the Meridian audition window.", "Meridian", "MS", "Local Arts Feed"),
+                ("Collab", "Singer-songwriter seeks violinist", "A Tupelo live-session collaboration is open now.", "Tupelo", "MS", "platform"),
+                ("Event", "Gulfport Jazz on the Coast announced", "A weekend festival listing is ready for review.", "Gulfport", "MS", "Tourism Calendar"),
+                ("Booking", "DJ booking request opened in Oxford", "Campus welcome week needs an open-format DJ.", "Oxford", "MS", "platform"),
+                ("Profile", "River City Brass joined the community", "New brass section profile added from New Orleans.", "New Orleans", "LA", "platform"),
+                ("Opportunity", "Baton Rouge needs a live sound engineer", "Conference organizers are reviewing engineer applications.", "Baton Rouge", "LA", "Arts Organization"),
+                ("Event", "Memphis producer meetup added", "Producers and vocalists can connect at the music lab.", "Memphis", "TN", "Public Community Feed"),
+                ("Showcase", "Biloxi battle of the bands is recruiting", "Bands can apply for a paid prize-pool showcase.", "Biloxi", "MS", "Venue Calendar"),
+                ("Profile", "Sofia Valdez marked strings available", "Violin and studio layers are open for August sessions.", "Oxford", "MS", "platform"),
+                ("Opportunity", "Studio drummer request posted in Gulfport", "Coastline Recording is looking for session drums.", "Gulfport", "MS", "platform"),
+                ("Event", "Mobile DJ Showcase announced", "A public showcase listing is ready for local discovery.", "Mobile", "AL", "Venue Calendar"),
+                ("Profile", "Kenya Ross added choir direction services", "Choir support and vocal coaching are now listed.", "Meridian", "MS", "platform"),
+                ("Opportunity", "Venue seeking Friday opening act", "The Rail Room is reviewing blues, soul, and rock acts.", "Hattiesburg", "MS", "platform"),
+                ("Event", "New Orleans brass jam added", "A late-night jam session is listed from a venue calendar.", "New Orleans", "LA", "Venue Calendar"),
+                ("Collab", "Producer needs rapper for weekend lock-in", "A Memphis studio session is looking for a rapper with quick turnaround.", "Memphis", "TN", "platform"),
+                ("Gig", "Mobile venue needs a Saturday DJ", "A paid DJ booking is open for a late-night crowd.", "Mobile", "AL", "Venue Calendar"),
+            ]
+            for index, item in enumerate(feed_items):
+                conn.execute(
+                    """
+                    INSERT INTO feed_items (
+                        activity_type, title, description, city, state, source_type, source_name,
+                        image_url, occurred_at, is_seeded_demo
+                    )
+                    VALUES (?, ?, ?, ?, ?, 'seeded', ?, ?, datetime('now', ?), 1)
+                    """,
+                    (
+                        item[0], item[1], item[2], item[3], item[4], item[5],
+                        DEMO_PROFILE_IMAGE_URLS[index % len(DEMO_PROFILE_IMAGE_URLS)],
+                        f"-{index * 3 + 1} hours",
+                    ),
+                )
+
+
+def dedupe_event_candidate(conn, source_name, external_id, title, venue, city, start_datetime):
+    if source_name and external_id:
+        row = conn.execute(
+            "SELECT id FROM events WHERE source_name = ? AND external_id = ?",
+            (source_name, external_id),
+        ).fetchone()
+        if row:
+            return row["id"]
+    row = conn.execute(
+        """
+        SELECT id
+        FROM events
+        WHERE lower(title) = lower(?)
+          AND lower(COALESCE(venue, '')) = lower(?)
+          AND lower(COALESCE(city, '')) = lower(?)
+          AND date(start_datetime) = date(?)
+        """,
+        (title, venue or "", city or "", start_datetime or ""),
+    ).fetchone()
+    return row["id"] if row else None
+
+
+def archive_expired_listings():
+    with get_db() as conn:
+        conn.execute(
+            """
+            UPDATE opportunities
+            SET status = 'archived', updated_at = CURRENT_TIMESTAMP
+            WHERE status = 'active'
+              AND COALESCE(application_deadline, event_date, '') != ''
+              AND datetime(COALESCE(NULLIF(application_deadline, ''), event_date)) < datetime('now', '-1 day')
+            """
+        )
+        conn.execute(
+            """
+            UPDATE events
+            SET verification_status = CASE
+                WHEN verification_status = 'verified' THEN 'completed'
+                ELSE verification_status
+            END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE COALESCE(start_datetime, '') != ''
+              AND datetime(start_datetime) < datetime('now', '-1 day')
+              AND verification_status != 'completed'
+            """
+        )
+
+
+def homepage_context(user=None):
+    archive_expired_listings()
+    user_get = user.get if isinstance(user, dict) else (lambda key, default="": getattr(user, key, default))
+    user_city = user_get("city", "") if user else ""
+    user_state = user_get("state", "") if user else ""
+    user_role = user_get("role", "") if user else ""
+    user_instrument = user_get("instrument", "") if user else ""
+    user_genre = user_get("genre", "") if user else ""
+
+    def order_for_personalization(sql_base, params=None):
+        ranking = []
+        ranking_params = []
+        if user_city:
+            ranking.append("CASE WHEN city LIKE ? THEN 0 ELSE 1 END")
+            ranking_params.append(f"%{user_city}%")
+        if user_state:
+            ranking.append("CASE WHEN state LIKE ? THEN 0 ELSE 1 END")
+            ranking_params.append(f"%{user_state}%")
+        return sql_base + " ORDER BY " + ", ".join(ranking + ["is_featured DESC", "datetime(created_at) DESC", "id DESC"]), ranking_params + list(params or [])
+
+    with get_db() as conn:
+        opp_sql, opp_params = order_for_personalization(
+            """
+            SELECT *
+            FROM opportunities
+            WHERE status = 'active'
+            """,
+        )
+        opportunities = [ns(row) for row in conn.execute(opp_sql + " LIMIT 12", opp_params).fetchall()]
+
+        looking_rows = conn.execute(
+            """
+            SELECT *
+            FROM opportunities
+            WHERE status = 'active'
+              AND (
+                opportunity_type IN ('Collaboration', 'Church Music', 'Band Member', 'DJ Booking', 'Recording Session')
+                OR title LIKE '%needs%'
+                OR title LIKE '%needed%'
+                OR title LIKE '%seeking%'
+                OR title LIKE '%looking%'
+              )
+            ORDER BY datetime(created_at) DESC, is_featured DESC, id DESC
+            LIMIT 8
+            """
+        ).fetchall()
+        looking_items = [ns(row) for row in looking_rows]
+
+        event_sql, event_params = order_for_personalization(
+            """
+            SELECT *
+            FROM events
+            WHERE COALESCE(start_datetime, '') = '' OR datetime(start_datetime) >= datetime('now', '-1 day')
+            """,
+        )
+        events = [ns(row) for row in conn.execute(event_sql + " LIMIT 15", event_params).fetchall()]
+
+        feed_rows = conn.execute(
+            """
+            SELECT *
+            FROM feed_items
+            WHERE visibility = 'public'
+            ORDER BY datetime(occurred_at) DESC, id DESC
+            LIMIT 18
+            """
+        ).fetchall()
+        feed_items = [ns(row) for row in feed_rows]
+
+        admin_counts = {
+            "pending_events": conn.execute("SELECT COUNT(*) FROM events WHERE verification_status IN ('pending', 'reviewed')").fetchone()[0],
+            "active_opportunities": conn.execute("SELECT COUNT(*) FROM opportunities WHERE status = 'active'").fetchone()[0],
+            "seeded_profiles": conn.execute("SELECT COUNT(*) FROM users WHERE is_seeded_demo = 1").fetchone()[0],
+            "import_runs": conn.execute("SELECT COUNT(*) FROM event_import_runs").fetchone()[0],
+        }
+
+    def profile_value(profile, key, default=""):
+        return profile.get(key, default) if isinstance(profile, dict) else getattr(profile, key, default)
+
+    profiles = search_profiles(city=user_city, state=user_state) if (user_city or user_state) else search_profiles()
+    profiles = [profile for profile in profiles if not profile_value(profile, "is_admin")][:6]
+    if len(profiles) < 6:
+        seen = {profile_value(profile, "id") for profile in profiles}
+        profiles.extend([
+            profile for profile in search_profiles()
+            if profile_value(profile, "id") not in seen and not profile_value(profile, "is_admin")
+        ][:6 - len(profiles)])
+
+    personalized = {
+        "greeting": f"Good morning, {user_get('display_name', '') or user_get('full_name', '') or 'friend'}" if user else "",
+        "gig_matches": len([
+            opp for opp in opportunities
+            if any(term and term.lower() in " ".join([opp.role_needed, opp.instrument_needed, opp.genre]).lower()
+                   for term in [user_role, user_instrument, user_genre])
+        ]) if user else 0,
+        "collaboration_matches": len([
+            item for item in looking_items
+            if any(term and term.lower() in " ".join([item.role_needed, item.instrument_needed, item.genre]).lower()
+                   for term in [user_role, user_instrument, user_genre])
+        ]) if user else 0,
+        "nearby_musicians": len([profile for profile in profiles if user_city and profile_value(profile, "city") == user_city]) if user else 0,
+        "weekend_events": len(events[:4]) if user else 0,
+        "nearby_activity": len([item for item in feed_items if user_state and item.state == user_state]) if user else 0,
+    }
+
+    return {
+        "opportunities": opportunities,
+        "looking_items": looking_items,
+        "events": events,
+        "feed_items": feed_items,
+        "featured_musicians": profiles,
+        "personalized": personalized,
+        "admin_listing_counts": admin_counts,
+    }
 
 
 def seed_founder_profile():
@@ -2578,12 +3051,21 @@ def home():
     role = request.args.get("role", "").strip()
     genre = request.args.get("genre", "").strip()
     city = request.args.get("city", "").strip()
-    creators = search_profiles(q, role, genre, city)[:4]
+    viewer = current_user()
+    community = homepage_context(viewer)
+    creators = search_profiles(q, role, genre, city)[:6] if any([q, role, genre, city]) else community["featured_musicians"]
     return render_template(
         "index.html",
         creators=creators,
         featured_showcase=get_showcase_tiles(limit=6),
         category_tiles=SEARCH_CATEGORIES,
+        opportunities=community["opportunities"],
+        looking_items=community["looking_items"],
+        events=community["events"],
+        feed_items=community["feed_items"],
+        featured_musicians=community["featured_musicians"],
+        personalized=community["personalized"],
+        admin_listing_counts=community["admin_listing_counts"],
         q=q,
         role_filter=role,
         genre_filter=genre,
@@ -3847,6 +4329,7 @@ def handle_not_found(error):
 
 init_db()
 seed_demo_profiles_if_empty()
+seed_community_content()
 seed_founder_profile()
 
 

@@ -7,56 +7,26 @@
 <style>
   .beat-home {
     display: grid;
-    gap: clamp(1rem, 3vw, 1.6rem);
+    gap: clamp(1rem, 3vw, 1.65rem);
   }
 
   .beat-hero {
     position: relative;
     overflow: hidden;
     display: grid;
-    gap: 1.35rem;
-    min-height: 620px;
-    padding: clamp(1.4rem, 6vw, 4.2rem);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 30px;
+    gap: clamp(1.2rem, 4vw, 2rem);
+    min-height: min(720px, calc(100vh - 132px));
+    padding: clamp(1.2rem, 5vw, 4rem);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 18px;
     background:
-      radial-gradient(circle at 84% 18%, rgba(255, 61, 141, 0.44), transparent 14rem),
-      radial-gradient(circle at 12% 18%, rgba(53, 216, 255, 0.28), transparent 13rem),
-      linear-gradient(145deg, rgba(14, 5, 29, 0.96), rgba(39, 16, 74, 0.94) 54%, rgba(255, 176, 0, 0.62));
+      linear-gradient(90deg, rgba(10, 4, 20, 0.86), rgba(10, 4, 20, 0.52) 48%, rgba(10, 4, 20, 0.88)),
+      url("https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1800&q=82");
+    background-size: cover;
+    background-position: center;
     color: #fff8ef;
     box-shadow: var(--shadow);
     isolation: isolate;
-  }
-
-  .beat-hero::before,
-  .beat-hero::after {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  .beat-hero::before {
-    inset: auto -8% 8% -8%;
-    height: 180px;
-    opacity: 0.44;
-    background:
-      linear-gradient(90deg, transparent 0 2%, rgba(255, 255, 255, 0.74) 2% 3%, transparent 3% 7%),
-      linear-gradient(90deg, transparent 0 7%, rgba(255, 176, 0, 0.76) 7% 8%, transparent 8% 13%),
-      linear-gradient(90deg, transparent 0 13%, rgba(255, 61, 141, 0.68) 13% 14%, transparent 14% 20%);
-    background-size: 120px 100%;
-    mask-image: linear-gradient(180deg, transparent, #000 30%, #000 75%, transparent);
-    transform: skewY(-5deg);
-  }
-
-  .beat-hero::after {
-    right: -5rem;
-    top: -5rem;
-    width: 18rem;
-    aspect-ratio: 1;
-    border-radius: 999px;
-    border: 42px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 0 0 18px rgba(255, 176, 0, 0.14);
   }
 
   .beat-hero-copy {
@@ -64,7 +34,7 @@
     gap: 1rem;
     align-content: center;
     max-width: 820px;
-    min-height: 420px;
+    min-height: 390px;
   }
 
   .beat-kicker,
@@ -73,35 +43,33 @@
     color: var(--gold);
     font-size: 0.76rem;
     font-weight: 950;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
   }
 
   .beat-hero h1 {
     margin: 0;
-    max-width: 780px;
-    font-size: clamp(3rem, 13vw, 6.8rem);
-    line-height: 0.9;
-    letter-spacing: -0.07em;
+    max-width: 820px;
+    font-size: clamp(3rem, 12vw, 6.65rem);
+    line-height: 0.92;
+    letter-spacing: 0;
   }
 
   .beat-hero p {
-    max-width: 640px;
+    max-width: 660px;
     margin: 0;
-    color: rgba(255, 248, 239, 0.84);
-    font-size: clamp(1.02rem, 2vw, 1.28rem);
+    color: rgba(255, 248, 239, 0.86);
+    font-size: clamp(1rem, 2vw, 1.24rem);
   }
 
   .hero-actions,
+  .beat-filters,
   .beat-card-actions,
-  .showcase-pills {
+  .beat-pills,
+  .personal-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.72rem;
-  }
-
-  .hero-actions .button {
-    border-radius: 999px;
+    gap: 0.65rem;
   }
 
   .hero-actions .button.secondary {
@@ -112,49 +80,41 @@
   }
 
   .beat-hero-panel {
-    display: grid;
-    gap: 0.8rem;
     align-self: end;
+    display: grid;
+    gap: 0.85rem;
+    max-width: 470px;
     padding: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.11);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 14px;
+    background: rgba(12, 5, 24, 0.68);
     backdrop-filter: blur(16px);
   }
 
-  .waveform {
-    display: grid;
-    grid-template-columns: repeat(22, 1fr);
+  .beat-hero-panel strong {
+    font-size: clamp(1.35rem, 4vw, 2.2rem);
+    line-height: 1;
+  }
+
+  .personal-stats span,
+  .beat-pills span,
+  .beat-filters span {
+    display: inline-flex;
     align-items: center;
-    gap: 0.24rem;
-    min-height: 78px;
-  }
-
-  .waveform span {
-    display: block;
-    min-height: 16px;
+    min-height: 36px;
     border-radius: 999px;
-    background: linear-gradient(180deg, var(--cyan), var(--pink) 54%, var(--gold));
-    box-shadow: 0 0 18px rgba(255, 61, 141, 0.25);
-  }
-
-  .waveform span:nth-child(2n) { height: 48px; }
-  .waveform span:nth-child(3n) { height: 68px; }
-  .waveform span:nth-child(4n) { height: 32px; }
-  .waveform span:nth-child(5n) { height: 58px; }
-
-  .beat-panel-title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 950;
+    padding: 0.38rem 0.72rem;
+    background: rgba(255, 255, 255, 0.13);
+    color: rgba(255, 248, 239, 0.86);
+    font-size: 0.82rem;
+    font-weight: 900;
   }
 
   .beat-section {
     display: grid;
     gap: 1rem;
     padding: clamp(1rem, 3vw, 1.45rem);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 28px;
+    border-radius: 16px;
     background: rgba(255, 252, 246, 0.96);
     color: var(--text);
     box-shadow: var(--lift);
@@ -162,8 +122,7 @@
 
   .beat-section.dark {
     background:
-      radial-gradient(circle at 92% 12%, rgba(255, 61, 141, 0.22), transparent 12rem),
-      linear-gradient(135deg, rgba(22, 10, 38, 0.98), rgba(43, 18, 77, 0.96));
+      linear-gradient(135deg, rgba(20, 8, 36, 0.98), rgba(52, 19, 72, 0.96));
     color: #fff8ef;
   }
 
@@ -182,10 +141,10 @@
   }
 
   .beat-section h2 {
-    max-width: 660px;
-    font-size: clamp(1.8rem, 5vw, 3.4rem);
-    line-height: 0.96;
-    letter-spacing: -0.045em;
+    max-width: 720px;
+    font-size: clamp(1.75rem, 5vw, 3.35rem);
+    line-height: 0.98;
+    letter-spacing: 0;
   }
 
   .beat-section p {
@@ -193,66 +152,193 @@
   }
 
   .beat-section.dark p {
-    color: rgba(255, 248, 239, 0.72);
+    color: rgba(255, 248, 239, 0.73);
   }
 
-  .activity-grid,
+  .beat-layout {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .beat-feed {
+    display: grid;
+    gap: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .feed-item {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 0.95rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .feed-item:last-child {
+    border-bottom: 0;
+  }
+
+  .feed-thumb,
+  .feed-type {
+    width: 64px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--pink), var(--accent-dark));
+    color: #fff8ef;
+  }
+
+  .feed-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .feed-type {
+    display: grid;
+    place-items: center;
+    font-size: 0.78rem;
+    font-weight: 950;
+    text-transform: uppercase;
+  }
+
+  .feed-copy {
+    display: grid;
+    gap: 0.28rem;
+    min-width: 0;
+  }
+
+  .feed-meta,
+  .opportunity-meta,
+  .event-meta,
+  .creator-meta,
+  .creator-bio {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .dark .feed-meta {
+    color: rgba(255, 248, 239, 0.62);
+  }
+
+  .feed-badge,
+  .source-badge,
+  .demo-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    min-height: 26px;
+    border-radius: 999px;
+    padding: 0.16rem 0.52rem;
+    background: rgba(255, 176, 0, 0.18);
+    color: var(--gold);
+    font-size: 0.72rem;
+    font-weight: 950;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .opportunity-grid,
+  .looking-grid,
+  .event-grid,
   .creator-grid,
   .discovery-grid,
-  .showcase-grid,
   .dashboard-actions {
     display: grid;
     gap: 0.85rem;
   }
 
-  .activity-card,
+  .opportunity-card,
+  .looking-card,
+  .event-card,
   .creator-spotlight,
   .discovery-card,
-  .showcase-card,
   .dashboard-card {
     position: relative;
     overflow: hidden;
     display: grid;
-    gap: 0.58rem;
+    gap: 0.6rem;
     padding: 1rem;
     border: 1px solid rgba(27, 17, 36, 0.1);
-    border-radius: 22px;
+    border-radius: 12px;
     background: #fffaf2;
     color: var(--text);
     box-shadow: 0 12px 26px rgba(9, 4, 20, 0.1);
   }
 
-  .activity-card::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 1rem;
-    bottom: 1rem;
-    width: 5px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, var(--pink), var(--gold));
+  .opportunity-card {
+    border-left: 6px solid var(--accent);
   }
 
-  .activity-card small,
-  .showcase-card small,
-  .dashboard-card small {
-    color: var(--accent-dark);
-    font-weight: 950;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  .looking-card {
+    min-height: 170px;
+    align-content: space-between;
+    background:
+      radial-gradient(circle at 92% 10%, rgba(255, 176, 0, 0.18), transparent 7rem),
+      #fffaf2;
+  }
+
+  .looking-card strong {
+    font-size: 1.18rem;
+    line-height: 1.12;
+  }
+
+  .looking-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .opportunity-top,
+  .event-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: start;
+  }
+
+  .event-card {
+    grid-template-rows: auto 1fr;
+    padding: 0;
+  }
+
+  .event-media {
+    min-height: 170px;
+    background:
+      linear-gradient(180deg, transparent, rgba(12, 5, 24, 0.58)),
+      var(--event-art),
+      linear-gradient(135deg, #27104a, #ff3d8d);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .event-copy {
+    display: grid;
+    gap: 0.52rem;
+    padding: 1rem;
+  }
+
+  .beat-filters span {
+    background: rgba(27, 17, 36, 0.08);
+    color: var(--text);
   }
 
   .creator-spotlight {
-    grid-template-columns: 82px 1fr;
+    grid-template-columns: 86px minmax(0, 1fr);
     align-items: center;
   }
 
   .creator-avatar,
   .creator-initial {
-    width: 82px;
+    width: 86px;
     aspect-ratio: 1;
     overflow: hidden;
-    border-radius: 24px;
+    border-radius: 12px;
     background:
       radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.5), transparent 40%),
       linear-gradient(135deg, var(--pink), var(--accent-dark));
@@ -273,21 +359,16 @@
     font-weight: 950;
   }
 
-  .creator-meta,
-  .creator-bio {
-    color: var(--muted);
-    font-size: 0.92rem;
-  }
-
   .creator-spotlight .button,
-  .dashboard-card .button {
+  .dashboard-card .button,
+  .opportunity-card .button,
+  .event-card .button {
     min-height: 42px;
     justify-self: start;
-    border-radius: 999px;
   }
 
   .discovery-card {
-    min-height: 154px;
+    min-height: 156px;
     align-content: end;
     background:
       linear-gradient(180deg, transparent 0%, rgba(17, 7, 29, 0.76) 68%),
@@ -298,56 +379,26 @@
     color: #fff8ef;
   }
 
-  .discovery-card::after {
-    content: "";
-    position: absolute;
-    inset: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 17px;
-    pointer-events: none;
-  }
-
-  .discovery-card span,
-  .discovery-card strong {
+  .discovery-card strong,
+  .discovery-card span {
     position: relative;
     z-index: 1;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.42);
   }
 
   .discovery-card strong {
-    font-size: 1.24rem;
+    font-size: 1.2rem;
     line-height: 1.05;
   }
 
   .discovery-card span {
-    color: rgba(255, 248, 239, 0.78);
+    color: rgba(255, 248, 239, 0.82);
     font-weight: 850;
-  }
-
-  .showcase-card {
-    background:
-      radial-gradient(circle at 90% 12%, rgba(255, 176, 0, 0.22), transparent 7rem),
-      rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #fff8ef;
-  }
-
-  .showcase-card p {
-    color: rgba(255, 248, 239, 0.76);
-  }
-
-  .showcase-pills span {
-    border-radius: 999px;
-    padding: 0.38rem 0.62rem;
-    background: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 248, 239, 0.84);
-    font-size: 0.78rem;
-    font-weight: 900;
   }
 
   .home-empty-note {
     border: 1px dashed rgba(255, 255, 255, 0.28);
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 1rem;
     color: rgba(255, 248, 239, 0.78);
     background: rgba(255, 255, 255, 0.08);
@@ -355,12 +406,18 @@
 
   @media (min-width: 760px) {
     .beat-hero {
-      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
       align-items: end;
     }
 
-    .activity-grid,
-    .showcase-grid,
+    .beat-layout {
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      align-items: start;
+    }
+
+    .opportunity-grid,
+    .looking-grid,
+    .event-grid,
     .dashboard-actions {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -373,113 +430,213 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .waveform span {
-      animation: pulseBars 1.8s ease-in-out infinite alternate;
-      animation-delay: calc(var(--bar, 1) * -90ms);
-    }
-
-    .waveform span:nth-child(odd) {
-      --bar: 2;
-    }
-
-    .waveform span:nth-child(3n) {
-      --bar: 4;
-    }
-
-    @keyframes pulseBars {
-      from { transform: scaleY(0.74); opacity: 0.72; }
-      to { transform: scaleY(1.08); opacity: 1; }
-    }
-  }
 </style>
 
-{% set demo_creators = [
-  {"name": "Jasmine Reed", "role": "R&B Artist", "genre": "R&B / Soul", "city": "Memphis, TN", "bio": "Warm vocals, harmony stacks, and hooks for live showcases or studio sessions.", "initials": "JR"},
-  {"name": "Marcus Bell", "role": "Gospel Keyboardist", "genre": "Gospel / Worship", "city": "Atlanta, GA", "bio": "Keys, organ, MD support, and Sunday-ready arrangements for artists and churches.", "initials": "MB"},
-  {"name": "Delta Blues Band", "role": "Band", "genre": "Blues / Southern Soul", "city": "Jackson, MS", "bio": "A working band looking for bass, horns, and festival collaborators.", "initials": "DB"},
-  {"name": "Ari Stone", "role": "Producer", "genre": "Hip-Hop / Pop", "city": "Atlanta, GA", "bio": "Beat packs, vocal production, and clean mixes for artists building their next release.", "initials": "AS"}
-] %}
-
-{% set activity_items = [
-  "Jasmine uploaded a new R&B performance.",
-  "Marcus is looking for a gospel keyboard player.",
-  "Delta Blues Band needs a bassist in Jackson.",
-  "A producer from Atlanta just joined.",
-  "A songwriter in Dallas is open for hooks this week.",
-  "A Memphis engineer added mixing availability."
-] %}
-
 {% set discovery_cards = [
-  ("Artists", "Find voices, performers, rappers, and front-stage talent.", "artists", "images/find-the-beat/artist.jpg"),
+  ("Vocalists", "Hooks, leads, background vocals, and stage-ready singers.", "artists", "images/find-the-beat/singer.jpg"),
   ("Producers", "Beats, vocal production, arrangement, and studio builders.", "production", "images/find-the-beat/producer.jpg"),
   ("Musicians", "Keys, guitar, bass, drums, horns, strings, and live players.", "musicians", "images/find-the-beat/musician.jpg"),
   ("Engineers", "Recording, mixing, mastering, and live sound help.", "production", "images/find-the-beat/producer.jpg"),
-  ("Songwriters", "Hooks, toplines, lyrics, and storytelling partners.", "artists", "images/find-the-beat/singer.jpg"),
-  ("Composers", "Scores, arrangements, film music, and orchestration.", "composers", "images/find-the-beat/composer.jpg"),
   ("Bands", "Groups looking for players, gigs, features, and rooms.", "musicians", "images/find-the-beat/showcase.jpg"),
-  ("Studios", "Spaces, engineers, sessions, and production support.", "production", "images/find-the-beat/showcase.jpg"),
-  ("Venues", "Stages, showcases, open mics, and booking leads.", "showcases", "images/find-the-beat/showcase.jpg"),
-  ("Church Musicians", "Worship teams, MDs, choir support, organists, and drummers.", "musicians", "images/find-the-beat/musician.jpg"),
-  ("Videographers", "Performance visuals, reels, live sessions, and content days.", "showcases", "images/find-the-beat/artist.jpg"),
-  ("Photographers", "Press shots, covers, event photos, and brand visuals.", "showcases", "images/find-the-beat/singer.jpg")
+  ("Church Music", "Worship teams, MDs, choir support, organists, and drummers.", "musicians", "images/find-the-beat/artist.jpg"),
+  ("Open Mics", "Stages, showcases, jam nights, and first-performance rooms.", "showcases", "images/find-the-beat/showcase.jpg"),
+  ("Studios", "Spaces, engineers, sessions, and production support.", "production", "images/find-the-beat/composer.jpg")
 ] %}
 
 <div class="beat-home">
   <section class="beat-hero" aria-labelledby="beat-home-title">
     <div class="beat-hero-copy">
-      <p class="beat-kicker">Music industry community</p>
-      <h1 id="beat-home-title">Find Your Sound. Find Your People.</h1>
-      <p>Connect with artists, producers, musicians, engineers, and creators building the next great sound.</p>
+      <p class="beat-kicker">The daily dashboard for musicians</p>
+      <h1 id="beat-home-title">Where Musicians Find Their Next Opportunity</h1>
+      <p>Discover people, gigs, shows, open calls, and collaborations shaping the sound in your city.</p>
       <div class="hero-actions">
-        <a class="button primary" href="{{ url_for('signup') }}">Join the Community</a>
-        <a class="button secondary" href="{{ url_for('profiles') }}">Explore Talent</a>
+        <a class="button primary" href="#the-beat">Explore The Beat</a>
+        <a class="button secondary" href="#open-gigs">Find a Gig</a>
+        <a class="button secondary" href="{{ url_for('profiles') }}">Discover Musicians</a>
       </div>
     </div>
-    <aside class="beat-hero-panel" aria-label="Live signal">
-      <p class="beat-panel-title">Live from the network</p>
-      <div class="waveform" aria-hidden="true">
-        {% for i in range(22) %}<span></span>{% endfor %}
-      </div>
-      <p>Creators are uploading, searching, booking, messaging, and building across the Find The Beat community.</p>
+
+    <aside class="beat-hero-panel" aria-label="Today on Find The Beat">
+      {% if user and personalized.greeting %}
+        <p class="beat-kicker">Matched to you</p>
+        <strong>{{ personalized.greeting }}</strong>
+        <div class="personal-stats">
+          <span>{{ personalized.gig_matches }} matching gigs</span>
+          <span>{{ personalized.weekend_events }} upcoming shows</span>
+          <span>{{ personalized.collaboration_matches }} collaboration leads</span>
+          <span>{{ personalized.nearby_activity }} local updates</span>
+        </div>
+      {% else %}
+        <p class="beat-kicker">What is happening today</p>
+        <strong>Gigs, shows, auditions, uploads, and people looking for someone like you.</strong>
+        <div class="personal-stats">
+          <span>{{ opportunities|length }} open gigs</span>
+          <span>{{ looking_items|length }} looking now</span>
+          <span>{{ events|length }} events</span>
+          <span>{{ feed_items|length }} Beat updates</span>
+        </div>
+      {% endif %}
     </aside>
   </section>
 
-  {% if user %}
-    <section class="beat-section" aria-labelledby="dashboard-actions-title">
-      <div class="beat-section-head">
-        <div>
-          <p class="beat-section-kicker">Your studio desk</p>
-          <h2 id="dashboard-actions-title">Keep your momentum moving.</h2>
-        </div>
-      </div>
-      <div class="dashboard-actions">
-        <a class="dashboard-card" href="{{ url_for('edit_profile') }}"><small>Profile</small><strong>Edit My Profile</strong><p>Keep your role, genre, city, and availability current.</p></a>
-        <a class="dashboard-card" href="{{ url_for('profiles') }}"><small>Discovery</small><strong>Browse Talent</strong><p>Find artists, players, engineers, and collaborators.</p></a>
-        <a class="dashboard-card" href="{{ url_for('upload_performance') }}"><small>Showcase</small><strong>Upload Performance</strong><p>No performances yet? Upload your first sound and let the community hear you.</p></a>
-        <a class="dashboard-card" href="{{ url_for('inbox') }}"><small>Messages</small><strong>Check Messages</strong><p>Follow up on collaborations, bookings, and introductions.</p></a>
-        <a class="dashboard-card" href="{{ url_for('search') }}"><small>Collaborate</small><strong>Find Collaborators</strong><p>Search by lane, instrument, genre, city, or availability.</p></a>
-        <a class="dashboard-card" href="{{ url_for('showcase') }}"><small>Stage</small><strong>View Showcase</strong><p>See fresh uploads and featured performances.</p></a>
-      </div>
-    </section>
-  {% endif %}
-
-  <section class="beat-section dark" aria-labelledby="activity-title">
+  <section id="the-beat" class="beat-section dark" aria-labelledby="beat-title">
     <div class="beat-section-head">
       <div>
-        <p class="beat-section-kicker">Live activity</p>
-        <h2 id="activity-title">The room should feel like something is happening.</h2>
+        <p class="beat-section-kicker">The Beat</p>
+        <h2 id="beat-title">One live feed for what is moving in music.</h2>
       </div>
       <a class="button secondary" href="{{ url_for('showcase') }}">Open Showcase</a>
     </div>
-    <div class="activity-grid">
-      {% for item in activity_items %}
-        <article class="activity-card">
-          <small>Just now</small>
-          <strong>{{ item }}</strong>
-          <p>{{ ["Performance", "Collaboration", "Opportunity", "New creator", "Writing room", "Studio update"][loop.index0] }}</p>
+
+    <div class="beat-layout">
+      <div class="beat-feed" aria-label="Latest activity">
+        {% for item in feed_items[:10] %}
+          <article class="feed-item">
+            {% if item.image_url %}
+              <span class="feed-thumb"><img src="{{ item.image_url }}" alt=""></span>
+            {% else %}
+              <span class="feed-type">{{ item.activity_type[:3] }}</span>
+            {% endif %}
+            <div class="feed-copy">
+              <span class="feed-badge">{{ item.activity_type }}</span>
+              <strong>{{ item.title }}</strong>
+              <p>{{ item.description }}</p>
+              <span class="feed-meta">
+                {% if item.city %}{{ item.city }}{% if item.state %}, {{ item.state }}{% endif %}{% else %}Find The Beat{% endif %}
+                {% if item.source_name %} / {{ item.source_name }}{% endif %}
+              </span>
+            </div>
+          </article>
+        {% else %}
+          <div class="home-empty-note">The Beat will fill with uploads, gigs, shows, auditions, and profile updates as activity comes in.</div>
+        {% endfor %}
+      </div>
+
+      <div class="dashboard-actions">
+        <a class="dashboard-card" href="{{ url_for('upload_performance') }}"><span class="feed-badge">Performance</span><strong>Upload what you are working on</strong><p>Keep the community feed alive with videos, audio, demos, and media links.</p></a>
+        <a class="dashboard-card" href="{{ url_for('search') }}"><span class="feed-badge">Collaborate</span><strong>Find people by city, role, or sound</strong><p>Search musicians, producers, singers, engineers, bands, and services.</p></a>
+        <a class="dashboard-card" href="{{ url_for('signup') }}"><span class="feed-badge">Opportunity</span><strong>Post an opportunity</strong><p>Let musicians know who you need, where, when, and what kind of gig it is.</p></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="open-gigs" class="beat-section" aria-labelledby="opportunities-title">
+    <div class="beat-section-head">
+      <div>
+        <p class="beat-section-kicker">Open gigs and opportunities</p>
+        <h2 id="opportunities-title">Who needs someone like you?</h2>
+      </div>
+      <a class="button primary" href="{{ url_for('signup') }}">Post an Opportunity</a>
+    </div>
+
+    <div class="beat-filters" aria-label="Opportunity filters">
+      <span>Near Me</span>
+      <span>This Week</span>
+      <span>Paid</span>
+      <span>Collaboration</span>
+      <span>Auditions</span>
+      <span>Church Music</span>
+    </div>
+
+    <div class="opportunity-grid">
+      {% for opp in opportunities[:6] %}
+        <article class="opportunity-card">
+          <div class="opportunity-top">
+            <span class="feed-badge">{{ opp.opportunity_type or "Opportunity" }}</span>
+            {% if opp.paid_status %}<span class="source-badge">{{ opp.paid_status }}</span>{% endif %}
+          </div>
+          <h3>{{ opp.title }}</h3>
+          <p>{{ opp.description }}</p>
+          <div class="opportunity-meta">
+            {{ opp.city }}{% if opp.state %}, {{ opp.state }}{% endif %}
+            {% if opp.event_date %} / {{ opp.event_date }}{% endif %}
+          </div>
+          <div class="beat-pills">
+            {% if opp.role_needed %}<span>{{ opp.role_needed }}</span>{% endif %}
+            {% if opp.instrument_needed %}<span>{{ opp.instrument_needed }}</span>{% endif %}
+            {% if opp.compensation %}<span>{{ opp.compensation }}</span>{% endif %}
+          </div>
+          <a class="button secondary" href="{{ url_for('signup') }}">View Opportunity</a>
         </article>
+      {% else %}
+        <p>No open opportunities yet. Post the first one and give musicians something to chase.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="beat-section dark" aria-labelledby="looking-title">
+    <div class="beat-section-head">
+      <div>
+        <p class="beat-section-kicker">Who's Looking?</p>
+        <h2 id="looking-title">The live board for musicians who are needed right now.</h2>
+      </div>
+      <a class="button secondary" href="{{ url_for('search') }}">Find Matches</a>
+    </div>
+
+    <div class="beat-filters" aria-label="Who's Looking filters">
+      <span>Newest</span>
+      <span>Near Me</span>
+      <span>Paid</span>
+      <span>Genre</span>
+      <span>Collab</span>
+    </div>
+
+    <div class="looking-grid">
+      {% for item in looking_items[:6] %}
+        <article class="looking-card">
+          <span class="feed-badge">{{ item.opportunity_type or "Looking" }}</span>
+          <strong>{{ item.title }}</strong>
+          <p>{{ item.role_needed or item.instrument_needed }}{% if item.genre %} / {{ item.genre }}{% endif %}</p>
+          <div class="looking-line">
+            <span>{{ item.city }}{% if item.state %}, {{ item.state }}{% endif %}</span>
+            {% if item.paid_status %}<span>{{ item.paid_status }}</span>{% endif %}
+          </div>
+          <a class="button primary" href="{{ url_for('signup') }}">Apply</a>
+        </article>
+      {% else %}
+        <div class="home-empty-note">Collaboration requests, open calls, and musician-needed posts will appear here.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="beat-section" aria-labelledby="events-title">
+    <div class="beat-section-head">
+      <div>
+        <p class="beat-section-kicker">Upcoming shows and events</p>
+        <h2 id="events-title">Concerts, open mics, workshops, and rooms to walk into.</h2>
+      </div>
+      <a class="button secondary" href="{{ url_for('search') }}">Search Events</a>
+    </div>
+
+    <div class="beat-filters" aria-label="Event filters">
+      <span>Tonight</span>
+      <span>This Weekend</span>
+      <span>Open Mic</span>
+      <span>Festival</span>
+      <span>Audition</span>
+      <span>Workshop</span>
+    </div>
+
+    <div class="event-grid">
+      {% for event in events[:6] %}
+        <article class="event-card">
+          <div class="event-media" style="--event-art: url('{{ event.image_url or "https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&fit=crop&w=1200&q=80" }}')"></div>
+          <div class="event-copy">
+            <div class="event-top">
+              <span class="feed-badge">{{ event.event_type or "Event" }}</span>
+              {% if event.source_name %}<span class="source-badge">{{ event.source_name }}</span>{% endif %}
+            </div>
+            <h3>{{ event.title }}</h3>
+            <p>{{ event.performer or event.description }}</p>
+            <div class="event-meta">
+              {% if event.venue %}{{ event.venue }} / {% endif %}{{ event.city }}{% if event.state %}, {{ event.state }}{% endif %}
+              {% if event.start_datetime %} / {{ event.start_datetime }}{% endif %}
+            </div>
+            <a class="button secondary" href="{{ event.ticket_url or event.source_url or url_for('showcase') }}">View Event</a>
+          </div>
+        </article>
+      {% else %}
+        <p>No upcoming events yet. Imported and approved public listings will appear here.</p>
       {% endfor %}
     </div>
   </section>
@@ -487,53 +644,41 @@
   <section class="beat-section" aria-labelledby="featured-creators-title">
     <div class="beat-section-head">
       <div>
-        <p class="beat-section-kicker">Featured creators</p>
-        <h2 id="featured-creators-title">Meet the people behind the next sound.</h2>
+        <p class="beat-section-kicker">Featured musicians</p>
+        <h2 id="featured-creators-title">Real-looking people, clear lanes, and reasons to connect.</h2>
       </div>
       <a class="button secondary" href="{{ url_for('profiles') }}">View All</a>
     </div>
     <div class="creator-grid">
-      {% if creators %}
-        {% for p in creators %}
-          <article class="creator-spotlight">
-            {% if p.photo_filename %}
-              <a class="creator-avatar" href="{{ url_for('profile_detail', profile_id=p.id) }}"><img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}"></a>
-            {% elif p.avatar_url and (p.avatar_url.startswith("http") or p.avatar_url.startswith("/static/")) %}
-              <a class="creator-avatar" href="{{ url_for('profile_detail', profile_id=p.id) }}"><img src="{{ p.avatar_url }}" alt="{{ p.display_name }}"></a>
-            {% else %}
-              <a class="creator-initial" href="{{ url_for('profile_detail', profile_id=p.id) }}">{{ p.initials }}</a>
-            {% endif %}
-            <div>
-              <h3>{{ p.display_name }}</h3>
-              <p class="creator-meta">{{ p.role or "Creative" }}{% if p.genre %} / {{ p.genre }}{% endif %}</p>
-              <p class="creator-meta">{{ p.city or "Location coming soon" }}{% if p.state %}, {{ p.state }}{% endif %}</p>
-              <p class="creator-bio">{{ p.bio or "Profile details coming soon." }}</p>
-              <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
-            </div>
-          </article>
-        {% endfor %}
+      {% for p in featured_musicians[:6] %}
+        <article class="creator-spotlight">
+          {% if p.photo_filename %}
+            <a class="creator-avatar" href="{{ url_for('profile_detail', profile_id=p.id) }}"><img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}"></a>
+          {% elif p.avatar_url and (p.avatar_url.startswith("http") or p.avatar_url.startswith("/static/")) %}
+            <a class="creator-avatar" href="{{ url_for('profile_detail', profile_id=p.id) }}"><img src="{{ p.avatar_url }}" alt="{{ p.display_name }}"></a>
+          {% else %}
+            <a class="creator-initial" href="{{ url_for('profile_detail', profile_id=p.id) }}">{{ p.initials }}</a>
+          {% endif %}
+          <div>
+            {% if p.is_seeded_demo %}<span class="demo-badge">{{ p.demo_label or "Community Spotlight" }}</span>{% endif %}
+            <h3>{{ p.display_name }}</h3>
+            <p class="creator-meta">{{ p.role or "Creative" }}{% if p.genre %} / {{ p.genre }}{% endif %}</p>
+            <p class="creator-meta">{{ p.city or "Location coming soon" }}{% if p.state %}, {{ p.state }}{% endif %}</p>
+            <p class="creator-bio">{{ p.bio or "Profile details coming soon." }}</p>
+            <a class="button primary" href="{{ url_for('profile_detail', profile_id=p.id) }}">View Profile</a>
+          </div>
+        </article>
       {% else %}
-        {% for p in demo_creators %}
-          <article class="creator-spotlight">
-            <span class="creator-initial">{{ p.initials }}</span>
-            <div>
-              <h3>{{ p.name }}</h3>
-              <p class="creator-meta">{{ p.role }} / {{ p.genre }}</p>
-              <p class="creator-meta">{{ p.city }}</p>
-              <p class="creator-bio">{{ p.bio }}</p>
-              <a class="button primary" href="{{ url_for('profiles') }}">Explore Talent</a>
-            </div>
-          </article>
-        {% endfor %}
-      {% endif %}
+        <p>No featured musicians yet. Seeded spotlights and verified profiles will appear here.</p>
+      {% endfor %}
     </div>
   </section>
 
   <section class="beat-section" aria-labelledby="discovery-title">
     <div class="beat-section-head">
       <div>
-        <p class="beat-section-kicker">Discovery lanes</p>
-        <h2 id="discovery-title">Every creative role gets a front door.</h2>
+        <p class="beat-section-kicker">Explore by role, genre, and place</p>
+        <h2 id="discovery-title">Fewer boxes. Stronger lanes.</h2>
       </div>
       <a class="button secondary" href="{{ url_for('search') }}">Search</a>
     </div>
@@ -552,39 +697,5 @@
     "Fresh Uploads",
     "Performances, demos, media links, and creator moments from across the Find The Beat network."
   ) }}
-
-  <section class="beat-section dark" aria-labelledby="showcase-title">
-    <div class="beat-section-head">
-      <div>
-        <p class="beat-section-kicker">Digital music showcase</p>
-        <h2 id="showcase-title">A stage for talent, calls, and collisions.</h2>
-      </div>
-      <a class="button secondary" href="{{ url_for('upload_performance') }}">Upload</a>
-    </div>
-    <div class="showcase-grid">
-      {% for item in [
-        ("Featured Artist of the Week", "Spotlight a creator with a strong profile and a clear sound.", "Artist", "Profile", "Story"),
-        ("Beat of the Week", "Make producers visible with featured instrumentals, loops, or demos.", "Producer", "Beat", "Collab"),
-        ("Looking for Collaborators", "Surface creators who need singers, players, writers, or engineers.", "Open call", "Local", "Now"),
-        ("Talent Near You", "Help users discover artists, bands, studios, and creatives by city.", "City", "Genre", "Role"),
-        ("Open Auditions", "Give bands, churches, studios, and venues a place to post needs.", "Audition", "Gig", "Stage"),
-        ("Fresh Uploads", "Keep new performances moving through the community feed.", "Video", "Audio", "Link")
-      ] %}
-        <article class="showcase-card">
-          <small>{{ item[0] }}</small>
-          <h3>{{ item[0] }}</h3>
-          <p>{{ item[1] }}</p>
-          <div class="showcase-pills">
-            <span>{{ item[2] }}</span>
-            <span>{{ item[3] }}</span>
-            <span>{{ item[4] }}</span>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-    {% if not featured_showcase %}
-      <div class="home-empty-note">No performances yet. Upload your first sound and let the community hear you.</div>
-    {% endif %}
-  </section>
 </div>
 {% endblock %}
