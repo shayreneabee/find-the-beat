@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Opportunities | Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .opportunity-page,
+  .opportunity-list {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .opportunity-head,
+  .opportunity-filter,
+  .opportunity-card {
+    padding: 1rem;
+  }
+
+  .opportunity-head h1,
+  .opportunity-card h2 {
+    margin: 0;
+    line-height: 1.08;
+  }
+
+  .opportunity-head p,
+  .opportunity-card p {
+    color: var(--muted);
+  }
+
+  .opportunity-filter form {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .opportunity-filter input,
+  .opportunity-filter select {
+    min-height: 46px;
+    width: 100%;
+    padding: 0 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--cream);
+    color: var(--text);
+  }
+
+  .opportunity-actions,
+  .opportunity-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .opportunity-tags span {
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  @media (min-width: 760px) {
+    .opportunity-filter form {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      align-items: end;
+    }
+  }
+</style>
+
+<div class="opportunity-page">
+  <section class="app-panel opportunity-head">
+    <p class="hero-kicker">Open gigs and opportunities</p>
+    <h1>Find a Gig</h1>
+    <p>Browse active openings, auditions, sessions, church music needs, and collaborations.</p>
+    <div class="opportunity-actions">
+      <a class="button primary" href="{{ url_for('post_opportunity') }}">Post an Opportunity</a>
+      <a class="button secondary" href="{{ url_for('profiles') }}">Discover Musicians</a>
+    </div>
+  </section>
+
+  <section class="app-panel opportunity-filter">
+    <form method="GET" action="{{ url_for('opportunities_board') }}">
+      <input name="q" value="{{ filters.q }}" placeholder="Keyword or venue">
+      <input name="role" value="{{ filters.role }}" placeholder="Role needed">
+      <input name="instrument" value="{{ filters.instrument }}" placeholder="Instrument">
+      <input name="city" value="{{ filters.city }}" placeholder="City">
+      <select name="paid">
+        <option value="">Any pay status</option>
+        {% for option in ["Paid", "Stipend", "Unpaid"] %}
+          <option value="{{ option }}" {% if filters.paid == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+      <button class="button primary" type="submit">Filter</button>
+      <a class="button secondary" href="{{ url_for('opportunities_board') }}">Clear</a>
+    </form>
+  </section>
+
+  <section class="opportunity-list" aria-label="Opportunity results">
+    {% for opp in opportunities %}
+      <article class="app-panel opportunity-card">
+        <h2>{{ opp.title }}</h2>
+        <p>{{ opp.description }}</p>
+        <div class="opportunity-tags">
+          {% if opp.opportunity_type %}<span>{{ opp.opportunity_type }}</span>{% endif %}
+          {% if opp.role_needed %}<span>{{ opp.role_needed }}</span>{% endif %}
+          {% if opp.instrument_needed %}<span>{{ opp.instrument_needed }}</span>{% endif %}
+          {% if opp.city or opp.state %}<span>{{ opp.city }}{% if opp.city and opp.state %}, {% endif %}{{ opp.state }}</span>{% endif %}
+          {% if opp.paid_status %}<span>{{ opp.paid_status }}</span>{% endif %}
+        </div>
+        <div class="opportunity-actions">
+          <a class="button primary" href="{{ url_for('opportunity_detail', opportunity_id=opp.id) }}">View Opportunity</a>
+          <form method="POST" action="{{ url_for('apply_opportunity', opportunity_id=opp.id) }}">
+            <button class="button secondary" type="submit">Apply</button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <section class="app-panel opportunity-card">
+        <h2>No matching openings yet.</h2>
+        <p>Clear the filters or post the first opportunity for this lane.</p>
+      </section>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

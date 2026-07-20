@@ -138,6 +138,56 @@ CATEGORY_TILES = [
         "label": "Watch performances",
     },
 ]
+DEMO_OPPORTUNITIES = [
+    {
+        "title": "Venue seeking opening act for Friday concert",
+        "description": "A Hattiesburg venue needs a band or solo artist for a Friday night opening set.",
+        "opportunity_type": "Opening Act",
+        "role_needed": "Band or Solo Artist",
+        "instrument_needed": "Any",
+        "genre": "Blues, Soul, Rock",
+        "city": "Hattiesburg",
+        "state": "MS",
+        "location_name": "The Rail Room",
+        "paid_status": "Paid",
+        "compensation": "$250 flat",
+        "event_date": "2026-07-31 20:00",
+        "application_deadline": "2026-07-26",
+        "external_id": "hattiesburg-opener",
+    },
+    {
+        "title": "Auditions for regional touring choir",
+        "description": "Singers can review the Meridian audition window for a regional touring choir.",
+        "opportunity_type": "Audition",
+        "role_needed": "Singers",
+        "instrument_needed": "Voice",
+        "genre": "Gospel, Classical",
+        "city": "Meridian",
+        "state": "MS",
+        "location_name": "Queen City Arts Hall",
+        "paid_status": "Stipend",
+        "compensation": "Travel stipend for selected singers",
+        "event_date": "2026-08-18 17:30",
+        "application_deadline": "2026-08-12",
+        "external_id": "meridian-choir-audition",
+    },
+    {
+        "title": "Studio drummer request posted in Gulfport",
+        "description": "Coastline Recording needs session drums for an artist project tracking next month.",
+        "opportunity_type": "Recording Session",
+        "role_needed": "Drummer",
+        "instrument_needed": "Drums",
+        "genre": "R&B, Gospel",
+        "city": "Gulfport",
+        "state": "MS",
+        "location_name": "Coastline Recording",
+        "paid_status": "Paid",
+        "compensation": "Session rate",
+        "event_date": "2026-08-08 14:00",
+        "application_deadline": "2026-08-01",
+        "external_id": "gulfport-session-drums",
+    },
+]
 
 SECOND_CHANCE_CATEGORIES = [
     {
@@ -572,6 +622,36 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS opportunities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                opportunity_type TEXT DEFAULT '',
+                role_needed TEXT DEFAULT '',
+                instrument_needed TEXT DEFAULT '',
+                genre TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                location_name TEXT DEFAULT '',
+                paid_status TEXT DEFAULT '',
+                compensation TEXT DEFAULT '',
+                event_date TEXT DEFAULT '',
+                application_deadline TEXT DEFAULT '',
+                contact_method TEXT DEFAULT '',
+                application_url TEXT DEFAULT '',
+                created_by INTEGER,
+                source_name TEXT DEFAULT '',
+                external_id TEXT DEFAULT '',
+                is_seeded_demo INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'active',
+                FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS profiles (
                 user_id INTEGER PRIMARY KEY,
                 email TEXT DEFAULT '',
@@ -688,6 +768,22 @@ def init_db():
         }.items():
             if column not in performance_columns:
                 conn.execute(f"ALTER TABLE performances ADD COLUMN {column} {definition}")
+
+        opportunity_columns = {
+            row["name"] for row in conn.execute("PRAGMA table_info(opportunities)").fetchall()
+        }
+        for column, definition in {
+            "contact_method": "TEXT DEFAULT ''",
+            "application_url": "TEXT DEFAULT ''",
+            "created_by": "INTEGER",
+            "source_name": "TEXT DEFAULT ''",
+            "external_id": "TEXT DEFAULT ''",
+            "is_seeded_demo": "INTEGER DEFAULT 0",
+            "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+            "status": "TEXT DEFAULT 'active'",
+        }.items():
+            if column not in opportunity_columns:
+                conn.execute(f"ALTER TABLE opportunities ADD COLUMN {column} {definition}")
 
         for row in conn.execute("SELECT id, role FROM users").fetchall():
             ensure_master_profile(conn, row["id"], "find-the-beat", row["role"] or "user")
@@ -817,6 +913,19 @@ def safe_relative_next(value, default="/"):
     if value.startswith("#"):
         return f"/{value}"
     return default
+
+
+def request_destination():
+    return request.full_path if request.query_string else request.path
+
+
+def profile_action_ready(user):
+    return bool(
+        user
+        and (user.display_name or user.full_name)
+        and (user.role or user.instrument or user.services_csv)
+        and (user.city or user.state)
+    )
 
 
 ONBOARDING_STEPS = [
@@ -1197,6 +1306,109 @@ def create_message(sender_id, recipient_id, body):
         return cursor.lastrowid
 
 
+def row_to_opportunity(row):
+    if row is None:
+        return None
+    data = dict(row)
+    data["is_seeded_demo"] = bool(data.get("is_seeded_demo"))
+    return SimpleNamespace(**data)
+
+
+def opportunity_filters_from_request():
+    return {
+        "q": request.args.get("q", "").strip(),
+        "role": request.args.get("role", "").strip(),
+        "instrument": request.args.get("instrument", "").strip(),
+        "genre": request.args.get("genre", "").strip(),
+        "city": request.args.get("city", "").strip(),
+        "state": request.args.get("state", "").strip(),
+        "paid": request.args.get("paid", "").strip(),
+    }
+
+
+def get_opportunities(filters=None, limit=None):
+    filters = filters or {}
+    clauses = ["status = 'active'"]
+    params = []
+    q = filters.get("q", "")
+    if q:
+        clauses.append(
+            """
+            (
+                title LIKE ? OR description LIKE ? OR role_needed LIKE ? OR
+                instrument_needed LIKE ? OR genre LIKE ? OR location_name LIKE ?
+            )
+            """
+        )
+        params.extend([f"%{q}%"] * 6)
+    for key, column in {
+        "role": "role_needed",
+        "instrument": "instrument_needed",
+        "genre": "genre",
+        "city": "city",
+        "state": "state",
+        "paid": "paid_status",
+    }.items():
+        if filters.get(key):
+            clauses.append(f"{column} LIKE ?")
+            params.append(f"%{filters[key]}%")
+    sql = f"""
+        SELECT *
+        FROM opportunities
+        WHERE {' AND '.join(clauses)}
+        ORDER BY datetime(created_at) DESC, id DESC
+    """
+    if limit:
+        sql += " LIMIT ?"
+        params.append(limit)
+    with get_db() as conn:
+        return [row_to_opportunity(row) for row in conn.execute(sql, params).fetchall()]
+
+
+def get_opportunity(opportunity_id):
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM opportunities WHERE id = ? AND status = 'active'",
+            (opportunity_id,),
+        ).fetchone()
+    return row_to_opportunity(row)
+
+
+def create_opportunity(user_id, fields):
+    with get_db() as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO opportunities (
+                title, description, opportunity_type, role_needed, instrument_needed,
+                genre, city, state, location_name, paid_status, compensation,
+                event_date, application_deadline, contact_method, application_url,
+                created_by, source_name, status, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Find The Beat', 'active', CURRENT_TIMESTAMP)
+            """,
+            (
+                fields["title"],
+                fields["description"],
+                fields["opportunity_type"],
+                fields["role_needed"],
+                fields["instrument_needed"],
+                fields["genre"],
+                fields["city"],
+                fields["state"],
+                fields["location_name"],
+                fields["paid_status"],
+                fields["compensation"],
+                fields["event_date"],
+                fields["application_deadline"],
+                fields["contact_method"],
+                fields["application_url"],
+                user_id,
+            ),
+        )
+        track_onboarding_event("first_action_taken", user_id, {"action": "opportunity_posted"}, conn)
+        return cursor.lastrowid
+
+
 def split_csv(value):
     return [item.strip() for item in (value or "").split(",") if item.strip()]
 
@@ -1386,8 +1598,29 @@ def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not current_user():
+            destination = request_destination()
+            session["post_login_redirect"] = destination
             flash("Please log in first.")
-            return redirect(url_for("login"))
+            return redirect(url_for("login", next=destination))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def require_profile_action(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = current_user()
+        if not user:
+            destination = request_destination()
+            session["post_login_redirect"] = destination
+            flash("Please log in first.")
+            return redirect(url_for("login", next=destination))
+        if not profile_action_ready(user):
+            destination = request_destination()
+            session["post_profile_redirect"] = destination
+            flash("Complete the required parts of your profile to continue.")
+            return redirect(url_for("edit_profile", next=destination))
         return view(*args, **kwargs)
 
     return wrapped
@@ -1540,6 +1773,42 @@ def seed_demo_profiles_if_empty():
                     profile["tags_csv"],
                     profile["instrument"],
                     profile["services_csv"],
+                ),
+            )
+
+
+def seed_demo_opportunities_if_empty():
+    with get_db() as conn:
+        count = conn.execute("SELECT COUNT(*) FROM opportunities WHERE status = 'active'").fetchone()[0]
+        if count:
+            return
+        for opportunity in DEMO_OPPORTUNITIES:
+            conn.execute(
+                """
+                INSERT INTO opportunities (
+                    title, description, opportunity_type, role_needed, instrument_needed,
+                    genre, city, state, location_name, paid_status, compensation,
+                    event_date, application_deadline, contact_method, application_url,
+                    source_name, external_id, is_seeded_demo, status, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Apply through Find The Beat', '',
+                        'Find The Beat Demo Seed', ?, 1, 'active', CURRENT_TIMESTAMP)
+                """,
+                (
+                    opportunity["title"],
+                    opportunity["description"],
+                    opportunity["opportunity_type"],
+                    opportunity["role_needed"],
+                    opportunity["instrument_needed"],
+                    opportunity["genre"],
+                    opportunity["city"],
+                    opportunity["state"],
+                    opportunity["location_name"],
+                    opportunity["paid_status"],
+                    opportunity["compensation"],
+                    opportunity["event_date"],
+                    opportunity["application_deadline"],
+                    opportunity["external_id"],
                 ),
             )
 
@@ -1971,15 +2240,86 @@ def home():
     genre = request.args.get("genre", "").strip()
     city = request.args.get("city", "").strip()
     creators = search_profiles(q, role, genre, city)[:4]
+    opportunities = get_opportunities(limit=3)
     return render_template(
         "index.html",
         creators=creators,
         category_tiles=CATEGORY_TILES,
+        opportunities=opportunities,
         q=q,
         role_filter=role,
         genre_filter=genre,
         city_filter=city,
     )
+
+
+@app.route("/opportunities")
+@app.route("/gigs")
+def opportunities_board():
+    filters = opportunity_filters_from_request()
+    return render_template(
+        "opportunities.html",
+        opportunities=get_opportunities(filters),
+        filters=filters,
+    )
+
+
+@app.route("/opportunities/<int:opportunity_id>")
+@app.route("/gigs/<int:opportunity_id>")
+def opportunity_detail(opportunity_id):
+    opportunity = get_opportunity(opportunity_id)
+    if not opportunity:
+        flash("Opportunity not found.")
+        return redirect(url_for("opportunities_board"))
+    return render_template("opportunity_detail.html", opportunity=opportunity)
+
+
+@app.route("/opportunities/<int:opportunity_id>/apply", methods=["GET", "POST"])
+@require_profile_action
+def apply_opportunity(opportunity_id):
+    opportunity = get_opportunity(opportunity_id)
+    if not opportunity:
+        flash("Opportunity not found.")
+        return redirect(url_for("opportunities_board"))
+    user = current_user()
+    track_onboarding_event("first_action_taken", user.id, {"action": "opportunity_apply", "opportunity_id": opportunity.id})
+    flash("Your profile is ready. Review the opportunity details to continue.")
+    return redirect(f"/opportunities/{opportunity.id}")
+
+
+@app.route("/opportunities/new", methods=["GET", "POST"])
+@app.route("/post-opportunity", methods=["GET", "POST"])
+@require_profile_action
+def post_opportunity():
+    user = current_user()
+    if request.method == "POST":
+        fields = {
+            "title": request.form.get("title", "").strip(),
+            "description": request.form.get("description", "").strip(),
+            "opportunity_type": request.form.get("opportunity_type", "").strip(),
+            "role_needed": request.form.get("role_needed", "").strip(),
+            "instrument_needed": request.form.get("instrument_needed", "").strip(),
+            "genre": request.form.get("genre", "").strip(),
+            "city": request.form.get("city", "").strip(),
+            "state": request.form.get("state", "").strip(),
+            "location_name": request.form.get("location_name", "").strip(),
+            "paid_status": request.form.get("paid_status", "").strip(),
+            "compensation": request.form.get("compensation", "").strip(),
+            "event_date": request.form.get("event_date", "").strip(),
+            "application_deadline": request.form.get("application_deadline", "").strip(),
+            "contact_method": request.form.get("contact_method", "").strip(),
+            "application_url": request.form.get("application_url", "").strip(),
+        }
+        if not fields["title"] or not fields["description"]:
+            flash("Title and description are required.")
+            return redirect(url_for("post_opportunity"))
+        if fields["application_url"] and not valid_media_url(fields["application_url"]):
+            flash("Use a full application link that starts with http:// or https://.")
+            return redirect(url_for("post_opportunity"))
+        opportunity_id = create_opportunity(user.id, fields)
+        flash("Opportunity posted.")
+        return redirect(url_for("opportunity_detail", opportunity_id=opportunity_id))
+    return render_template("opportunity_form.html", user=user)
 
 
 @app.route("/about")
@@ -2088,7 +2428,7 @@ def performance_detail(perf_id):
 @app.route("/upload", methods=["GET", "POST"])
 @app.route("/upload-performance", methods=["GET", "POST"])
 @app.route("/performances/upload", methods=["GET", "POST"])
-@login_required
+@require_profile_action
 def upload_performance():
     user = current_user()
     if request.method == "POST":
@@ -2189,6 +2529,7 @@ def upload_media():
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+    next_target = safe_relative_next(request.args.get("next") or session.get("post_login_redirect"), "/profile")
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
@@ -2222,14 +2563,14 @@ def signup():
             return redirect(url_for("signup"))
 
         track_onboarding_event("account_created", user_id)
-        post_login_redirect = session.get("post_login_redirect")
+        post_login_redirect = safe_relative_next(session.get("post_login_redirect"), next_target)
         session.clear()
         session["user_id"] = user_id
         flash("Welcome to Find the Beat. Complete your profile to help other creators find you.")
         return redirect(post_login_redirect or url_for("profile"))
 
     track_onboarding_event("signup_click")
-    return render_template("signup.html")
+    return render_template("signup.html", next_target=next_target)
 
 
 @app.route("/sso/start")
@@ -2242,9 +2583,9 @@ def sso_start():
 
     user = current_user()
     if not user:
-        session["post_login_redirect"] = request.url
+        session["post_login_redirect"] = request_destination()
         flash("Sign in with your Brent & Co account to continue.")
-        return redirect(url_for("login"))
+        return redirect(url_for("login", next=request_destination()))
 
     next_path = safe_relative_next(request.args.get("next"), target["default_next"])
     with get_db() as conn:
@@ -2260,7 +2601,7 @@ def sso_start():
 
 @app.route("/sso/login")
 def sso_login():
-    next_path = request.args.get("next") or "/profile"
+    next_path = safe_relative_next(request.args.get("next") or session.get("post_login_redirect"), "/profile")
     query = urlencode({"app": "find-the-beat", "next": next_path})
     log_sso_debug("login_redirect", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     return redirect(f"{BRENT_SSO_URL}?{query}")
@@ -2285,6 +2626,9 @@ def sso_consume():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    next_target = safe_relative_next(request.args.get("next") or session.get("post_login_redirect"), "")
+    if next_target:
+        session["post_login_redirect"] = next_target
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
@@ -2295,7 +2639,7 @@ def login():
             flash("Invalid email or password.")
             return redirect(url_for("login"))
 
-        post_login_redirect = session.get("post_login_redirect")
+        post_login_redirect = safe_relative_next(session.get("post_login_redirect"), "/profile")
         session.clear()
         session["user_id"] = row["id"]
         with get_db() as conn:
@@ -2316,7 +2660,7 @@ def login():
         flash("You have new messages." if count else "You are logged in.")
         return redirect(post_login_redirect or url_for("profile"))
 
-    return render_template("login.html")
+    return render_template("login.html", next_target=session.get("post_login_redirect", ""))
 
 
 @app.route("/logout")
@@ -2352,6 +2696,9 @@ def profile_by_username(username):
 @login_required
 def edit_profile(profile_id=None):
     user = current_user()
+    next_target = safe_relative_next(request.args.get("next") or session.get("post_profile_redirect"), "")
+    if next_target:
+        session["post_profile_redirect"] = next_target
     if profile_id is not None and profile_id != user.id:
         flash("You can only edit your own profile.")
         return redirect(url_for("profile_detail", profile_id=profile_id))
@@ -2378,8 +2725,9 @@ def edit_profile(profile_id=None):
         update_user_profile(user.id, fields, profile_pic, profile_video)
         completion = profile_completion(current_user())
         track_onboarding_event("profile_completed" if completion["percent"] >= 100 else "profile_started", user.id, {"completion": completion["percent"]})
+        post_profile_redirect = safe_relative_next(session.pop("post_profile_redirect", ""), "/profile")
         flash("Profile updated.")
-        return redirect(url_for("profile"))
+        return redirect(post_profile_redirect)
 
     track_onboarding_event("profile_started", user.id)
     return render_template("edit_profile.html", user=user)
@@ -2470,7 +2818,7 @@ def my_profile():
 
 @app.route("/messages/new", methods=["GET", "POST"])
 @app.route("/profiles/<int:recipient_id>/message", methods=["GET", "POST"])
-@login_required
+@require_profile_action
 def new_message(recipient_id=None):
     user = current_user()
     profiles = [profile for profile in search_profiles() if profile.id != user.id]
@@ -2860,6 +3208,7 @@ def handle_not_found(error):
 
 init_db()
 seed_demo_profiles_if_empty()
+seed_demo_opportunities_if_empty()
 seed_founder_profile()
 
 

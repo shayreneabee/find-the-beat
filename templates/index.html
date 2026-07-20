@@ -190,11 +190,39 @@
   <h1>Find musicians, producers, and collaborators near you.</h1>
   <p>Create a profile, upload performances, browse artists by role or city, and message the people you want to build with.</p>
   <div class="hero-actions">
-    <a class="button primary" href="{{ url_for('signup') }}">Join the Network</a>
+    <a class="button primary" href="{{ url_for('opportunities_board') }}">Find a Gig</a>
     <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
-    <a class="button secondary" href="{{ url_for('login') }}">Sign In</a>
+    <a class="button secondary" href="{{ url_for('post_opportunity') }}">Post an Opportunity</a>
   </div>
 </section>
+
+{% if opportunities %}
+  <h2 class="section-band">open gigs</h2>
+  <section class="creator-strip">
+    {% for opp in opportunities %}
+      <article class="creator-card">
+        <span class="creator-initial">{{ (opp.opportunity_type or "Gig")[:1] }}</span>
+        <span>
+          <h3>{{ opp.title }}</h3>
+          <p>{{ opp.role_needed or "Musician needed" }}{% if opp.city %} • {{ opp.city }}{% endif %}{% if opp.paid_status %} • {{ opp.paid_status }}{% endif %}</p>
+          <span class="badge-line">
+            {% if opp.instrument_needed %}<span class="badge">{{ opp.instrument_needed }}</span>{% endif %}
+            {% if opp.genre %}<span class="badge">{{ opp.genre }}</span>{% endif %}
+          </span>
+          <span class="hero-actions" style="margin-top:0.75rem;">
+            <a class="button primary" href="{{ url_for('opportunity_detail', opportunity_id=opp.id) }}">View Opportunity</a>
+            <form method="POST" action="{{ url_for('apply_opportunity', opportunity_id=opp.id) }}">
+              <button class="button secondary" type="submit">Apply</button>
+            </form>
+          </span>
+        </span>
+      </article>
+    {% endfor %}
+  </section>
+  <div class="hero-actions" style="margin-top:1rem;">
+    <a class="button secondary" href="{{ url_for('opportunities_board') }}">View Opportunities</a>
+  </div>
+{% endif %}
 
 <h2 class="section-band">search talent</h2>
 <section class="category-grid" aria-label="Talent categories">

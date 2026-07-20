@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Post an Opportunity | Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .opportunity-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .opportunity-form section {
+    padding: 1rem;
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .form-grid label {
+    display: grid;
+    gap: 0.3rem;
+    color: var(--muted);
+    font-weight: 900;
+  }
+
+  .form-grid input,
+  .form-grid textarea,
+  .form-grid select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--cream);
+    color: var(--text);
+  }
+
+  .form-grid textarea {
+    min-height: 140px;
+    resize: vertical;
+  }
+
+  .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+
+  @media (min-width: 760px) {
+    .form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+  }
+</style>
+
+<div class="opportunity-form">
+  <section class="app-panel">
+    <p class="hero-kicker">Opportunity posting</p>
+    <h1>Post an Opportunity</h1>
+  </section>
+
+  <section class="app-panel">
+    <form class="form-grid" method="POST">
+      <label class="wide">Title
+        <input name="title" required placeholder="Venue seeking opening act">
+      </label>
+      <label class="wide">Description
+        <textarea name="description" required placeholder="What do you need, when, and what should musicians know?"></textarea>
+      </label>
+      <label>Type
+        <input name="opportunity_type" placeholder="Gig, audition, collaboration">
+      </label>
+      <label>Role Needed
+        <input name="role_needed" placeholder="Singer, drummer, engineer">
+      </label>
+      <label>Instrument
+        <input name="instrument_needed" placeholder="Keys, guitar, voice">
+      </label>
+      <label>Genre
+        <input name="genre" placeholder="Gospel, R&B, jazz">
+      </label>
+      <label>Venue or location
+        <input name="location_name" placeholder="The Rail Room">
+      </label>
+      <label>City
+        <input name="city" value="{{ user.city or '' }}">
+      </label>
+      <label>State
+        <input name="state" value="{{ user.state or '' }}">
+      </label>
+      <label>Pay status
+        <select name="paid_status">
+          <option value="">Choose status</option>
+          <option value="Paid">Paid</option>
+          <option value="Stipend">Stipend</option>
+          <option value="Unpaid">Unpaid</option>
+        </select>
+      </label>
+      <label>Compensation
+        <input name="compensation" placeholder="$250 flat, door split, travel stipend">
+      </label>
+      <label>Event date
+        <input name="event_date" placeholder="2026-08-15 19:00">
+      </label>
+      <label>Application deadline
+        <input name="application_deadline" placeholder="2026-08-01">
+      </label>
+      <label>Contact method
+        <input name="contact_method" placeholder="Message poster, email, website">
+      </label>
+      <label class="wide">Application URL
+        <input name="application_url" placeholder="https://example.com/apply">
+      </label>
+      <div class="form-actions wide">
+        <button class="button primary" type="submit">Post an Opportunity</button>
+        <a class="button secondary" href="{{ url_for('opportunities_board') }}">View Opportunities</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

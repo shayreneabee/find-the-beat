@@ -234,13 +234,13 @@
 
     <div class="signup-actions">
       <button class="button primary" type="submit">Create Account</button>
-      <a class="button secondary" href="{{ url_for('login') }}">Sign In Instead</a>
+      <a class="button secondary" href="{{ url_for('login', next=next_target) if next_target else url_for('login') }}">Sign In Instead</a>
     </div>
     <div class="oauth-prep" aria-label="Brent and Co social sign in">
-      <a href="{{ url_for('sso_login', next='/profile') }}">Continue with Google</a>
+      <a href="{{ url_for('sso_login', next=next_target) if next_target else url_for('sso_login') }}">Continue with Google</a>
       <button type="button" disabled>Continue with Apple</button>
       <button type="button" disabled>Continue with Facebook</button>
-      <a href="{{ url_for('login') }}">Continue with Email</a>
+      <a href="{{ url_for('login', next=next_target) if next_target else url_for('login') }}">Continue with Email</a>
     </div>
   </form>
 </section>
