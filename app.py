@@ -7,11 +7,14 @@ import re
 import secrets
 import sqlite3
 import time
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from html import escape
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from flask import (
     Flask,
@@ -44,6 +47,25 @@ ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "m4a", "aac", "ogg", "webm"}
 BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentandco.org/")
 BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
 FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://findthebeatmusic.com")
+TICKETMASTER_API_KEY = os.getenv("TICKETMASTER_API_KEY", "").strip()
+TICKETMASTER_IMPORT_KEYWORDS = [
+    item.strip()
+    for item in os.getenv("TICKETMASTER_IMPORT_KEYWORDS", "music,open mic,concert,audition").split(",")
+    if item.strip()
+]
+TICKETMASTER_IMPORT_CITY = os.getenv("TICKETMASTER_IMPORT_CITY", "").strip()
+TICKETMASTER_IMPORT_STATE = os.getenv("TICKETMASTER_IMPORT_STATE", "").strip()
+TICKETMASTER_IMPORT_COUNTRY = os.getenv("TICKETMASTER_IMPORT_COUNTRY", "US").strip() or "US"
+EVENTBRITE_OAUTH_TOKEN = os.getenv("EVENTBRITE_OAUTH_TOKEN", "").strip()
+EVENTBRITE_IMPORT_QUERY = os.getenv("EVENTBRITE_IMPORT_QUERY", "music audition gig open mic").strip()
+EVENTBRITE_IMPORT_LOCATION = os.getenv("EVENTBRITE_IMPORT_LOCATION", "Mississippi").strip()
+BANDSINTOWN_APP_ID = os.getenv("BANDSINTOWN_APP_ID", "").strip()
+BANDSINTOWN_IMPORT_ARTISTS = [
+    item.strip()
+    for item in os.getenv("BANDSINTOWN_IMPORT_ARTISTS", "").split(",")
+    if item.strip()
+]
+FTB_AUTO_IMPORT_GIGS = os.getenv("FTB_AUTO_IMPORT_GIGS", "").strip().lower() in {"1", "true", "yes", "on"}
 SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
     "https://secondchancecareers.org/",
@@ -639,10 +661,12 @@ def init_db():
                 application_deadline TEXT DEFAULT '',
                 contact_method TEXT DEFAULT '',
                 application_url TEXT DEFAULT '',
+                source_url TEXT DEFAULT '',
                 created_by INTEGER,
                 source_name TEXT DEFAULT '',
                 external_id TEXT DEFAULT '',
                 is_seeded_demo INTEGER DEFAULT 0,
+                imported_at TEXT DEFAULT '',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'active',
@@ -775,15 +799,24 @@ def init_db():
         for column, definition in {
             "contact_method": "TEXT DEFAULT ''",
             "application_url": "TEXT DEFAULT ''",
+            "source_url": "TEXT DEFAULT ''",
             "created_by": "INTEGER",
             "source_name": "TEXT DEFAULT ''",
             "external_id": "TEXT DEFAULT ''",
             "is_seeded_demo": "INTEGER DEFAULT 0",
+            "imported_at": "TEXT DEFAULT ''",
             "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
             "status": "TEXT DEFAULT 'active'",
         }.items():
             if column not in opportunity_columns:
                 conn.execute(f"ALTER TABLE opportunities ADD COLUMN {column} {definition}")
+        conn.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_opportunity_source_external
+            ON opportunities(source_name, external_id)
+            WHERE COALESCE(source_name, '') != '' AND COALESCE(external_id, '') != ''
+            """
+        )
 
         for row in conn.execute("SELECT id, role FROM users").fetchall():
             ensure_master_profile(conn, row["id"], "find-the-beat", row["role"] or "user")
@@ -1409,6 +1442,253 @@ def create_opportunity(user_id, fields):
         return cursor.lastrowid
 
 
+def http_json(url, params=None, headers=None, timeout=15):
+    query = urlencode(params or {}, doseq=True)
+    request_url = f"{url}?{query}" if query else url
+    req = Request(request_url, headers=headers or {"User-Agent": "FindTheBeat/1.0"})
+    try:
+        with urlopen(req, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+        app.logger.warning("Opportunity import request failed for %s: %s", url, exc)
+        return None
+
+
+def opportunity_source_key(source_name, external_id):
+    return f"{source_name}:{external_id}"
+
+
+def upsert_imported_opportunity(conn, item):
+    source_name = item.get("source_name", "").strip()
+    external_id = item.get("external_id", "").strip()
+    if not source_name or not external_id or not item.get("title"):
+        return False
+    existing = conn.execute(
+        "SELECT id FROM opportunities WHERE source_name = ? AND external_id = ?",
+        (source_name, external_id),
+    ).fetchone()
+    values = (
+        item["title"],
+        item.get("description", ""),
+        item.get("opportunity_type", ""),
+        item.get("role_needed", ""),
+        item.get("instrument_needed", ""),
+        item.get("genre", ""),
+        item.get("city", ""),
+        item.get("state", ""),
+        item.get("location_name", ""),
+        item.get("paid_status", ""),
+        item.get("compensation", ""),
+        item.get("event_date", ""),
+        item.get("application_deadline", ""),
+        item.get("contact_method", ""),
+        item.get("application_url", ""),
+        item.get("source_url", ""),
+        source_name,
+        external_id,
+    )
+    if existing:
+        conn.execute(
+            """
+            UPDATE opportunities
+            SET title = ?, description = ?, opportunity_type = ?, role_needed = ?,
+                instrument_needed = ?, genre = ?, city = ?, state = ?, location_name = ?,
+                paid_status = ?, compensation = ?, event_date = ?, application_deadline = ?,
+                contact_method = ?, application_url = ?, source_url = ?, source_name = ?,
+                external_id = ?, imported_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
+                status = 'active'
+            WHERE id = ?
+            """,
+            (*values, existing["id"]),
+        )
+        return False
+    conn.execute(
+        """
+        INSERT INTO opportunities (
+            title, description, opportunity_type, role_needed, instrument_needed,
+            genre, city, state, location_name, paid_status, compensation,
+            event_date, application_deadline, contact_method, application_url,
+            source_url, source_name, external_id, imported_at, status, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active', CURRENT_TIMESTAMP)
+        """,
+        values,
+    )
+    return True
+
+
+def normalize_event_datetime(date_value="", time_value=""):
+    if not date_value:
+        return ""
+    return f"{date_value} {time_value}".strip()
+
+
+def ticketmaster_items(limit=20):
+    if not TICKETMASTER_API_KEY:
+        return [], "missing TICKETMASTER_API_KEY"
+    items = []
+    seen = set()
+    start = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    end = (datetime.now(timezone.utc) + timedelta(days=120)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    for keyword in TICKETMASTER_IMPORT_KEYWORDS:
+        params = {
+            "apikey": TICKETMASTER_API_KEY,
+            "classificationName": "music",
+            "countryCode": TICKETMASTER_IMPORT_COUNTRY,
+            "keyword": keyword,
+            "size": min(limit, 50),
+            "sort": "date,asc",
+            "startDateTime": start,
+            "endDateTime": end,
+        }
+        if TICKETMASTER_IMPORT_CITY:
+            params["city"] = TICKETMASTER_IMPORT_CITY
+        if TICKETMASTER_IMPORT_STATE:
+            params["stateCode"] = TICKETMASTER_IMPORT_STATE
+        data = http_json("https://app.ticketmaster.com/discovery/v2/events.json", params)
+        events = ((data or {}).get("_embedded") or {}).get("events", [])
+        for event in events:
+            external_id = str(event.get("id") or "")
+            key = opportunity_source_key("Ticketmaster", external_id)
+            if not external_id or key in seen:
+                continue
+            seen.add(key)
+            venue = (((event.get("_embedded") or {}).get("venues") or [{}])[0]) or {}
+            dates = event.get("dates") or {}
+            start_info = dates.get("start") or {}
+            classifications = event.get("classifications") or []
+            classification = classifications[0] if classifications else {}
+            genre = ((classification.get("genre") or {}).get("name") or "").strip()
+            items.append({
+                "title": event.get("name") or "Music event",
+                "description": event.get("info") or event.get("pleaseNote") or "Imported music event from Ticketmaster.",
+                "opportunity_type": "Live Event",
+                "role_needed": "Performer / event opportunity",
+                "instrument_needed": "",
+                "genre": genre,
+                "city": venue.get("city", {}).get("name", ""),
+                "state": venue.get("state", {}).get("stateCode", ""),
+                "location_name": venue.get("name", ""),
+                "paid_status": "",
+                "compensation": "",
+                "event_date": normalize_event_datetime(start_info.get("localDate", ""), start_info.get("localTime", "")),
+                "application_deadline": "",
+                "contact_method": "Ticketmaster listing",
+                "application_url": event.get("url", ""),
+                "source_url": event.get("url", ""),
+                "source_name": "Ticketmaster",
+                "external_id": external_id,
+            })
+    return items[:limit], ""
+
+
+def eventbrite_items(limit=20):
+    if not EVENTBRITE_OAUTH_TOKEN:
+        return [], "missing EVENTBRITE_OAUTH_TOKEN"
+    params = {
+        "q": EVENTBRITE_IMPORT_QUERY,
+        "location.address": EVENTBRITE_IMPORT_LOCATION,
+        "expand": "venue,ticket_availability",
+        "sort_by": "date",
+    }
+    headers = {
+        "Authorization": f"Bearer {EVENTBRITE_OAUTH_TOKEN}",
+        "User-Agent": "FindTheBeat/1.0",
+    }
+    data = http_json("https://www.eventbriteapi.com/v3/events/search/", params, headers=headers)
+    events = (data or {}).get("events", [])[:limit]
+    items = []
+    for event in events:
+        venue = event.get("venue") or {}
+        address = venue.get("address") or {}
+        start = event.get("start") or {}
+        ticket = event.get("ticket_availability") or {}
+        items.append({
+            "title": (event.get("name") or {}).get("text") or "Eventbrite music event",
+            "description": (event.get("description") or {}).get("text") or "Imported music opportunity from Eventbrite.",
+            "opportunity_type": "Music Event",
+            "role_needed": "Performer / attendee opportunity",
+            "instrument_needed": "",
+            "genre": "Music",
+            "city": address.get("city", ""),
+            "state": address.get("region", ""),
+            "location_name": venue.get("name", ""),
+            "paid_status": "Paid" if ticket.get("has_available_tickets") else "",
+            "compensation": "",
+            "event_date": (start.get("local") or "")[:16].replace("T", " "),
+            "application_deadline": "",
+            "contact_method": "Eventbrite listing",
+            "application_url": event.get("url", ""),
+            "source_url": event.get("url", ""),
+            "source_name": "Eventbrite",
+            "external_id": str(event.get("id") or ""),
+        })
+    return items, ""
+
+
+def bandsintown_items(limit=20):
+    if not BANDSINTOWN_APP_ID or not BANDSINTOWN_IMPORT_ARTISTS:
+        return [], "missing BANDSINTOWN_APP_ID or BANDSINTOWN_IMPORT_ARTISTS"
+    items = []
+    for artist in BANDSINTOWN_IMPORT_ARTISTS:
+        url_artist = quote(artist.replace("/", " "))
+        data = http_json(
+            f"https://rest.bandsintown.com/artists/{url_artist}/events",
+            {"app_id": BANDSINTOWN_APP_ID, "date": "upcoming"},
+        )
+        for event in (data or [])[:limit]:
+            venue = event.get("venue") or {}
+            offer = ((event.get("offers") or [{}])[0]) or {}
+            items.append({
+                "title": event.get("title") or f"{artist} live event",
+                "description": event.get("description") or f"Upcoming Bandsintown event for {artist}.",
+                "opportunity_type": "Artist Event",
+                "role_needed": "Live music opportunity",
+                "instrument_needed": "",
+                "genre": "Music",
+                "city": venue.get("city", ""),
+                "state": venue.get("region", ""),
+                "location_name": venue.get("name", ""),
+                "paid_status": "",
+                "compensation": "",
+                "event_date": (event.get("datetime") or "")[:16].replace("T", " "),
+                "application_deadline": "",
+                "contact_method": "Bandsintown listing",
+                "application_url": offer.get("url") or event.get("url", ""),
+                "source_url": event.get("url", ""),
+                "source_name": "Bandsintown",
+                "external_id": str(event.get("id") or ""),
+            })
+            if len(items) >= limit:
+                return items, ""
+    return items[:limit], ""
+
+
+def import_opportunity_sources(limit=60):
+    providers = [
+        ("Ticketmaster", ticketmaster_items),
+        ("Eventbrite", eventbrite_items),
+        ("Bandsintown", bandsintown_items),
+    ]
+    results = {}
+    with get_db() as conn:
+        for name, provider in providers:
+            items, note = provider(limit=limit)
+            created = 0
+            updated = 0
+            for item in items:
+                was_created = upsert_imported_opportunity(conn, item)
+                created += int(was_created)
+                updated += int(not was_created)
+            results[name] = {
+                "fetched": len(items),
+                "created": created,
+                "updated": updated,
+                "note": note,
+            }
+    return results
+
+
 def split_csv(value):
     return [item.strip() for item in (value or "").split(",") if item.strip()]
 
@@ -1624,6 +1904,17 @@ def require_profile_action(view):
         return view(*args, **kwargs)
 
     return wrapped
+
+
+def is_admin_user(user):
+    return bool(
+        user
+        and (
+            user.is_admin
+            or user.is_founder
+            or user.email.lower() == FOUNDER_PROFILES[0]["email"]
+        )
+    )
 
 
 @app.context_processor
@@ -3002,7 +3293,7 @@ def settings():
 @login_required
 def admin_dashboard():
     user = current_user()
-    if not (user.is_admin or user.is_founder or user.email.lower() == FOUNDER_PROFILES[0]["email"]):
+    if not is_admin_user(user):
         return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
 
     platform_filter = request.args.get("app", "all").strip() or "all"
@@ -3071,7 +3362,29 @@ def admin_dashboard():
 <section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{new_today}</strong><span>New users today</span></article><article><strong>{active_users}</strong><span>Active users</span></article><article><strong>{avg_completion}%</strong><span>Avg profile completion</span></article><article><strong>{total_messages}</strong><span>Messages sent</span></article><article><strong>{total_showcases}</strong><span>Showcases uploaded</span></article><article><strong>0</strong><span>Recipes submitted</span></article><article><strong>0</strong><span>Resumes uploaded</span></article></section>
 <section class="admin-panel"><h2>Onboarding funnel</h2><table><thead><tr><th>Step</th><th>Visual</th><th>Users</th><th>Conversion</th><th>Drop-off</th></tr></thead><tbody>{funnel_rows}</tbody></table></section>
 <section class="admin-panel"><h2>Users by app</h2><table><tbody>{app_rows}</tbody></table></section>
+<section class="admin-panel"><h2>Gig imports</h2><p>Pull current gigs and music events from configured APIs.</p><form method="post" action="/admin/import-opportunities"><button class="button primary" type="submit">Import gigs now</button></form></section>
 <section class="admin-panel"><h2>User directory</h2><table><thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Location</th><th>Profile</th><th>Last login</th></tr></thead><tbody>{user_rows}</tbody></table></section>
+</main></body></html>"""
+
+
+@app.route("/admin/import-opportunities", methods=["POST"])
+@login_required
+def admin_import_opportunities():
+    user = current_user()
+    if not is_admin_user(user):
+        return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
+    results = import_opportunity_sources()
+    rows = "".join(
+        f"<tr><td>{escape(source)}</td><td>{data['fetched']}</td><td>{data['created']}</td><td>{data['updated']}</td><td>{escape(data['note'])}</td></tr>"
+        for source, data in results.items()
+    )
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gig Import Results | Find The Beat</title><link rel="stylesheet" href="/static/css/styles.css"></head>
+<body class="page-shell"><main class="admin-dashboard">
+<p class="eyebrow">Find The Beat admin</p><h1>Gig import results</h1>
+<section class="admin-panel"><table><thead><tr><th>Source</th><th>Fetched</th><th>Created</th><th>Updated</th><th>Note</th></tr></thead><tbody>{rows}</tbody></table></section>
+<p><a class="button secondary" href="/opportunities">View Opportunities</a> <a class="button secondary" href="/admin">Back to admin</a></p>
 </main></body></html>"""
 
 
@@ -3079,7 +3392,7 @@ def admin_dashboard():
 @login_required
 def profile_debug_dashboard():
     user = current_user()
-    if not (user.is_admin or user.is_founder or user.email.lower() == FOUNDER_PROFILES[0]["email"]):
+    if not is_admin_user(user):
         return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
 
     def table_rows(rows, columns, empty_message):
@@ -3209,6 +3522,8 @@ def handle_not_found(error):
 init_db()
 seed_demo_profiles_if_empty()
 seed_demo_opportunities_if_empty()
+if FTB_AUTO_IMPORT_GIGS:
+    import_opportunity_sources()
 seed_founder_profile()
 
 

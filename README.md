@@ -10,6 +10,8 @@ A full-stack web application that allows musicians and creatives to connect, col
 - Performance/video uploads stored in the database with uploader ownership
 - User-to-user messaging with inbox, conversation threads, replies, and read status
 - Profile picture and intro video uploads
+- Public gig/opportunity board with detail pages, apply routing, and user-posted opportunities
+- Optional gig imports from Ticketmaster, Eventbrite, and Bandsintown APIs
 
 ## 🛠 Tech Stack
 - Backend: Python (Flask)
@@ -72,6 +74,30 @@ Recommended manual test:
 - `users`: account and profile fields, including email, password hash, display name, role, genre, city/state, bio, tags/services, profile image, profile video, timestamps.
 - `performances`: uploaded performances tied to `user_id`, including title, description, video filename, thumbnail filename, and timestamp.
 - `messages`: user-to-user messages with `sender_id`, `recipient_id`, body, read/unread flag, and timestamp.
+- `opportunities`: gig and opportunity records from seeded data, user posts, and optional API imports.
+
+## Gig/API Imports
+
+The opportunity board works without external credentials by using seeded openings and user-posted gigs. To import live gig/event data, set any of these optional environment variables:
+
+```text
+TICKETMASTER_API_KEY=...
+TICKETMASTER_IMPORT_KEYWORDS=music,open mic,concert,audition
+TICKETMASTER_IMPORT_CITY=
+TICKETMASTER_IMPORT_STATE=
+TICKETMASTER_IMPORT_COUNTRY=US
+
+EVENTBRITE_OAUTH_TOKEN=...
+EVENTBRITE_IMPORT_QUERY=music audition gig open mic
+EVENTBRITE_IMPORT_LOCATION=Mississippi
+
+BANDSINTOWN_APP_ID=...
+BANDSINTOWN_IMPORT_ARTISTS=Artist One,Artist Two
+
+FTB_AUTO_IMPORT_GIGS=false
+```
+
+Admins can run imports from `/admin` with **Import gigs now**. Set `FTB_AUTO_IMPORT_GIGS=true` only if you want the app to attempt imports on startup.
 
 ## Render Notes
 
