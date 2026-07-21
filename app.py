@@ -3081,13 +3081,39 @@ def home():
     role = request.args.get("role", "").strip()
     genre = request.args.get("genre", "").strip()
     city = request.args.get("city", "").strip()
-    creators = search_profiles(q, role, genre, city)[:4]
-    opportunities = get_opportunities(limit=3)
+    creators = search_profiles(q, role, genre, city)
+    opportunities = get_opportunities(limit=8)
+    trending_gigs = [
+        {"label": "Festival", "href": ftb_gig_board_url(q="festival")},
+        {"label": "Church", "href": ftb_gig_board_url(q="church")},
+        {"label": "Venue", "href": ftb_gig_board_url(q="venue")},
+        {"label": "Studio", "href": ftb_gig_board_url(q="studio")},
+        {"label": "Wedding", "href": ftb_gig_board_url(q="wedding")},
+        {"label": "Orchestra", "href": ftb_gig_board_url(q="orchestra")},
+    ]
+    musicians_near = search_profiles(role="musician")[:10]
+    vocalists = search_profiles(role="vocalist")[:10]
+    producers = search_profiles(role="producer")[:10]
+    band_opportunities = [
+        opp for opp in get_opportunities(limit=12)
+        if any(term in " ".join([opp.title, opp.description, opp.role_needed, opp.opportunity_type]).lower() for term in ["band", "member", "drummer", "guitar", "bass"])
+    ][:8]
+    upcoming_shows = [
+        opp for opp in get_opportunities(limit=12)
+        if opp.event_date or any(term in " ".join([opp.title, opp.description, opp.opportunity_type]).lower() for term in ["show", "event", "live", "concert", "open mic"])
+    ][:6]
+    if len(upcoming_shows) < 3:
+        upcoming_shows.extend(get_performances()[: 6 - len(upcoming_shows)])
     return render_template(
         "index.html",
-        creators=creators,
-        category_tiles=CATEGORY_TILES,
+        creators=creators[:10],
         opportunities=opportunities,
+        trending_gigs=trending_gigs,
+        musicians_near=musicians_near,
+        producers=producers,
+        vocalists=vocalists,
+        band_opportunities=band_opportunities,
+        upcoming_shows=upcoming_shows[:6],
         map_summary=discovery_summary(),
         q=q,
         role_filter=role,

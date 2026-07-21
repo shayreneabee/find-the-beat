@@ -4,108 +4,146 @@
 
 {% block content %}
 <style>
-  .flagship-hero {
+  .discover-home {
     display: grid;
     gap: 1.15rem;
-    padding: clamp(1.35rem, 5vw, 3rem);
-    background:
-      linear-gradient(135deg, rgba(245, 138, 0, 0.24), rgba(255, 250, 238, 0.96)),
-      var(--card);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    box-shadow: var(--shadow);
   }
 
-  .hero-kicker {
+  .quick-hero {
+    display: grid;
+    gap: 0.85rem;
+    padding: clamp(1rem, 4vw, 1.65rem);
+    border: 1px solid rgba(255, 208, 93, 0.24);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(7, 15, 35, 0.98), rgba(18, 30, 57, 0.96));
+    color: #fffaf0;
+  }
+
+  .quick-hero h1,
+  .quick-hero p,
+  .lane-head h2,
+  .lane-head p {
     margin: 0;
-    color: var(--accent-dark);
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
   }
 
-  .flagship-hero h1 {
-    max-width: 850px;
-    margin: 0;
-    font-size: clamp(2.35rem, 7vw, 5.2rem);
-    line-height: 0.98;
-  }
-
-  .flagship-hero p {
+  .quick-hero h1 {
     max-width: 760px;
-    margin: 0;
-    color: var(--muted);
-    font-size: clamp(1rem, 2vw, 1.2rem);
+    font-size: clamp(2rem, 7vw, 4rem);
+    line-height: 0.96;
+  }
+
+  .quick-hero p {
+    color: rgba(255, 250, 238, 0.78);
+    font-weight: 800;
   }
 
   .hero-actions,
-  .creator-row {
+  .lane-head,
+  .mini-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .creator-strip {
-    display: grid;
-    gap: 1rem;
-    margin-top: 1.25rem;
-  }
-
-  .creator-card {
-    display: grid;
-    grid-template-columns: 86px 1fr;
-    gap: 1rem;
+    gap: 0.65rem;
     align-items: center;
-    padding: 1rem;
-    background: var(--card);
+  }
+
+  .lane-head {
+    justify-content: space-between;
+    padding-top: 0.2rem;
+  }
+
+  .lane-head h2 {
+    font-size: clamp(1.2rem, 3vw, 1.7rem);
+  }
+
+  .lane-head p {
+    color: var(--muted);
+  }
+
+  .scroll-lane {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(180px, 240px);
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 0.1rem 0 0.65rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .rail-card,
+  .artist-card,
+  .map-strip,
+  .timeline-item {
     border: 1px solid var(--line);
-    border-radius: 18px;
+    border-radius: 12px;
+    background: var(--card);
     box-shadow: var(--lift);
   }
 
-  .creator-photo,
-  .creator-initial {
-    width: 86px;
-    height: 86px;
+  .rail-card {
+    min-height: 124px;
+    display: grid;
+    align-content: space-between;
+    gap: 0.7rem;
+    padding: 0.85rem;
+    color: var(--text);
+    scroll-snap-align: start;
+  }
+
+  .rail-card strong,
+  .artist-card strong,
+  .timeline-item strong {
+    line-height: 1.1;
+  }
+
+  .rail-card span,
+  .artist-card span,
+  .timeline-item span {
+    color: var(--muted);
+    font-size: 0.88rem;
+    font-weight: 800;
+  }
+
+  .artist-card {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    color: var(--text);
+    scroll-snap-align: start;
+  }
+
+  .artist-photo {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
     overflow: hidden;
+    border-radius: 10px;
     background: var(--accent);
-    box-shadow: var(--lift);
+    color: #1b1307;
+    font-size: 2.2rem;
+    font-weight: 900;
   }
 
-  .creator-photo img {
+  .artist-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .creator-initial {
-    display: grid;
-    place-items: center;
-    font-size: 2.25rem;
-    font-weight: 900;
-  }
-
-  .creator-card h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    line-height: 1.1;
-  }
-
-  .creator-card p {
-    margin: 0.25rem 0 0;
-    color: var(--muted);
-  }
-
-  .badge-line {
+  .chip-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.55rem;
+    gap: 0.45rem;
   }
 
-  .badge {
-    padding: 0.25rem 0.5rem;
+  .chip-row a,
+  .chip-row span {
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--line);
     border-radius: 999px;
     background: var(--accent-soft);
     color: var(--accent-dark);
@@ -113,207 +151,248 @@
     font-weight: 900;
   }
 
-  .category-grid {
+  .map-strip {
     display: grid;
-    gap: 0.85rem;
-    margin-top: 1rem;
-  }
-
-  .near-map-preview {
-    display: grid;
-    gap: 1rem;
-    margin-top: 1.25rem;
+    gap: 0.8rem;
     padding: 1rem;
-    border: 1px solid rgba(255, 208, 93, 0.24);
-    border-radius: 18px;
-    background: linear-gradient(135deg, rgba(7, 15, 35, 0.98), rgba(18, 30, 57, 0.96));
+    background: linear-gradient(135deg, rgba(7, 15, 35, 0.98), rgba(22, 35, 62, 0.98));
     color: #fffaf0;
-    box-shadow: var(--lift);
   }
 
-  .near-map-preview h2,
-  .near-map-preview p {
+  .map-strip p {
     margin: 0;
-  }
-
-  .near-map-preview p {
     color: rgba(255, 250, 238, 0.78);
   }
 
-  .map-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-
-  .map-stats span {
-    display: grid;
-    gap: 0.15rem;
-    padding: 0.7rem;
+  .map-dots {
+    position: relative;
+    min-height: 150px;
     border: 1px solid rgba(255, 208, 93, 0.22);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  .map-dots::before {
+    content: "";
+    position: absolute;
+    inset: 14% 9% 15% 7%;
+    clip-path: polygon(8% 40%, 18% 22%, 31% 14%, 47% 16%, 61% 19%, 74% 18%, 88% 31%, 92% 47%, 83% 64%, 68% 76%, 51% 78%, 35% 73%, 18% 66%);
+    background: rgba(255, 250, 238, 0.08);
+  }
+
+  .map-dot {
+    position: absolute;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 999px;
+    background: #f5a524;
+    box-shadow: 0 0 0 5px rgba(245, 165, 36, 0.18);
+  }
+
+  .timeline {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .timeline-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.8rem;
+  }
+
+  .date-pill {
+    min-width: 54px;
+    padding: 0.45rem;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    text-align: center;
     font-weight: 900;
   }
 
-  .map-stats small {
-    color: rgba(255, 250, 238, 0.68);
-    font-weight: 800;
-  }
-
-  .category-tile {
-    position: relative;
-    min-height: 142px;
-    display: grid;
-    align-content: end;
-    overflow: hidden;
-    padding: 1rem;
-    border: 1px solid rgba(78, 47, 16, 0.14);
-    border-radius: 22px;
-    background: var(--card);
-    box-shadow: var(--lift);
-    color: #fffaf0;
-    transition: transform 180ms ease, box-shadow 180ms ease;
-  }
-
-  .category-tile::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(180deg, rgba(47, 30, 13, 0.02), rgba(47, 30, 13, 0.78)),
-      var(--category-art);
-    background-size: cover;
-    background-position: center;
-    transition: transform 180ms ease;
-  }
-
-  .category-tile:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow);
-  }
-
-  .category-tile:hover::before {
-    transform: scale(1.04);
-  }
-
-  .category-tile strong,
-  .category-tile span {
-    position: relative;
-    z-index: 1;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.42);
-  }
-
-  .category-tile strong {
-    font-size: 1.22rem;
-    line-height: 1.05;
-  }
-
-  .category-tile span {
-    margin-top: 0.25rem;
-    color: rgba(255, 250, 238, 0.88);
-    font-size: 0.88rem;
-    font-weight: 800;
-  }
-
-  @media (min-width: 760px) {
-    .creator-strip {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .category-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (min-width: 820px) {
+    .map-strip {
+      grid-template-columns: 1fr 1.2fr;
+      align-items: center;
     }
   }
 </style>
 
-<section class="flagship-hero">
-  <p class="hero-kicker">Music networking for real collaborators</p>
-  <h1>Find musicians, producers, and collaborators near you.</h1>
-  <p>Create a profile, upload performances, browse artists by role or city, and message the people you want to build with.</p>
-  <div class="hero-actions">
-    <a class="button primary" href="{{ ftb_gig_board_url() }}">Find a Gig</a>
-    <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
-    <a class="button secondary" href="{{ url_for('post_opportunity') }}">Post an Opportunity</a>
-  </div>
-</section>
+{% macro opportunity_card(opp) %}
+  <a class="rail-card" href="{{ ftb_opportunity_url(opp.id) }}">
+    <strong>{{ opp.title }}</strong>
+    <span>{{ opp.role_needed or opp.opportunity_type or "Open opportunity" }}</span>
+    <span>{{ opp.city }}{% if opp.city and opp.state %}, {% endif %}{{ opp.state }}{% if opp.paid_status %} / {{ opp.paid_status }}{% endif %}</span>
+  </a>
+{% endmacro %}
 
-<section class="near-map-preview" aria-label="Find the Beat Near You preview">
-  <div>
-    <p class="hero-kicker">Find the Beat Near You</p>
-    <h2>Explore musicians, gigs, venues, and live opportunities happening in your area.</h2>
-  </div>
-  <div class="map-stats">
-    <span>{{ map_summary.opportunity_count }}<small>opportunities</small></span>
-    <span>{{ map_summary.creator_count }}<small>creators</small></span>
-    <span>{{ map_summary.showcase_count }}<small>showcases</small></span>
-  </div>
-  <div class="hero-actions">
-    <a class="button primary" href="{{ url_for('discovery_map') }}">Explore the Map</a>
-    <a class="button secondary" href="{{ url_for('discovery_map', use_profile=1) }}">Use My Location</a>
-    <a class="button secondary" href="{{ ftb_gig_board_url() }}">View All Opportunities</a>
-  </div>
-</section>
+{% macro creator_card(profile) %}
+  <a class="artist-card" href="{{ url_for('profile_detail', profile_id=profile.id) }}">
+    <span class="artist-photo">
+      {% if profile.photo_filename %}
+        <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
+      {% else %}
+        {{ profile.initials }}
+      {% endif %}
+    </span>
+    <strong>{{ profile.display_name or profile.full_name or "Creator" }}</strong>
+    <span>{{ profile.instrument or profile.role or "Add your role" }}</span>
+    <span>{{ profile.city }}{% if profile.city and profile.state %}, {% endif %}{{ profile.state }}{% if profile.genre %} / {{ profile.genre }}{% endif %}</span>
+    <span class="button secondary">Connect</span>
+  </a>
+{% endmacro %}
 
-{% if opportunities %}
-  <h2 class="section-band">open gigs</h2>
-  <section class="creator-strip">
-    {% for opp in opportunities %}
-      <article class="creator-card">
-        <span class="creator-initial">{{ (opp.opportunity_type or "Gig")[:1] }}</span>
-        <span>
-          <h3>{{ opp.title }}</h3>
-          <p>{{ opp.role_needed or "Musician needed" }}{% if opp.city %} • {{ opp.city }}{% endif %}{% if opp.paid_status %} • {{ opp.paid_status }}{% endif %}</p>
-          <span class="badge-line">
-            {% if opp.instrument_needed %}<span class="badge">{{ opp.instrument_needed }}</span>{% endif %}
-            {% if opp.genre %}<span class="badge">{{ opp.genre }}</span>{% endif %}
-          </span>
-          <span class="hero-actions" style="margin-top:0.75rem;">
-            <a class="button primary" href="{{ ftb_opportunity_url(opp.id) }}">View Opportunity</a>
-            <form method="POST" action="{{ ftb_apply_url(opp.id) }}">
-              <button class="button secondary" type="submit">Apply</button>
-            </form>
-          </span>
-        </span>
-      </article>
-    {% endfor %}
+<main class="discover-home">
+  <section class="quick-hero">
+    <h1>Find gigs. Meet musicians. Book talent.</h1>
+    <p>Three lanes, right up front.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="{{ ftb_gig_board_url() }}">Find Gigs</a>
+      <a class="button secondary" href="{{ url_for('profiles') }}">Meet Musicians</a>
+      <a class="button secondary" href="{{ url_for('discovery_map') }}">Music Near You</a>
+    </div>
   </section>
-  <div class="hero-actions" style="margin-top:1rem;">
-    <a class="button secondary" href="{{ ftb_gig_board_url() }}">View Opportunities</a>
-  </div>
-{% endif %}
 
-<h2 class="section-band">search talent</h2>
-<section class="category-grid" aria-label="Talent categories">
-  {% for category in category_tiles %}
-    <a class="category-tile" style="--category-art: url('{{ url_for('static', filename=category.image) }}')" href="{{ url_for(category.endpoint) }}">
-      <strong>{{ category.title }}</strong>
-      <span>{{ category.label }}</span>
-    </a>
-  {% endfor %}
-</section>
-
-{% if creators %}
-  <h2 class="section-band">featured creators</h2>
-  <section class="creator-strip">
-    {% for p in creators %}
-      <a class="creator-card" href="{{ url_for('profile_detail', profile_id=p.id) }}">
-        {% if p.photo_filename %}
-          <span class="creator-photo"><img src="{{ url_for('uploaded_photo', filename=p.photo_filename) }}" alt="{{ p.display_name }}"></span>
-        {% else %}
-          <span class="creator-initial">{{ (p.display_name or "F")[:1] }}</span>
-        {% endif %}
-        <span>
-          <h3>{{ p.display_name }}</h3>
-          <p>{{ p.role or "Creative" }}{% if p.city %} • {{ p.city }}{% endif %}</p>
-          <span class="badge-line">
-            {% for badge in p.badges[:3] %}
-              <span class="badge">{{ badge }}</span>
-            {% endfor %}
-          </span>
-        </span>
-      </a>
-    {% endfor %}
+  <section class="scroll-lane">
+    <div class="lane-head">
+      <h2>Trending Gigs</h2>
+      <a href="{{ ftb_gig_board_url() }}">View All</a>
+    </div>
+    <div class="rail">
+      {% for item in trending_gigs %}
+        <a class="rail-card" href="{{ item.href }}">
+          <strong>{{ item.label }}</strong>
+          <span>Browse openings</span>
+        </a>
+      {% endfor %}
+    </div>
   </section>
-{% endif %}
+
+  <section class="map-strip">
+    <div>
+      <p class="hero-kicker">Music Near You</p>
+      <h2>Map the active scene.</h2>
+      <p>{{ map_summary.opportunity_count }} opportunities, {{ map_summary.creator_count }} creators, {{ map_summary.showcase_count }} showcases.</p>
+      <div class="hero-actions" style="margin-top:0.8rem;">
+        <a class="button primary" href="{{ url_for('discovery_map') }}">Explore Map</a>
+        <a class="button secondary" href="{{ ftb_gig_board_url() }}">All Opportunities</a>
+      </div>
+    </div>
+    <div class="map-dots" aria-hidden="true">
+      <span class="map-dot" style="left:38%;top:56%;"></span>
+      <span class="map-dot" style="left:45%;top:52%;"></span>
+      <span class="map-dot" style="left:55%;top:42%;"></span>
+      <span class="map-dot" style="left:66%;top:49%;"></span>
+      <span class="map-dot" style="left:72%;top:58%;"></span>
+    </div>
+  </section>
+
+  {% if musicians_near %}
+    <section class="scroll-lane">
+      <div class="lane-head">
+        <h2>Musicians Near You</h2>
+        <a href="{{ url_for('profiles', role='musician') }}">View All</a>
+      </div>
+      <div class="rail">
+        {% for profile in musicians_near %}
+          {{ creator_card(profile) }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if producers %}
+    <section class="scroll-lane">
+      <div class="lane-head">
+        <h2>Producers</h2>
+        <a href="{{ url_for('profiles', role='producer') }}">View All</a>
+      </div>
+      <div class="rail">
+        {% for profile in producers %}
+          {{ creator_card(profile) }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if vocalists %}
+    <section class="scroll-lane">
+      <div class="lane-head">
+        <h2>Vocalists</h2>
+        <a href="{{ url_for('profiles', role='vocalist') }}">View All</a>
+      </div>
+      <div class="rail">
+        {% for profile in vocalists %}
+          {{ creator_card(profile) }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if band_opportunities %}
+    <section class="scroll-lane">
+      <div class="lane-head">
+        <h2>Bands Looking for Members</h2>
+        <a href="{{ ftb_gig_board_url(q='band') }}">View All</a>
+      </div>
+      <div class="rail">
+        {% for opp in band_opportunities %}
+          {{ opportunity_card(opp) }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if upcoming_shows %}
+    <section class="scroll-lane">
+      <div class="lane-head">
+        <h2>Upcoming Shows</h2>
+        <a href="{{ url_for('discovery_map', category='events') }}">View Events</a>
+      </div>
+      <div class="timeline">
+        {% for item in upcoming_shows %}
+          <a class="timeline-item" href="{{ ftb_opportunity_url(item.id) if item.opportunity_type is defined else url_for('performance_detail', perf_id=item.id) }}">
+            <span class="date-pill">{{ item.event_date[:5] if item.event_date is defined and item.event_date else "Live" }}</span>
+            <span>
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.city if item.city is defined else item.profile.city if item.profile else "" }}</span>
+            </span>
+            <span>Open</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if opportunities %}
+    <section class="scroll-lane">
+      <div class="lane-head">
+        <h2>Recently Posted Opportunities</h2>
+        <a href="{{ ftb_gig_board_url() }}">Newest First</a>
+      </div>
+      <div class="rail">
+        {% for opp in opportunities %}
+          {{ opportunity_card(opp) }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if creators %}
+    <section class="scroll-lane">
+      <div class="lane-head">
+        <h2>Featured Creators</h2>
+        <a href="{{ url_for('profiles') }}">View Artists</a>
+      </div>
+      <div class="rail">
+        {% for profile in creators %}
+          {{ creator_card(profile) }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</main>
 {% endblock %}

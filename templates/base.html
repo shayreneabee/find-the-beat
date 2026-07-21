@@ -850,19 +850,17 @@
 
       {% set current_endpoint = request.endpoint or "" %}
       <nav class="nav" aria-label="Main navigation">
-        <a href="{{ url_for('home') }}" class="nav-pill home-link{% if current_endpoint == 'home' %} is-active{% endif %}"{% if current_endpoint == 'home' %} aria-current="page"{% endif %}>Home</a>
+        <a href="{{ url_for('home') }}" class="nav-pill home-link{% if current_endpoint == 'home' %} is-active{% endif %}"{% if current_endpoint == 'home' %} aria-current="page"{% endif %}>Discover</a>
         <a href="{{ ftb_gig_board_url() }}" class="nav-pill{% if current_endpoint in ['opportunities_board', 'opportunity_detail', 'post_opportunity'] %} is-active{% endif %}"{% if current_endpoint in ['opportunities_board', 'opportunity_detail', 'post_opportunity'] %} aria-current="page"{% endif %}>Gigs</a>
-        <a href="{{ url_for('discovery_map') }}" class="nav-pill{% if current_endpoint == 'discovery_map' %} is-active{% endif %}"{% if current_endpoint == 'discovery_map' %} aria-current="page"{% endif %}>Map</a>
+        <a href="{{ url_for('profiles') }}" class="nav-pill search-link{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} is-active{% endif %}"{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} aria-current="page"{% endif %}>Artists</a>
+        <a href="{{ url_for('discovery_map', category='venues') }}" class="nav-pill{% if current_endpoint == 'discovery_map' and request.args.get('category') == 'venues' %} is-active{% endif %}">Venues</a>
+        <a href="{{ url_for('discovery_map', category='events') }}" class="nav-pill{% if current_endpoint == 'discovery_map' and request.args.get('category') == 'events' %} is-active{% endif %}">Events</a>
         {% if user %}
-          <a href="{{ url_for('search') }}" class="nav-pill search-link{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} is-active{% endif %}"{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} aria-current="page"{% endif %}>Search</a>
-          <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link{% if current_endpoint in ['showcase', 'performance_detail'] %} is-active{% endif %}"{% if current_endpoint in ['showcase', 'performance_detail'] %} aria-current="page"{% endif %}>Showcase</a>
           <a href="{{ url_for('inbox') }}" class="nav-pill messages-link{% if current_endpoint in ['inbox', 'thread', 'new_message'] %} is-active{% endif %}"{% if current_endpoint in ['inbox', 'thread', 'new_message'] %} aria-current="page"{% endif %}>Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
           <a href="{{ url_for('profile') }}" class="nav-pill profile-link{% if current_endpoint in ['profile', 'edit_profile', 'profile_by_username'] %} is-active{% endif %}"{% if current_endpoint in ['profile', 'edit_profile', 'profile_by_username'] %} aria-current="page"{% endif %}>Profile</a>
           <a href="{{ url_for('logout') }}" class="nav-pill logout-link">Logout</a>
         {% else %}
-          <a href="{{ url_for('about') }}" class="nav-pill about-link{% if current_endpoint == 'about' %} is-active{% endif %}"{% if current_endpoint == 'about' %} aria-current="page"{% endif %}>About</a>
-          <a href="{{ url_for('search') }}" class="nav-pill search-link{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} is-active{% endif %}"{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} aria-current="page"{% endif %}>Search</a>
-          <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link{% if current_endpoint in ['showcase', 'performance_detail'] %} is-active{% endif %}"{% if current_endpoint in ['showcase', 'performance_detail'] %} aria-current="page"{% endif %}>Showcase</a>
+          <a href="{{ url_for('login', next=url_for('inbox')) }}" class="nav-pill messages-link{% if current_endpoint == 'login' and request.args.get('next') == url_for('inbox') %} is-active{% endif %}">Messages</a>
           <a href="{{ url_for('login') }}" class="nav-pill login-link{% if current_endpoint == 'login' %} is-active{% endif %}"{% if current_endpoint == 'login' %} aria-current="page"{% endif %}>Login</a>
           <a href="{{ url_for('signup') }}" class="nav-pill primary join-link{% if current_endpoint == 'signup' %} is-active{% endif %}"{% if current_endpoint == 'signup' %} aria-current="page"{% endif %}>Join</a>
         {% endif %}
