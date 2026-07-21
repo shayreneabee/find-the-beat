@@ -591,6 +591,7 @@ def init_db():
                 password_hash TEXT NOT NULL,
                 full_name TEXT DEFAULT '',
                 display_name TEXT DEFAULT '',
+                stage_name TEXT DEFAULT '',
                 username TEXT DEFAULT '',
                 role TEXT DEFAULT '',
                 genre TEXT DEFAULT '',
@@ -655,6 +656,18 @@ def init_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY(recipient_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS profile_follows (
+                follower_id INTEGER NOT NULL,
+                followed_id INTEGER NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(follower_id, followed_id),
+                FOREIGN KEY(follower_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY(followed_id) REFERENCES users(id) ON DELETE CASCADE
             )
             """
         )
@@ -929,6 +942,7 @@ def init_db():
         }
         for column, definition in {
             "full_name": "TEXT DEFAULT ''",
+            "stage_name": "TEXT DEFAULT ''",
             "username": "TEXT DEFAULT ''",
             "state": "TEXT DEFAULT ''",
             "country": "TEXT DEFAULT ''",
@@ -1391,6 +1405,7 @@ def profile_form_fields():
     latitude, longitude, location_source = geocode_location(city, state)
     return {
         "display_name": request.form.get("display_name", "").strip(),
+        "stage_name": request.form.get("stage_name", "").strip(),
         "role": normalize_profile_role(request.form.get("role", "")),
         "genre": request.form.get("genre", "").strip(),
         "city": city,
@@ -1436,20 +1451,21 @@ def create_user(email, password, fields, profile_pic):
         cursor = conn.execute(
             """
             INSERT INTO users (
-                email, password_hash, full_name, display_name, role, genre, city, state, country, bio,
+                email, password_hash, full_name, display_name, stage_name, role, genre, city, state, country, bio,
                 previous_work, availability,
                 tags_csv, instrument, services_csv, profile_pic,
                 latitude, longitude, location_source,
                 instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url,
                 brent_account_id, provider, auth_provider, authentication_provider, profile_photo, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 email,
                 generate_password_hash(password),
                 fields["display_name"],
                 fields["display_name"],
+                fields.get("stage_name", ""),
                 fields["role"],
                 fields["genre"],
                 fields["city"],
@@ -1501,7 +1517,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
             """
             UPDATE users
             SET full_name = COALESCE(NULLIF(full_name, ''), ?),
-                display_name = ?, role = ?, genre = ?, city = ?, state = ?, country = ?, bio = ?,
+                display_name = ?, stage_name = ?, role = ?, genre = ?, city = ?, state = ?, country = ?, bio = ?,
                 previous_work = ?, availability = ?, tags_csv = ?, instrument = ?, services_csv = ?,
                 avatar_url = ?, profile_pic = ?, profile_video = ?,
                 latitude = ?, longitude = ?, location_source = ?,
@@ -1512,6 +1528,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
             (
                 fields["display_name"],
                 fields["display_name"],
+                fields.get("stage_name", ""),
                 fields["role"],
                 fields["genre"],
                 fields["city"],
@@ -1913,6 +1930,7 @@ def row_to_profile(row):
         return None
     data = dict(row)
     data.setdefault("full_name", "")
+    data.setdefault("stage_name", "")
     data.setdefault("username", "")
     data.setdefault("state", "")
     data.setdefault("country", "")
@@ -1949,6 +1967,7 @@ def row_to_profile(row):
     data["avatar_url"] = data.get("avatar_url") or data["photo_filename"] or ""
     data["video_filename"] = data.get("profile_video") or ""
     data["name"] = data.get("display_name") or ""
+    data["stage_name"] = data.get("stage_name") or ""
     data["fullName"] = data.get("full_name") or data["name"]
     data["displayName"] = data["name"]
     data["username"] = data.get("username") or ""
@@ -3723,6 +3742,30 @@ def get_performances(profile_id=None):
     return [row_to_performance(row, profiles.get(row["profile_id"])) for row in rows]
 
 
+def profile_follow_counts(profile_id):
+    with get_db() as conn:
+        followers = conn.execute(
+            "SELECT COUNT(*) FROM profile_follows WHERE followed_id = ?",
+            (profile_id,),
+        ).fetchone()[0]
+        following = conn.execute(
+            "SELECT COUNT(*) FROM profile_follows WHERE follower_id = ?",
+            (profile_id,),
+        ).fetchone()[0]
+    return followers, following
+
+
+def is_following_profile(follower_id, followed_id):
+    if not follower_id or not followed_id:
+        return False
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM profile_follows WHERE follower_id = ? AND followed_id = ?",
+            (follower_id, followed_id),
+        ).fetchone()
+    return bool(row)
+
+
 def get_showcase_tiles(limit=6, role=None, profile_id=None):
     role_key = (role or "").strip().lower()
     performances = get_performances(profile_id=profile_id)
@@ -4597,17 +4640,62 @@ def new_profile():
     return redirect(url_for("signup"))
 
 
+@app.route("/profiles/<int:profile_id>/follow", methods=["POST"])
+@login_required
+def follow_profile(profile_id):
+    user = current_user()
+    if not get_profile(profile_id):
+        flash("Profile not found.")
+        return redirect(url_for("profiles"))
+    if profile_id == user.id:
+        flash("Your own profile is already in your mix.")
+        return redirect(url_for("profile_detail", profile_id=profile_id))
+    with get_db() as conn:
+        existing = conn.execute(
+            "SELECT 1 FROM profile_follows WHERE follower_id = ? AND followed_id = ?",
+            (user.id, profile_id),
+        ).fetchone()
+        if existing:
+            conn.execute(
+                "DELETE FROM profile_follows WHERE follower_id = ? AND followed_id = ?",
+                (user.id, profile_id),
+            )
+            flash("Artist removed from your following list.")
+        else:
+            conn.execute(
+                "INSERT OR IGNORE INTO profile_follows (follower_id, followed_id) VALUES (?, ?)",
+                (user.id, profile_id),
+            )
+            flash("Artist added to your following list.")
+    return redirect(url_for("profile_detail", profile_id=profile_id))
+
+
 @app.route("/profiles/<int:profile_id>")
 def profile_detail(profile_id):
     profile = get_profile(profile_id)
     if not profile:
         flash("Profile not found.")
         return redirect(url_for("profiles"))
+    perfs = get_performances(profile_id=profile.id)
+    followers, following = profile_follow_counts(profile.id)
+    user = current_user()
+    profile_stats = {
+        "performances": len(perfs),
+        "likes": sum(perf.likes for perf in perfs),
+        "comments": 0,
+        "followers": followers,
+        "following": following,
+        "bookings": 0,
+        "featured": sum(1 for perf in perfs if perf.is_featured),
+    }
     return render_template(
         "profile_detail.html",
         profile=profile,
-        perfs=get_performances(profile_id=profile.id),
+        perfs=perfs,
+        profile_stats=profile_stats,
         showcase_items=get_showcase_tiles(limit=12, profile_id=profile.id),
+        user=user,
+        is_following=is_following_profile(user.id, profile.id) if user else False,
     )
 
 
@@ -5093,24 +5181,39 @@ def profile():
         user = current_user()
         completion = profile_completion(user)
         unread = unread_message_count(user.id) if user else 0
+        perfs = get_performances(profile_id=user.id) if user else []
     except sqlite3.OperationalError as exc:
         app.logger.exception("Profile load failed; retrying after schema init")
         init_db()
         user = current_user()
         completion = profile_completion(user)
         unread = unread_message_count(user.id) if user else 0
+        perfs = get_performances(profile_id=user.id) if user else []
         flash("Profile data was refreshed.")
     except Exception as exc:
         app.logger.exception("Profile load failed")
         user = current_user()
         completion = {"percent": 0, "items": []}
         unread = 0
+        perfs = []
         flash("We had trouble loading part of your profile, but your account is safe.")
+    followers, following = profile_follow_counts(user.id) if user else (0, 0)
+    profile_stats = {
+        "performances": len(perfs),
+        "likes": sum(perf.likes for perf in perfs),
+        "comments": 0,
+        "followers": followers,
+        "following": following,
+        "bookings": 0,
+        "featured": sum(1 for perf in perfs if perf.is_featured),
+    }
     return render_template(
         "profile.html",
         user=user,
         completion=completion,
         unread_count=unread,
+        perfs=perfs,
+        profile_stats=profile_stats,
     )
 
 

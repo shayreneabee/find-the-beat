@@ -1,267 +1,482 @@
 {% extends "base.html" %}
 
-{% block title %}{{ profile.display_name }} • Find the Beat{% endblock %}
+{% block title %}{{ profile.display_name }} | Find the Beat{% endblock %}
 
 {% block content %}
 <style>
-  .artist-portfolio {
-    display: grid;
-    gap: 0;
-    min-height: calc(100vh - 172px);
+  .artist-profile {
+    --ap-bg: #05060a;
+    --ap-panel: rgba(14, 17, 28, 0.9);
+    --ap-line: rgba(255, 255, 255, 0.12);
+    --ap-muted: rgba(245, 248, 255, 0.66);
+    --ap-gold: #f7c948;
+    --ap-blue: #35d8ff;
+    --ap-purple: #9b5cff;
+    --ap-emerald: #35f0a1;
     margin: -1rem -0.9rem 0;
-    padding-bottom: 1.2rem;
+    min-height: calc(100vh - 172px);
+    padding-bottom: 1.5rem;
     background:
-      radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.42), transparent 9rem),
-      linear-gradient(180deg, #fbf4de 0%, #eee7d0 100%);
+      radial-gradient(circle at 8% 6%, rgba(53, 216, 255, 0.18), transparent 16rem),
+      radial-gradient(circle at 86% 18%, rgba(155, 92, 255, 0.28), transparent 18rem),
+      linear-gradient(180deg, #05060a 0%, #111522 62%, #07080d 100%);
+    color: #f8fbff;
   }
 
-  .artist-title-band {
-    min-height: 92px;
+  .artist-cover {
+    min-height: 360px;
     display: grid;
-    place-items: center;
-    margin: 0;
-    padding: 0.35rem 0.75rem;
-    border-top: 1px solid rgba(47, 30, 13, 0.18);
-    border-bottom: 7px solid var(--cream);
-    background: var(--accent);
-    color: rgba(47, 30, 13, 0.62);
-    font-size: clamp(2.55rem, 13vw, 4.2rem);
-    font-weight: 200;
-    letter-spacing: 0.03em;
-    line-height: 0.95;
-    text-align: center;
-    text-transform: lowercase;
+    align-items: end;
+    padding: clamp(1rem, 4vw, 2rem);
+    border-bottom: 1px solid var(--ap-line);
+    background:
+      linear-gradient(180deg, rgba(5, 6, 10, 0.05), rgba(5, 6, 10, 0.94)),
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 24px),
+      linear-gradient(135deg, #151b3f, #44175d 52%, #0e3b2a);
   }
 
-  .artist-hero {
+  .artist-cover-inner,
+  .artist-main {
+    max-width: 1120px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .artist-cover-inner {
     display: grid;
-    justify-items: center;
-    padding: 1rem 0.75rem 0.45rem;
-    text-align: center;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: end;
   }
 
-  .artist-photo,
-  .artist-placeholder {
-    width: min(82%, 320px);
-    aspect-ratio: 16 / 8.2;
+  .artist-photo {
+    width: clamp(128px, 21vw, 196px);
+    aspect-ratio: 1;
     overflow: hidden;
-    background:
-      radial-gradient(circle at 24% 30%, #f7b35a 0 1.4rem, transparent 1.5rem),
-      radial-gradient(circle at 76% 30%, #f7b35a 0 1.4rem, transparent 1.5rem),
-      linear-gradient(135deg, #2f1e0d, #9b4a16);
-    box-shadow: 0 8px 0 rgba(47, 30, 13, 0.12);
+    border: 5px solid rgba(255, 255, 255, 0.88);
+    border-radius: 50%;
+    background: radial-gradient(circle, #1d2233 0 28%, #07080d 29% 100%);
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.42);
   }
 
-  .artist-photo img {
+  .artist-photo img,
+  .media-preview video {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .artist-placeholder {
+  .artist-initial {
+    height: 100%;
     display: grid;
     place-items: center;
-    color: #fff7e8;
-    font-size: 3rem;
-    font-weight: 900;
+    color: var(--ap-gold);
+    font-size: 3.6rem;
+    font-weight: 950;
+  }
+
+  .artist-label {
+    margin: 0 0 0.35rem;
+    color: var(--ap-blue);
+    font-size: 0.78rem;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
   .artist-name {
-    margin: 0.55rem 0 0;
-    color: rgba(47, 30, 13, 0.78);
-    font-size: clamp(1.8rem, 8vw, 2.35rem);
-    font-weight: 300;
-    line-height: 1.08;
+    margin: 0;
+    font-size: clamp(2.5rem, 8vw, 5.8rem);
+    line-height: 0.9;
+    letter-spacing: 0;
   }
 
-  .artist-role {
-    margin: 0.1rem 0 0;
-    color: rgba(47, 30, 13, 0.72);
-    font-size: clamp(1.45rem, 7vw, 2rem);
-    font-weight: 300;
-    line-height: 1.08;
+  .artist-stage,
+  .artist-meta,
+  .artist-panel p,
+  .artist-card small,
+  .performance-link small,
+  .activity-line small {
+    color: var(--ap-muted);
   }
 
-  .artist-tab-row {
+  .artist-stage {
+    margin: 0.35rem 0 0;
+    font-weight: 850;
+  }
+
+  .artist-meta,
+  .artist-badges,
+  .artist-actions,
+  .artist-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+  }
+
+  .artist-meta {
+    margin-top: 0.75rem;
+    font-weight: 850;
+  }
+
+  .artist-badges {
+    margin-top: 0.85rem;
+  }
+
+  .artist-badge {
+    padding: 0.4rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 950;
+  }
+
+  .artist-badge.gold {
+    border-color: rgba(247, 201, 72, 0.55);
+    background: rgba(247, 201, 72, 0.16);
+    color: #ffeaa0;
+  }
+
+  .artist-actions {
+    margin-top: 1rem;
+  }
+
+  .artist-actions form {
+    margin: 0;
+  }
+
+  .artist-action {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-weight: 950;
+    text-decoration: none;
+  }
+
+  .artist-action.primary {
+    background: linear-gradient(135deg, var(--ap-gold), #ff7ac8);
+    color: #08090e;
+  }
+
+  .artist-action:hover .note-float {
+    animation: noteFloat 900ms ease;
+  }
+
+  .artist-main {
     display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: end;
     gap: 1rem;
-    min-height: 54px;
-    padding: 0 0.75rem;
-    border-bottom: 2px solid rgba(47, 30, 13, 0.22);
+    padding: 1rem;
   }
 
-  .artist-tab-row a,
-  .artist-tab-row button {
-    border: 0;
-    background: transparent;
-    color: rgba(47, 30, 13, 0.76);
-    font: inherit;
-    font-size: clamp(1.45rem, 7vw, 2rem);
-    font-weight: 300;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    cursor: pointer;
+  .artist-stats {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .artist-stat,
+  .artist-panel,
+  .artist-card {
+    border: 1px solid var(--ap-line);
+    border-radius: 22px;
+    background: var(--ap-panel);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+  }
+
+  .artist-stat {
+    min-height: 92px;
+    display: grid;
+    align-content: center;
+    gap: 0.2rem;
+    padding: 0.8rem;
+  }
+
+  .artist-stat strong {
+    font-size: 1.35rem;
+  }
+
+  .artist-stat span {
+    color: var(--ap-muted);
+    font-size: 0.76rem;
+    font-weight: 900;
+  }
+
+  .record-icon {
+    display: inline-block;
+  }
+
+  .artist-stat:hover .record-icon,
+  .performance-link:hover .record-icon {
+    animation: recordSpin 900ms ease;
+  }
+
+  .artist-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
+    gap: 1rem;
+  }
+
+  .artist-panel,
+  .artist-card {
+    padding: 1rem;
+  }
+
+  .artist-panel h2,
+  .artist-card h2 {
+    margin: 0 0 0.8rem;
+    font-size: clamp(1.25rem, 3vw, 1.8rem);
+    letter-spacing: 0;
   }
 
   .performance-list {
     display: grid;
+    gap: 0.7rem;
   }
 
-  .performance-row {
+  .performance-link {
     display: grid;
-    grid-template-columns: 3.2rem 1fr 3.4rem;
-    gap: 0.45rem;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.75rem;
     align-items: center;
-    min-height: 94px;
-    padding: 0.68rem 0.75rem;
-    box-shadow: inset 0 -2px 0 rgba(47, 30, 13, 0.2);
-    color: rgba(47, 30, 13, 0.78);
+    min-height: 76px;
+    padding: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    text-decoration: none;
   }
 
-  .performance-row::before {
-    content: "✦";
-    font-size: 2.7rem;
-    font-weight: 950;
-    line-height: 1;
-    color: #2f1e0d;
-  }
-
-  .performance-row strong {
-    display: block;
-    font-size: clamp(1.6rem, 7vw, 2.15rem);
-    font-weight: 300;
-    line-height: 1.08;
-  }
-
-  .performance-row small {
-    color: rgba(47, 30, 13, 0.58);
-    font-size: 0.95rem;
-  }
-
-  .performance-row .arrow {
-    justify-self: end;
-    font-size: 2.65rem;
-    font-weight: 950;
-    line-height: 1;
-  }
-
-  .empty-performances,
-  .artist-details {
-    margin: 1rem;
-    padding: 1rem;
-    border-radius: 18px;
-    background: rgba(255, 250, 238, 0.74);
-    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.12);
-    color: rgba(47, 30, 13, 0.68);
-  }
-
-  .artist-details {
-    display: grid;
-    gap: 0.35rem;
-  }
-
-  .artist-details p {
-    margin: 0;
-  }
-
-  .artist-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
-    padding: 0.75rem 1rem 0;
-  }
-
-  .artist-back {
+  .play-dot,
+  .waveform {
     width: 46px;
     aspect-ratio: 1;
     display: grid;
     place-items: center;
-    margin: 1.15rem 0 0 1.25rem;
-    border: 1px solid rgba(47, 30, 13, 0.18);
-    border-radius: 999px;
-    background: rgba(255, 250, 238, 0.74);
-    box-shadow: 0 5px 10px rgba(47, 30, 13, 0.16);
-    color: rgba(47, 30, 13, 0.58);
-    font-size: 2rem;
-    line-height: 1;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ap-purple), var(--ap-blue));
+    color: #fff;
+    font-weight: 950;
   }
 
-  @media (min-width: 760px) {
-    .artist-portfolio {
-      min-height: auto;
-      margin-inline: 0;
-      border-radius: 28px;
-      overflow: hidden;
-      box-shadow: var(--lift);
+  .performance-link:hover .play-dot {
+    animation: playPulse 900ms ease-in-out infinite;
+  }
+
+  .waveform {
+    grid-template-columns: repeat(4, 4px);
+    gap: 3px;
+  }
+
+  .waveform i {
+    width: 4px;
+    height: 16px;
+    border-radius: 99px;
+    background: #fff;
+    animation: equalizer 950ms ease-in-out infinite;
+  }
+
+  .waveform i:nth-child(2) { animation-delay: 120ms; }
+  .waveform i:nth-child(3) { animation-delay: 240ms; }
+  .waveform i:nth-child(4) { animation-delay: 360ms; }
+
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .tag-cloud span {
+    padding: 0.38rem 0.62rem;
+    border-radius: 999px;
+    background: rgba(53, 240, 161, 0.11);
+    color: #b8ffd9;
+    font-size: 0.8rem;
+    font-weight: 900;
+  }
+
+  .activity-line {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.7rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .empty-music {
+    padding: 1rem;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 18px;
+    color: var(--ap-muted);
+  }
+
+  @keyframes recordSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes playPulse {
+    50% { transform: scale(1.16); }
+  }
+
+  @keyframes equalizer {
+    0%, 100% { transform: scaleY(0.55); }
+    50% { transform: scaleY(1.35); }
+  }
+
+  @keyframes noteFloat {
+    50% { transform: translateY(-8px); opacity: 0.72; }
+  }
+
+  @media (max-width: 860px) {
+    .artist-cover-inner,
+    .artist-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .artist-photo {
+      width: 132px;
+    }
+
+    .artist-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>
 
-<section class="artist-portfolio">
-  <h1 class="artist-title-band">{{ "My Showcases" if user and user.id == profile.id else "Showcases" }}</h1>
-
-  <header class="artist-hero" id="overview">
-    {% if profile.photo_filename %}
+<section class="artist-profile">
+  <header class="artist-cover">
+    <div class="artist-cover-inner">
       <div class="artist-photo">
-        <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
-      </div>
-    {% elif profile.avatar_url and (profile.avatar_url.startswith("http") or profile.avatar_url.startswith("/static/")) %}
-      <div class="artist-photo">
-        <img src="{{ profile.avatar_url }}" alt="{{ profile.display_name }}">
-      </div>
-    {% else %}
-      <div class="artist-placeholder">{{ profile.initials }}</div>
-    {% endif %}
-    <h2 class="artist-name">{{ profile.display_name }}</h2>
-    <p class="artist-role">{{ profile.instrument or profile.role or "Add talent" }}</p>
-  </header>
-
-  <div class="artist-tab-row">
-    <a href="#performances">My Performances</a>
-    <button type="button" onclick="navigator.clipboard?.writeText(window.location.href); this.textContent='Shared';">Share</button>
-  </div>
-
-  <section id="performances" class="performance-list" aria-label="Performances">
-    {% if perfs %}
-      {% for perf in perfs %}
-        <a class="performance-row" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
-          <span>
-            <strong>{{ perf.title }}</strong>
-            <small>{{ perf.media_type|title }}{% if perf.views %} • {{ perf.views }} views{% endif %}</small>
-          </span>
-          <span class="arrow">›</span>
-        </a>
-      {% endfor %}
-    {% else %}
-      <div class="empty-performances">
-        {% if profile.is_founder %}
-          No founder showcase media is saved yet. Upload a performance from this account to feature it here.
+        {% if profile.photo_filename %}
+          <img src="{{ url_for('uploaded_photo', filename=profile.photo_filename) }}" alt="{{ profile.display_name }}">
+        {% elif profile.avatar_url and (profile.avatar_url.startswith("http") or profile.avatar_url.startswith("/static/")) %}
+          <img src="{{ profile.avatar_url }}" alt="{{ profile.display_name }}">
         {% else %}
-          No performances yet. Upload your first sound and let the community hear you.
+          <div class="artist-initial">{{ profile.initials }}</div>
         {% endif %}
       </div>
-    {% endif %}
-  </section>
+      <div>
+        <p class="artist-label">Artist Profile</p>
+        <h1 class="artist-name">{{ profile.display_name }}</h1>
+        {% if profile.stage_name %}<p class="artist-stage">Performs as {{ profile.stage_name }}</p>{% endif %}
+        <div class="artist-meta">
+          <span>{{ profile.instrument or profile.role or "Add your role" }}</span>
+          <span>{{ profile.genre or "Add your genre" }}</span>
+          <span>{{ profile.city or "Add your location" }}{% if profile.state %}, {{ profile.state }}{% endif %}</span>
+        </div>
+        <div class="artist-badges">
+          <span class="artist-badge gold">{{ profile.availability or "Available for Work" }}</span>
+          {% if profile.is_verified %}<span class="artist-badge">Verified</span>{% else %}<span class="artist-badge">Verification coming soon</span>{% endif %}
+          {% for badge in profile.official_badges %}<span class="artist-badge">{{ badge }}</span>{% endfor %}
+        </div>
+        <div class="artist-actions">
+          {% if user and user.id == profile.id %}
+            <a class="artist-action" href="{{ url_for('profile') }}">🎚 My Dashboard</a>
+          {% else %}
+            <form method="POST" action="{{ url_for('follow_profile', profile_id=profile.id) }}">
+              <button class="artist-action primary" type="submit"><span class="note-float">🎧</span> {{ "Following" if is_following else "Follow" }}</button>
+            </form>
+            <a class="artist-action" href="{{ url_for('new_message', recipient_id=profile.id) }}">🎤 Message</a>
+            <a class="artist-action" href="{{ url_for('new_message', recipient_id=profile.id) }}">📅 Book</a>
+          {% endif %}
+          <button class="artist-action" type="button" onclick="navigator.clipboard?.writeText(window.location.href); this.textContent='Link Copied';">Share</button>
+        </div>
+      </div>
+    </div>
+  </header>
 
-  <section class="artist-details" id="details">
-    <p><strong>Genre:</strong> {{ profile.genre or "Add genre" }}</p>
-    <p><strong>Location:</strong> {{ profile.city or "Add city" }}{% if profile.state %}, {{ profile.state }}{% endif %}</p>
-    <p><strong>Previous work:</strong> {{ profile.previous_work or "Previous work coming soon" }}</p>
-    <p><strong>Availability:</strong> {{ profile.availability or "Availability coming soon" }}</p>
-    <p><strong>Bio:</strong> {{ profile.bio or "Add bio" }}</p>
-  </section>
+  <main class="artist-main">
+    <section class="artist-stats" aria-label="Music profile stats">
+      <div class="artist-stat"><strong>{{ profile_stats.performances }}</strong><span>🎵 Performances</span></div>
+      <div class="artist-stat"><strong>{{ profile_stats.likes }}</strong><span><span class="record-icon">💿</span> Record Spins</span></div>
+      <div class="artist-stat"><strong>{{ profile_stats.comments }}</strong><span>🎤 Comments</span></div>
+      <div class="artist-stat"><strong>{{ profile_stats.followers }}</strong><span>🎧 Followers</span></div>
+      <div class="artist-stat"><strong>{{ profile_stats.following }}</strong><span>🎼 Following</span></div>
+      <div class="artist-stat"><strong>{{ profile_stats.bookings }}</strong><span>📅 Bookings</span></div>
+      <div class="artist-stat"><strong>{{ profile_stats.featured }}</strong><span>⭐ Featured</span></div>
+    </section>
 
-  <div class="artist-actions">
-    {% if user and user.id == profile.id %}
-      <a class="button primary" href="{{ url_for('upload_performance') }}">Upload Performance</a>
-      <a class="button secondary" href="{{ url_for('profile') }}">My Profile</a>
-    {% else %}
-      <a class="button primary" href="{{ url_for('new_message', recipient_id=profile.id) }}">Message</a>
-    {% endif %}
-  </div>
+    <section class="artist-layout">
+      <div class="artist-panel" id="performances">
+        <h2>Performances</h2>
+        <div class="performance-list">
+          {% if perfs %}
+            {% for perf in perfs %}
+              <a class="performance-link" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+                {% if perf.media_type == "audio" %}
+                  <span class="waveform" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                {% else %}
+                  <span class="play-dot">▶</span>
+                {% endif %}
+                <span>
+                  <strong>{{ perf.title }}</strong>
+                  <small>{{ perf.media_type|title }}{% if perf.views %} · {{ perf.views }} views{% endif %} · <span class="record-icon">💿</span> {{ perf.likes }} record spins</small>
+                </span>
+                <span>›</span>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="empty-music">No performances yet. Upload your first track.</div>
+          {% endif %}
+        </div>
+      </div>
 
-  <a class="artist-back" href="{{ url_for('showcase') }}" aria-label="Back to showcases">‹</a>
+      <aside class="artist-card">
+        <h2>My Sound</h2>
+        <p>{{ profile.bio or "Tell people about your music." }}</p>
+        {% if profile.video_filename %}
+          <div class="media-preview">
+            <video controls>
+              <source src="{{ url_for('uploaded_file', filename=profile.video_filename) }}">
+              Your browser does not support video playback.
+            </video>
+          </div>
+        {% endif %}
+      </aside>
+    </section>
+
+    <section class="artist-layout">
+      <div class="artist-panel">
+        <h2>Musical Skills</h2>
+        <div class="tag-cloud">
+          {% for item in profile.instruments + profile.services + profile.tags %}
+            <span>{{ item }}</span>
+          {% else %}
+            <span>Add instruments</span><span>Add production</span><span>Add songwriting</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="artist-panel">
+        <h2>Career Highlights</h2>
+        <p>{{ profile.previous_work or "Add shows, placements, studio credits, gigs, or collaborations." }}</p>
+      </div>
+    </section>
+
+    <section class="artist-layout">
+      <div class="artist-panel">
+        <h2>Backstage</h2>
+        {% if profile.photo_filename or profile.video_filename %}
+          <p>Performance photos, studio moments, and behind-the-scenes media live here as this artist uploads them.</p>
+        {% else %}
+          <div class="empty-music">No backstage moments yet.</div>
+        {% endif %}
+      </div>
+      <div class="artist-panel">
+        <h2>Activity Feed</h2>
+        <div class="activity-line"><span>🎵</span><span><strong>{{ "Uploaded a new performance" if perfs else "Getting ready to share music" }}</strong><small>{{ "Latest performance is live." if perfs else "No public performances yet." }}</small></span></div>
+        <div class="activity-line"><span>💿</span><span><strong>Received {{ profile_stats.likes }} record spins</strong><small>Record spins are likes from the Find The Beat community.</small></span></div>
+        <div class="activity-line"><span>🎹</span><span><strong>{{ profile.availability or "Open to music opportunities" }}</strong><small>{{ profile.city or "Location not listed" }}{% if profile.state %}, {{ profile.state }}{% endif %}</small></span></div>
+      </div>
+    </section>
+  </main>
 </section>
 {% endblock %}

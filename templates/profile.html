@@ -4,344 +4,561 @@
 
 {% block content %}
 <style>
-  .profile-greeting,
-  .profile-line {
+  .music-profile {
+    --mp-bg: #05060a;
+    --mp-panel: rgba(15, 18, 30, 0.86);
+    --mp-line: rgba(255, 255, 255, 0.12);
+    --mp-muted: rgba(245, 248, 255, 0.66);
+    --mp-gold: #f7c948;
+    --mp-blue: #35d8ff;
+    --mp-purple: #9b5cff;
+    --mp-emerald: #35f0a1;
+    margin: -1rem -0.9rem 0;
+    padding-bottom: 1.5rem;
     background:
-      linear-gradient(135deg, rgba(255, 176, 0, 0.98), rgba(255, 61, 141, 0.88)),
-      var(--accent);
-    text-align: center;
-    padding: 0.7rem 1rem;
-    margin-bottom: 0.75rem;
-    font-size: 1.35rem;
-    line-height: 1.15;
+      radial-gradient(circle at 14% 8%, rgba(155, 92, 255, 0.28), transparent 18rem),
+      radial-gradient(circle at 84% 2%, rgba(53, 216, 255, 0.18), transparent 15rem),
+      linear-gradient(180deg, #05060a 0%, #10131f 58%, #08090e 100%);
+    color: #f8fbff;
   }
 
-  .profile-photo-wrap {
+  .music-banner {
+    min-height: 310px;
     display: grid;
-    place-items: center;
-    padding: 0.75rem 1rem 1rem;
+    align-items: end;
+    padding: clamp(1rem, 4vw, 2rem);
+    background:
+      linear-gradient(180deg, rgba(5, 6, 10, 0.1), rgba(5, 6, 10, 0.92)),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 36px),
+      linear-gradient(135deg, #24104a, #08253d 48%, #132a19);
+    border-bottom: 1px solid var(--mp-line);
   }
 
-  .profile-photo {
-    width: min(248px, 78vw);
+  .music-identity {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: end;
+    max-width: 1120px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .music-photo {
+    width: clamp(116px, 20vw, 178px);
     aspect-ratio: 1;
     overflow: hidden;
-    border: 6px solid rgba(255, 255, 255, 0.72);
-    border-radius: 34px;
-    background:
-      radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.5), transparent 38%),
-      linear-gradient(135deg, var(--pink), var(--accent-dark));
-    box-shadow: var(--shadow);
+    border: 5px solid rgba(255, 255, 255, 0.88);
+    border-radius: 50%;
+    background: radial-gradient(circle, #1d2233 0 28%, #07080d 29% 100%);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
   }
 
-  .profile-photo img {
+  .music-photo img,
+  .music-video video {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .profile-initial {
+  .music-initial {
     height: 100%;
     display: grid;
     place-items: center;
-    background:
-      repeating-linear-gradient(90deg, rgba(47, 30, 13, 0.16) 0 4px, transparent 4px 12px),
-      radial-gradient(circle at 25% 20%, rgba(255, 224, 181, 0.78), transparent 38%),
-      linear-gradient(135deg, var(--pink), var(--accent-dark));
-    color: #fff8ef;
-    font-size: 4rem;
+    color: var(--mp-gold);
+    font-size: 3.2rem;
+    font-weight: 950;
+  }
+
+  .music-kicker {
+    margin: 0 0 0.35rem;
+    color: var(--mp-blue);
+    font-size: 0.78rem;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .music-name {
+    margin: 0;
+    font-size: clamp(2.35rem, 8vw, 5.4rem);
+    line-height: 0.9;
+    letter-spacing: 0;
+  }
+
+  .stage-name {
+    margin: 0.35rem 0 0;
+    color: var(--mp-muted);
+    font-size: clamp(1rem, 3vw, 1.25rem);
     font-weight: 800;
   }
 
-  .completion-card {
+  .music-meta,
+  .music-badges,
+  .music-actions,
+  .stat-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+  }
+
+  .music-meta {
+    margin-top: 0.75rem;
+    color: rgba(248, 251, 255, 0.82);
+    font-weight: 800;
+  }
+
+  .music-badges {
+    margin-top: 0.85rem;
+  }
+
+  .music-badge {
+    padding: 0.4rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 950;
+  }
+
+  .music-badge.gold {
+    border-color: rgba(247, 201, 72, 0.55);
+    background: rgba(247, 201, 72, 0.16);
+    color: #ffeaa0;
+  }
+
+  .music-actions {
+    margin-top: 1rem;
+  }
+
+  .music-action-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-weight: 950;
+    text-decoration: none;
+  }
+
+  .music-action-btn.primary {
+    background: linear-gradient(135deg, var(--mp-gold), #ff7ac8);
+    color: #08090e;
+  }
+
+  .music-action-btn:hover .play-icon {
+    animation: playPulse 900ms ease-in-out infinite;
+  }
+
+  .music-body {
+    max-width: 1120px;
     display: grid;
-    gap: 0.8rem;
-    margin: 0 1rem 1rem;
+    gap: 1rem;
+    margin: 0 auto;
     padding: 1rem;
   }
 
-  .creator-dashboard-hero {
-    position: relative;
-    overflow: hidden;
-    margin: 0 0 1rem;
-    padding: clamp(1.2rem, 5vw, 2.2rem) 1rem 1.4rem;
-    border-radius: 0 0 34px 34px;
-    background:
-      radial-gradient(circle at 88% 8%, rgba(255, 61, 141, 0.38), transparent 12rem),
-      radial-gradient(circle at 8% 18%, rgba(53, 216, 255, 0.2), transparent 10rem),
-      linear-gradient(135deg, rgba(22, 10, 38, 0.98), rgba(43, 18, 77, 0.96));
-    color: #fff8ef;
-    box-shadow: var(--shadow);
-  }
-
-  .creator-dashboard-hero h1,
-  .creator-dashboard-hero p {
-    margin: 0;
-  }
-
-  .creator-dashboard-hero h1 {
-    font-size: clamp(2.2rem, 10vw, 4.8rem);
-    line-height: 0.92;
-    letter-spacing: -0.06em;
-    text-align: center;
-  }
-
-  .creator-dashboard-hero p {
-    color: rgba(255, 248, 239, 0.78);
-    text-align: center;
-  }
-
-  .profile-identity-card {
+  .stat-strip {
     display: grid;
-    gap: 0.9rem;
-    align-items: center;
-    max-width: 760px;
-    margin: 1.2rem auto 0;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.65rem;
   }
 
-  .profile-signal {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  .music-stat,
+  .music-panel,
+  .music-card {
+    border: 1px solid var(--mp-line);
+    border-radius: 22px;
+    background: var(--mp-panel);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
   }
 
-  .profile-signal span {
-    border-radius: 999px;
-    padding: 0.42rem 0.7rem;
-    background: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 248, 239, 0.86);
-    font-size: 0.78rem;
+  .music-stat {
+    min-height: 92px;
+    display: grid;
+    align-content: center;
+    gap: 0.2rem;
+    padding: 0.8rem;
+  }
+
+  .music-stat strong {
+    font-size: 1.35rem;
+  }
+
+  .music-stat span {
+    color: var(--mp-muted);
+    font-size: 0.76rem;
     font-weight: 900;
+  }
+
+  .record-icon {
+    display: inline-block;
+  }
+
+  .music-stat:hover .record-icon,
+  .performance-row:hover .record-icon {
+    animation: recordSpin 900ms ease;
+  }
+
+  .music-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
+    gap: 1rem;
+  }
+
+  .music-panel {
+    padding: 1rem;
+  }
+
+  .music-panel h2 {
+    margin: 0 0 0.8rem;
+    font-size: clamp(1.25rem, 3vw, 1.8rem);
+    letter-spacing: 0;
+  }
+
+  .performance-stack {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .performance-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 74px;
+    padding: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .play-chip,
+  .waveform {
+    width: 46px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--mp-purple), var(--mp-blue));
+    color: #fff;
+    font-weight: 950;
+  }
+
+  .waveform {
+    grid-template-columns: repeat(4, 4px);
+    gap: 3px;
+  }
+
+  .waveform i {
+    width: 4px;
+    height: 16px;
+    border-radius: 99px;
+    background: #fff;
+    animation: equalizer 950ms ease-in-out infinite;
+  }
+
+  .waveform i:nth-child(2) { animation-delay: 120ms; }
+  .waveform i:nth-child(3) { animation-delay: 240ms; }
+  .waveform i:nth-child(4) { animation-delay: 360ms; }
+
+  .performance-row strong,
+  .activity-row strong {
+    display: block;
+  }
+
+  .performance-row small,
+  .activity-row small,
+  .music-panel p,
+  .music-card small {
+    color: var(--mp-muted);
+  }
+
+  .music-card {
+    padding: 1rem;
+  }
+
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .tag-cloud span {
+    padding: 0.38rem 0.62rem;
+    border-radius: 999px;
+    background: rgba(53, 240, 161, 0.11);
+    color: #b8ffd9;
+    font-size: 0.8rem;
+    font-weight: 900;
+  }
+
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .quick-card {
+    min-height: 116px;
+    display: grid;
+    gap: 0.45rem;
+    align-content: start;
+    padding: 0.9rem;
+    border: 1px solid var(--mp-line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .quick-card span {
+    font-size: 1.45rem;
+  }
+
+  .activity-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.7rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .empty-music {
+    padding: 1rem;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 18px;
+    color: var(--mp-muted);
   }
 
   .completion-meter {
     height: 0.72rem;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(111, 86, 56, 0.18);
+    background: rgba(255, 255, 255, 0.12);
   }
 
   .completion-meter span {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--accent), #2f1e0d);
+    background: linear-gradient(90deg, var(--mp-gold), var(--mp-emerald));
   }
 
-  .completion-list {
+  .completion-list,
+  .danger-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.55rem;
   }
 
   .completion-list span {
     padding: 0.35rem 0.55rem;
     border-radius: 999px;
-    background: rgba(255, 224, 181, 0.62);
-    color: var(--accent-dark);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--mp-muted);
     font-size: 0.78rem;
     font-weight: 900;
   }
 
   .completion-list .done {
-    background: rgba(47, 30, 13, 0.12);
-    color: var(--muted);
-    text-decoration: line-through;
+    color: #10131f;
+    background: var(--mp-gold);
   }
 
-  .profile-actions-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.8rem;
-    padding: 1.2rem 1rem;
+  @keyframes recordSpin {
+    to { transform: rotate(360deg); }
   }
 
-  .profile-action {
-    min-height: 126px;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.85rem;
-    align-items: center;
-    padding: 1rem;
-    border: 1px solid rgba(27, 17, 36, 0.1);
-    border-radius: 24px;
-    background: var(--card);
-    color: var(--text);
-    box-shadow: var(--lift);
+  @keyframes playPulse {
+    50% { transform: scale(1.16); }
   }
 
-  .profile-action span {
-    display: block;
-    width: 3.35rem;
-    aspect-ratio: 1;
-    display: grid;
-    place-items: center;
-    border-radius: 18px;
-    background: linear-gradient(135deg, var(--pink), var(--accent-dark));
-    color: #fff8ef;
-    font-size: 1.55rem;
-    line-height: 1;
+  @keyframes equalizer {
+    0%, 100% { transform: scaleY(0.55); }
+    50% { transform: scaleY(1.35); }
   }
 
-  .profile-action strong {
-    font-size: 1.08rem;
-    line-height: 1.12;
-    font-weight: 950;
-  }
-
-  .profile-action small {
-    display: block;
-    margin-top: 0.28rem;
-    color: var(--muted);
-    line-height: 1.35;
-    font-weight: 700;
-  }
-
-  .profile-video,
-  .profile-details,
-  .danger-actions {
-    margin: 0 1rem 1rem;
-  }
-
-  .profile-video video {
-    width: 100%;
-  }
-
-  .detail-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.85rem 1rem;
-    border-bottom: 1px solid rgba(55, 31, 7, 0.12);
-  }
-
-  .detail-row small {
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .danger-actions {
-    display: grid;
-    gap: 0.65rem;
-  }
-
-  @media (min-width: 720px) {
-    .profile-actions-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (max-width: 860px) {
+    .music-identity,
+    .music-grid {
+      grid-template-columns: 1fr;
     }
 
-    .profile-action {
-      grid-template-columns: 1fr;
-      align-content: start;
+    .music-photo {
+      width: 128px;
+    }
+
+    .stat-strip,
+    .quick-actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>
 
 {% if user %}
-  <section class="creator-dashboard-hero">
-    <h1>{{ user.display_name }}'s Studio</h1>
-    <div class="profile-identity-card">
-      <div class="profile-photo-wrap">
-        <div class="profile-photo">
+  <section class="music-profile">
+    <header class="music-banner">
+      <div class="music-identity">
+        <div class="music-photo">
           {% if user.profile_pic %}
             <img src="{{ url_for('uploaded_file', filename=user.profile_pic) }}" alt="{{ user.display_name }}">
           {% elif user.avatar_url and (user.avatar_url.startswith("http") or user.avatar_url.startswith("/static/")) %}
             <img src="{{ user.avatar_url }}" alt="{{ user.display_name }}">
           {% else %}
-            <div class="profile-initial">{{ user.initials }}</div>
+            <div class="music-initial">{{ user.initials }}</div>
           {% endif %}
         </div>
+        <div>
+          <p class="music-kicker">Find The Beat Profile</p>
+          <h1 class="music-name">{{ user.display_name }}</h1>
+          {% if user.stage_name %}<p class="stage-name">Performs as {{ user.stage_name }}</p>{% endif %}
+          <div class="music-meta">
+            <span>{{ user.instrument or user.role or "Add your role" }}</span>
+            <span>{{ user.genre or "Add your genre" }}</span>
+            <span>{{ user.city or "Add your location" }}{% if user.state %}, {{ user.state }}{% endif %}</span>
+          </div>
+          <div class="music-badges">
+            <span class="music-badge gold">{{ user.availability or "Available for Work" }}</span>
+            {% if user.is_verified %}<span class="music-badge">Verified</span>{% else %}<span class="music-badge">Verification coming soon</span>{% endif %}
+            <span class="music-badge">{{ completion.percent }}% tuned</span>
+          </div>
+          <div class="music-actions">
+            <a class="music-action-btn primary" href="{{ url_for('upload_performance') }}"><span class="play-icon">▶</span> Upload Performance</a>
+            <a class="music-action-btn" href="{{ url_for('inbox') }}">🎵 Messages{% if unread_count|default(0) %} {{ unread_count }}{% endif %}</a>
+            <a class="music-action-btn" href="{{ url_for('edit_profile') }}">🎚 Edit My Profile</a>
+            <button class="music-action-btn" type="button" onclick="navigator.clipboard?.writeText(window.location.origin + '{{ url_for('profile_detail', profile_id=user.id) }}'); this.textContent='Link Copied';">Share</button>
+          </div>
+        </div>
       </div>
-      <p>{{ user.role or "Creative" }}{% if user.instrument %} / {{ user.instrument }}{% endif %}</p>
-      <p>{{ user.city or "Add your city" }}{% if user.state %}, {{ user.state }}{% endif %} {% if user.genre %}/ {{ user.genre }}{% endif %}</p>
-      <div class="profile-signal">
-        <span>{{ completion.percent }}% complete</span>
-        <span>{{ "Open to connect" if not user.availability else user.availability }}</span>
-        <span>{{ user.services_csv or "Add services" }}</span>
-      </div>
-    </div>
-  </section>
+    </header>
 
-  <section class="app-panel completion-card">
-    <strong>Profile {{ completion.percent }}% complete</strong>
-    <p class="muted">Complete your profile to help other creators find you. You can still skip and browse anytime.</p>
-    <div class="completion-meter" aria-label="Profile completion"><span style="width: {{ completion.percent }}%;"></span></div>
-    <div class="completion-list">
-      {% for label, done in completion["items"] %}
-        <span class="{{ 'done' if done else '' }}">{{ label }}</span>
-      {% endfor %}
-    </div>
-  </section>
+    <main class="music-body">
+      <section class="stat-strip" aria-label="Music profile stats">
+        <div class="music-stat"><strong>{{ profile_stats.performances }}</strong><span>🎵 Performances</span></div>
+        <div class="music-stat"><strong>{{ profile_stats.likes }}</strong><span><span class="record-icon">💿</span> Record Spins</span></div>
+        <div class="music-stat"><strong>{{ profile_stats.comments }}</strong><span>🎤 Comments</span></div>
+        <div class="music-stat"><strong>{{ profile_stats.followers }}</strong><span>🎧 Followers</span></div>
+        <div class="music-stat"><strong>{{ profile_stats.following }}</strong><span>🎼 Following</span></div>
+        <div class="music-stat"><strong>{{ profile_stats.bookings }}</strong><span>📅 Bookings</span></div>
+        <div class="music-stat"><strong>{{ profile_stats.featured }}</strong><span>⭐ Featured</span></div>
+      </section>
 
-  <section class="profile-actions-grid">
-    <a class="profile-action" href="{{ url_for('upload_performance') }}">
-      <span>✦</span>
-      <strong>Upload Performance<small>No performances yet? Upload your first sound and let the community hear you.</small></strong>
-    </a>
-    <a class="profile-action" href="{{ url_for('my_uploads') }}">
-      <span>▣</span>
-      <strong>My Uploads<small>Manage videos, audio, media links, and showcase moments.</small></strong>
-    </a>
-    <a class="profile-action" href="{{ url_for('inbox') }}">
-      <span>▭</span>
-      <strong>Check Messages{% if unread_count|default(0) %}<small>{{ unread_count }} new conversation{{ '' if unread_count == 1 else 's' }} waiting.</small>{% else %}<small>Keep collaborations, bookings, and introductions moving.</small>{% endif %}</strong>
-    </a>
-    <a class="profile-action" href="{{ url_for('edit_profile') }}">
-      <span>◉</span>
-      <strong>Edit My Profile<small>Update your sound, city, role, bio, and availability.</small></strong>
-    </a>
-    <a class="profile-action" href="{{ url_for('profiles') }}">
-      <span>⌕</span>
-      <strong>Browse Talent<small>Find artists, producers, players, engineers, and creatives.</small></strong>
-    </a>
-    <a class="profile-action" href="{{ url_for('showcase') }}">
-      <span>★</span>
-      <strong>View Showcase<small>See fresh uploads and featured performances from the community.</small></strong>
-    </a>
-    <a class="profile-action" href="{{ url_for('search') }}">
-      <span>♫</span>
-      <strong>Find Collaborators<small>Search lanes by role, genre, instrument, city, or availability.</small></strong>
-    </a>
-  </section>
+      <section class="quick-actions" aria-label="Profile actions">
+        <a class="quick-card" href="{{ url_for('my_uploads') }}"><span>📀</span><strong>My Uploads</strong><small>Manage tracks, videos, and sessions.</small></a>
+        <a class="quick-card" href="{{ url_for('profiles') }}"><span>🎧</span><strong>Discover Musicians</strong><small>Find players, vocalists, and producers.</small></a>
+        <a class="quick-card" href="{{ url_for('opportunities_board') }}"><span>🎹</span><strong>Find Gigs</strong><small>Browse live opportunities.</small></a>
+      </section>
 
-  {% if user.profile_video %}
-    <section class="app-panel profile-video">
-      <video controls>
-        <source src="{{ url_for('uploaded_file', filename=user.profile_video) }}">
-        Your browser does not support video playback.
-      </video>
-      <p class="media-access-note">Profile video captions or transcript details can be added in the bio or previous work fields.</p>
-    </section>
-  {% endif %}
+      <section class="music-grid">
+        <div class="music-panel">
+          <h2>Performances</h2>
+          <div class="performance-stack">
+            {% if perfs %}
+              {% for perf in perfs[:6] %}
+                <a class="performance-row" href="{{ url_for('performance_detail', perf_id=perf.id) }}">
+                  {% if perf.media_type == "audio" %}
+                    <span class="waveform" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                  {% else %}
+                    <span class="play-chip">▶</span>
+                  {% endif %}
+                  <span>
+                    <strong>{{ perf.title }}</strong>
+                    <small>{{ perf.media_type|title }}{% if perf.views %} · {{ perf.views }} views{% endif %} · <span class="record-icon">💿</span> {{ perf.likes }} record spins</small>
+                  </span>
+                  <span>›</span>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="empty-music">No performances yet. Upload your first track.</div>
+            {% endif %}
+          </div>
+        </div>
 
-  <section class="app-panel profile-details">
-    <div class="detail-row"><small>Genre</small><strong>{{ user.genre or "Add genre" }}</strong></div>
-    <div class="detail-row"><small>Instruments</small><strong>{{ user.instrument or "Add instruments" }}</strong></div>
-    <div class="detail-row"><small>Services</small><strong>{{ user.services_csv or "Add services" }}</strong></div>
-    <div class="detail-row"><small>Previous Work</small><strong>{{ user.previous_work|default("") or "Add previous work" }}</strong></div>
-    <div class="detail-row"><small>Availability</small><strong>{{ user.availability|default("") or "Add availability" }}</strong></div>
-    <div class="detail-row"><small>Tags</small><strong>{{ user.tags_csv or "Add tags" }}</strong></div>
-    <div class="detail-row"><small>Social</small><strong>{{ "Added" if user.social_links else "Add social links" }}</strong></div>
-    <div class="detail-row"><small>Bio</small><strong>{{ user.bio or "Add bio" }}</strong></div>
-  </section>
+        <aside class="music-card">
+          <h2>My Sound</h2>
+          <p>{{ user.bio or "Tell people about your music." }}</p>
+          {% if user.profile_video %}
+            <div class="music-video">
+              <video controls>
+                <source src="{{ url_for('uploaded_file', filename=user.profile_video) }}">
+                Your browser does not support video playback.
+              </video>
+            </div>
+          {% endif %}
+        </aside>
+      </section>
 
-  <section class="danger-actions">
-    <a class="button primary" href="{{ url_for('logout') }}">Logout</a>
-    {% if user.profile_pic %}
-      <form method="POST" action="{{ url_for('delete_profile_photo') }}">
-        <button type="submit" class="button secondary" onclick="return confirm('Remove your profile picture?');">Delete Profile Picture</button>
-      </form>
-    {% endif %}
-    {% if user.profile_video %}
-      <form method="POST" action="{{ url_for('delete_profile_video') }}">
-        <button type="submit" class="button secondary" onclick="return confirm('Remove your profile video?');">Delete Profile Video</button>
-      </form>
-    {% endif %}
-    <form method="POST" action="{{ url_for('delete_profile') }}">
-      <button type="submit" class="button secondary" onclick="return confirm('Delete your profile? This cannot be undone.');">Delete Profile</button>
-    </form>
+      <section class="music-grid">
+        <div class="music-panel">
+          <h2>Musical Skills</h2>
+          <div class="tag-cloud">
+            {% for item in user.instruments + user.services + user.tags %}
+              <span>{{ item }}</span>
+            {% else %}
+              <span>Add instruments</span><span>Add production</span><span>Add songwriting</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="music-panel">
+          <h2>Career Highlights</h2>
+          <p>{{ user.previous_work or "Add shows, placements, studio credits, gigs, or collaborations." }}</p>
+        </div>
+      </section>
+
+      <section class="music-grid">
+        <div class="music-panel">
+          <h2>Backstage</h2>
+          {% if user.profile_pic or user.profile_video %}
+            <p>Performance photos, studio moments, and behind-the-scenes media live here as you upload them.</p>
+          {% else %}
+            <div class="empty-music">No backstage moments yet. Add performance photos, studio shots, equipment, or tour memories.</div>
+          {% endif %}
+        </div>
+        <div class="music-panel">
+          <h2>Activity Feed</h2>
+          <div class="activity-row"><span>🎵</span><span><strong>{{ "Uploaded a new performance" if perfs else "Ready to upload a first performance" }}</strong><small>{{ "Latest track is live on your profile." if perfs else "Share a video, audio clip, live set, or studio session." }}</small></span></div>
+          <div class="activity-row"><span>💿</span><span><strong>Received {{ profile_stats.likes }} record spins</strong><small>Likes become record spins across Find The Beat.</small></span></div>
+          <div class="activity-row"><span>🎹</span><span><strong>{{ "Find gigs near you" if not profile_stats.bookings else "Booking activity updated" }}</strong><small>Opportunities stay on the gig board until you apply or save.</small></span></div>
+        </div>
+      </section>
+
+      <section class="music-panel">
+        <h2>Profile Tuning</h2>
+        <p>Complete your profile to help other creators find you. You can still browse gigs, artists, showcases, and the feed anytime.</p>
+        <div class="completion-meter" aria-label="Profile completion"><span style="width: {{ completion.percent }}%;"></span></div>
+        <div class="completion-list">
+          {% for label, done in completion["items"] %}
+            <span class="{{ 'done' if done else '' }}">{{ label }}</span>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="danger-actions">
+        <a class="button primary" href="{{ url_for('logout') }}">Logout</a>
+        {% if user.profile_pic %}
+          <form method="POST" action="{{ url_for('delete_profile_photo') }}">
+            <button type="submit" class="button secondary" onclick="return confirm('Remove your profile picture?');">Delete Profile Picture</button>
+          </form>
+        {% endif %}
+        {% if user.profile_video %}
+          <form method="POST" action="{{ url_for('delete_profile_video') }}">
+            <button type="submit" class="button secondary" onclick="return confirm('Remove your profile video?');">Delete Profile Video</button>
+          </form>
+        {% endif %}
+        <form method="POST" action="{{ url_for('delete_profile') }}">
+          <button type="submit" class="button secondary" onclick="return confirm('Delete your profile? This cannot be undone.');">Delete Profile</button>
+        </form>
+      </section>
+    </main>
   </section>
 {% else %}
   <section class="app-panel" style="margin:1rem; padding:1.4rem; text-align:center;">

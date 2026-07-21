@@ -115,7 +115,14 @@
       </div>
 
       <div class="field">
-        <label for="role">Role</label>
+        <label for="stage_name">Stage name</label>
+        <input id="stage_name" name="stage_name" value="{{ user.stage_name or '' }}" placeholder="Optional artist name">
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="field">
+        <label for="role">Instrument / Role</label>
         <select id="role" name="role">
           {% set current_role = (user.role or '')|lower %}
           {% for option in ["Producer", "Composer", "Artist", "Musician"] %}
