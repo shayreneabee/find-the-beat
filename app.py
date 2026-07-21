@@ -75,6 +75,16 @@ BANDSINTOWN_IMPORT_ARTISTS = [
     if item.strip()
 ]
 FTB_AUTO_IMPORT_GIGS = os.getenv("FTB_AUTO_IMPORT_GIGS", "").strip().lower() in {"1", "true", "yes", "on"}
+FTB_SEED_DEMO_CONTENT = os.getenv("FTB_SEED_DEMO_CONTENT", "").strip().lower() in {"1", "true", "yes", "on"}
+
+MUSIC_OPPORTUNITY_TERMS = [
+    "audition", "band", "bass", "beat", "booking", "church", "choir", "collab",
+    "composer", "concert", "creative", "dj", "drum", "festival", "gig", "gospel",
+    "guitar", "instrument", "keyboard", "live", "music", "musician", "open mic",
+    "opening act", "orchestra", "performance", "producer", "recording", "singer",
+    "songwriter", "sound", "stage", "studio", "showcase", "venue", "vocal",
+    "wedding", "worship",
+]
 
 US_GEO_POINTS = {
     "atlanta ga": (33.7490, -84.3880),
@@ -1832,7 +1842,7 @@ def profile_coordinates(profile):
 
 
 def normalize_geo_key(*parts):
-    return re.sub(r"[^a-z0-9]+", " ", " ".join(str(part or "") for part in parts)).strip().lower()
+    return re.sub(r"[^a-z0-9]+", " ", " ".join(str(part or "") for part in parts).lower()).strip()
 
 
 def geocode_location(city="", state="", zip_code="", location_text=""):
@@ -2110,9 +2120,8 @@ def login_required(view):
 
 
 def request_destination():
-    if request.method == "GET":
-        return request.full_path.rstrip("?")
-    return request.referrer or request.path
+    destination = request.full_path.rstrip("?")
+    return destination or request.path
 
 
 def safe_redirect_target(value):
@@ -2576,8 +2585,35 @@ def row_to_opportunity(row):
 
 def get_opportunities(filters=None, limit=None):
     filters = filters or {}
-    clauses = ["status = 'active'"]
+    clauses = [
+        "status = 'active'",
+        "(COALESCE(is_seeded_demo, 0) = 0 OR ? = 1)",
+        """
+        (
+            title LIKE ? OR description LIKE ? OR opportunity_type LIKE ? OR
+            role_needed LIKE ? OR instrument_needed LIKE ? OR genre LIKE ? OR
+            location_name LIKE ?
+        )
+        """,
+        """
+        LOWER(COALESCE(source_name, '')) NOT LIKE '%second chance%' AND
+        LOWER(COALESCE(source_type, '')) NOT LIKE '%second-chance%' AND
+        LOWER(COALESCE(source_type, '')) NOT LIKE '%career%'
+        """,
+    ]
     params = []
+    params.append(1 if FTB_SEED_DEMO_CONTENT or filters.get("include_demo") else 0)
+    music_filter_sql = " OR ".join(
+        """
+        title LIKE ? OR description LIKE ? OR opportunity_type LIKE ? OR
+        role_needed LIKE ? OR instrument_needed LIKE ? OR genre LIKE ? OR
+        location_name LIKE ?
+        """.strip()
+        for _ in MUSIC_OPPORTUNITY_TERMS
+    )
+    clauses[2] = f"({music_filter_sql})"
+    for term in MUSIC_OPPORTUNITY_TERMS:
+        params.extend([f"%{term}%"] * 7)
     q = filters.get("q", "")
     if q:
         clauses.append(
@@ -2620,6 +2656,56 @@ def get_opportunity(opportunity_id):
             (opportunity_id,),
         ).fetchone()
     return row_to_opportunity(row)
+
+
+def row_to_event(row):
+    data = dict(row) if row is not None else {}
+    for field in [
+        "description", "event_type", "performer", "venue", "address", "city", "state",
+        "postal_code", "start_datetime", "end_datetime", "ticket_url", "source_url",
+        "source_name", "external_id", "image_url", "genre", "verification_status",
+        "created_at", "updated_at", "location_source",
+    ]:
+        data.setdefault(field, "")
+    data.setdefault("latitude", None)
+    data.setdefault("longitude", None)
+    data.setdefault("price_min", None)
+    data.setdefault("price_max", None)
+    data.setdefault("is_featured", 0)
+    data.setdefault("is_seeded_demo", 0)
+    return SimpleNamespace(**data) if data else None
+
+
+def get_events(limit=None, include_demo=None):
+    include_seeded = FTB_SEED_DEMO_CONTENT if include_demo is None else include_demo
+    sql = """
+        SELECT *
+        FROM events
+        WHERE COALESCE(verification_status, 'reviewed') NOT IN ('hidden', 'rejected')
+          AND (COALESCE(is_seeded_demo, 0) = 0 OR ? = 1)
+        ORDER BY datetime(COALESCE(NULLIF(start_datetime, ''), created_at)) ASC, id DESC
+    """
+    params = [1 if include_seeded else 0]
+    if limit:
+        sql += " LIMIT ?"
+        params.append(limit)
+    with get_db() as conn:
+        return [row_to_event(row) for row in conn.execute(sql, params).fetchall()]
+
+
+def get_event(event_id):
+    with get_db() as conn:
+        row = conn.execute(
+            """
+            SELECT *
+            FROM events
+            WHERE id = ?
+              AND COALESCE(verification_status, 'reviewed') NOT IN ('hidden', 'rejected')
+              AND (COALESCE(is_seeded_demo, 0) = 0 OR ? = 1)
+            """,
+            (event_id, 1 if FTB_SEED_DEMO_CONTENT else 0),
+        ).fetchone()
+    return row_to_event(row)
 
 
 def create_opportunity(user_id, fields):
@@ -2864,6 +2950,8 @@ def import_live_opportunities():
 
 
 def seed_demo_profiles_if_empty():
+    if not FTB_SEED_DEMO_CONTENT:
+        return
     with get_db() as conn:
         existing = conn.execute(
             "SELECT COUNT(*) FROM users WHERE is_seeded_demo = 1 OR email LIKE 'sample.%@example.com'"
@@ -2923,6 +3011,8 @@ def seed_demo_profiles_if_empty():
 
 
 def seed_community_content():
+    if not FTB_SEED_DEMO_CONTENT:
+        return
     with get_db() as conn:
         for item in DEMO_OPPORTUNITIES:
             conn.execute(
@@ -3058,6 +3148,10 @@ def discovery_record_category(record):
     )
     if record["kind"] == "showcase":
         return "showcases"
+    if record["kind"] == "event":
+        return "events"
+    if record["kind"] == "venue":
+        return "venues"
     if record["kind"] == "creator":
         if any(word in text for word in ["producer", "songwriter", "composer"]):
             return "producers"
@@ -3141,6 +3235,25 @@ def collect_discovery_records():
                 created_at=opp.created_at,
             )
         )
+        if opp.location_name and opp.latitude is not None and opp.longitude is not None:
+            records.append(
+                map_record(
+                    "venue",
+                    f"opportunity-{opp.id}",
+                    opp.location_name,
+                    "Venue / " + (opp.city or opp.state or "Location listed"),
+                    f"Music activity connected to {opp.title}.",
+                    opp.city,
+                    opp.state,
+                    opp.latitude,
+                    opp.longitude,
+                    ftb_opportunity_url(opp.id),
+                    type="Venue",
+                    role=opp.role_needed,
+                    location_name=opp.location_name,
+                    created_at=opp.created_at,
+                )
+            )
     for profile in search_profiles():
         records.append(
             map_record(
@@ -3176,6 +3289,44 @@ def collect_discovery_records():
                 created_at=perf.created_at,
             )
         )
+    for event in get_events():
+        records.append(
+            map_record(
+                "event",
+                event.id,
+                event.title,
+                " / ".join(part for part in [event.event_type or "Live event", event.performer, event.venue] if part),
+                event.description,
+                event.city,
+                event.state,
+                event.latitude,
+                event.longitude,
+                url_for("event_detail", event_id=event.id),
+                type=event.event_type,
+                role=event.performer,
+                location_name=event.venue,
+                created_at=event.created_at,
+            )
+        )
+        if event.venue and event.latitude is not None and event.longitude is not None:
+            records.append(
+                map_record(
+                    "venue",
+                    f"event-{event.id}",
+                    event.venue,
+                    "Venue / " + (event.city or event.state or "Location listed"),
+                    f"Live activity connected to {event.title}.",
+                    event.city,
+                    event.state,
+                    event.latitude,
+                    event.longitude,
+                    url_for("event_detail", event_id=event.id),
+                    type="Venue",
+                    role=event.performer,
+                    location_name=event.venue,
+                    created_at=event.created_at,
+                )
+            )
     return records
 
 
@@ -3235,7 +3386,7 @@ def discovery_activity(records, filters):
     city_counts = {}
     for record in records:
         key = ", ".join(part for part in [record.city, record.state] if part) or "your area"
-        city_counts.setdefault(key, {"opportunity": 0, "creator": 0, "showcase": 0})
+        city_counts.setdefault(key, {"opportunity": 0, "creator": 0, "showcase": 0, "venue": 0, "event": 0})
         city_counts[key][record.kind] += 1
     activity = []
     for place, counts in city_counts.items():
@@ -3245,6 +3396,10 @@ def discovery_activity(records, filters):
             activity.append(f"{counts['creator']} creators available in {place}")
         if counts["showcase"]:
             activity.append(f"{counts['showcase']} showcases posted from {place}")
+        if counts["venue"]:
+            activity.append(f"{counts['venue']} music venues active near {place}")
+        if counts["event"]:
+            activity.append(f"{counts['event']} live events listed near {place}")
     if not activity and filters.location:
         activity.append(f"No mapped records yet for {filters.location}")
     return activity[:5]
@@ -3260,7 +3415,50 @@ def discovery_summary():
         opportunity_count=sum(1 for record in records if record.kind == "opportunity"),
         creator_count=sum(1 for record in records if record.kind == "creator"),
         showcase_count=sum(1 for record in records if record.kind == "showcase"),
+        venue_count=sum(1 for record in records if record.kind == "venue"),
+        event_count=sum(1 for record in records if record.kind == "event"),
     )
+
+
+def backfill_record_coordinates():
+    with get_db() as conn:
+        for table, location_columns in {
+            "users": ("city", "state", "city"),
+            "opportunities": ("city", "state", "location_name"),
+            "events": ("city", "state", "venue"),
+        }.items():
+            id_column = "id"
+            rows = conn.execute(
+                f"SELECT {id_column}, {location_columns[0]} AS city, {location_columns[1]} AS state, "
+                f"{location_columns[2]} AS location_text, latitude, longitude FROM {table}"
+            ).fetchall()
+            for row in rows:
+                if row["latitude"] is not None and row["longitude"] is not None:
+                    continue
+                latitude, longitude, source = geocode_location(
+                    row["city"],
+                    row["state"],
+                    location_text=row["location_text"],
+                )
+                if latitude is not None and longitude is not None:
+                    conn.execute(
+                        f"UPDATE {table} SET latitude = ?, longitude = ?, location_source = ?, updated_at = CURRENT_TIMESTAMP WHERE {id_column} = ?",
+                        (latitude, longitude, source, row[id_column]),
+                    )
+        rows = conn.execute(
+            """
+            SELECT p.id, p.latitude, p.longitude, u.latitude AS user_latitude,
+                   u.longitude AS user_longitude, u.location_source AS user_location_source
+            FROM performances p
+            JOIN users u ON u.id = p.profile_id
+            """
+        ).fetchall()
+        for row in rows:
+            if (row["latitude"] is None or row["longitude"] is None) and row["user_latitude"] is not None:
+                conn.execute(
+                    "UPDATE performances SET latitude = ?, longitude = ?, location_source = ? WHERE id = ?",
+                    (row["user_latitude"], row["user_longitude"], row["user_location_source"], row["id"]),
+                )
 
 
 def homepage_context(user=None):
@@ -3272,53 +3470,26 @@ def homepage_context(user=None):
     user_instrument = user_get("instrument", "") if user else ""
     user_genre = user_get("genre", "") if user else ""
 
-    def order_for_personalization(sql_base, params=None):
-        ranking = []
-        ranking_params = []
-        if user_city:
-            ranking.append("CASE WHEN city LIKE ? THEN 0 ELSE 1 END")
-            ranking_params.append(f"%{user_city}%")
-        if user_state:
-            ranking.append("CASE WHEN state LIKE ? THEN 0 ELSE 1 END")
-            ranking_params.append(f"%{user_state}%")
-        return sql_base + " ORDER BY " + ", ".join(ranking + ["is_featured DESC", "datetime(created_at) DESC", "id DESC"]), ranking_params + list(params or [])
-
     with get_db() as conn:
-        opp_sql, opp_params = order_for_personalization(
-            """
-            SELECT *
-            FROM opportunities
-            WHERE status = 'active'
-            """,
-        )
-        opportunities = [ns(row) for row in conn.execute(opp_sql + " LIMIT 12", opp_params).fetchall()]
+        opportunity_filters = {}
+        if user_city:
+            opportunity_filters["city"] = user_city
+        if user_state:
+            opportunity_filters["state"] = user_state
+        opportunities = get_opportunities(opportunity_filters, limit=12)
+        if len(opportunities) < 12 and opportunity_filters:
+            seen_ids = {opp.id for opp in opportunities}
+            opportunities.extend([opp for opp in get_opportunities(limit=12) if opp.id not in seen_ids][:12 - len(opportunities)])
 
-        looking_rows = conn.execute(
-            """
-            SELECT *
-            FROM opportunities
-            WHERE status = 'active'
-              AND (
-                opportunity_type IN ('Collaboration', 'Church Music', 'Band Member', 'DJ Booking', 'Recording Session')
-                OR title LIKE '%needs%'
-                OR title LIKE '%needed%'
-                OR title LIKE '%seeking%'
-                OR title LIKE '%looking%'
-              )
-            ORDER BY datetime(created_at) DESC, is_featured DESC, id DESC
-            LIMIT 8
-            """
-        ).fetchall()
-        looking_items = [ns(row) for row in looking_rows]
+        looking_items = [
+            opp for opp in opportunities
+            if (
+                opp.opportunity_type in {"Collaboration", "Church Music", "Band Member", "DJ Booking", "Recording Session"}
+                or any(term in (opp.title or "").lower() for term in ["needs", "needed", "seeking", "looking"])
+            )
+        ][:8]
 
-        event_sql, event_params = order_for_personalization(
-            """
-            SELECT *
-            FROM events
-            WHERE COALESCE(start_datetime, '') = '' OR datetime(start_datetime) >= datetime('now', '-1 day')
-            """,
-        )
-        events = [ns(row) for row in conn.execute(event_sql + " LIMIT 15", event_params).fetchall()]
+        events = get_events(limit=15)
 
         feed_rows = conn.execute(
             """
@@ -3885,6 +4056,15 @@ def opportunity_detail(opportunity_id):
         flash("Opportunity not found.")
         return redirect(ftb_gig_board_url())
     return render_template("opportunity_detail.html", opportunity=opportunity)
+
+
+@app.route("/events/<int:event_id>")
+def event_detail(event_id):
+    event = get_event(event_id)
+    if not event:
+        flash("Event not found.")
+        return redirect(url_for("discovery_map", category="events"))
+    return render_template("event_detail.html", event=event)
 
 
 @app.route("/gigs/<int:opportunity_id>")
@@ -5219,6 +5399,9 @@ init_db()
 seed_demo_profiles_if_empty()
 seed_community_content()
 seed_founder_profile()
+if FTB_AUTO_IMPORT_GIGS:
+    import_live_opportunities()
+backfill_record_coordinates()
 
 
 if __name__ == "__main__":

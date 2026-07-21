@@ -2,6 +2,12 @@
 
 {% block title %}Find the Beat Near You{% endblock %}
 
+{% block head %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+{% endblock %}
+
 {% block content %}
 <style>
   .map-page {
@@ -60,57 +66,76 @@
     align-items: center;
   }
 
-  .view-tabs button {
-    min-height: 42px;
-  }
-
   .map-layout {
     display: grid;
     gap: 1rem;
   }
 
-  .us-map {
+  .map-shell {
     position: relative;
-    min-height: 430px;
+    min-height: 470px;
     overflow: hidden;
     border: 1px solid rgba(255, 208, 93, 0.24);
     border-radius: 18px;
+    background: #09142a;
+  }
+
+  #ftbMap {
+    min-height: 470px;
+    width: 100%;
+    background: #0f1f3d;
+  }
+
+  .map-empty,
+  .map-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    text-align: center;
+    color: #fffaf0;
+    pointer-events: none;
+  }
+
+  .map-empty[hidden],
+  .map-fallback[hidden] {
+    display: none;
+  }
+
+  .map-fallback {
     background:
+      radial-gradient(circle at 32% 55%, rgba(245, 165, 36, 0.22), transparent 14%),
+      radial-gradient(circle at 62% 42%, rgba(85, 198, 255, 0.18), transparent 13%),
       linear-gradient(135deg, rgba(9, 20, 42, 0.98), rgba(18, 34, 64, 0.98));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
 
-  .us-map::before {
-    content: "";
-    position: absolute;
-    inset: 10% 8% 12% 6%;
-    clip-path: polygon(8% 40%, 18% 22%, 31% 14%, 47% 16%, 61% 19%, 74% 18%, 88% 31%, 92% 47%, 83% 64%, 68% 76%, 51% 78%, 35% 73%, 18% 66%);
-    background: rgba(255, 250, 238, 0.08);
-    border: 1px solid rgba(255, 208, 93, 0.18);
-  }
-
-  .map-marker {
-    position: absolute;
-    left: var(--x);
-    top: var(--y);
-    width: 1.15rem;
-    height: 1.15rem;
-    transform: translate(-50%, -50%);
+  .ftb-pin {
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
     border: 2px solid #fffaf0;
     border-radius: 999px;
     background: #f5a524;
+    color: #09142a;
+    font-size: 0.78rem;
+    font-weight: 900;
     box-shadow: 0 0 0 5px rgba(245, 165, 36, 0.2);
-    cursor: pointer;
   }
 
-  .map-marker[data-kind="creator"] {
-    background: #55c6ff;
-    box-shadow: 0 0 0 5px rgba(85, 198, 255, 0.18);
+  .ftb-pin.creator { background: #55c6ff; }
+  .ftb-pin.showcase { background: #ff6f91; }
+  .ftb-pin.event { background: #8ee88e; }
+  .ftb-pin.venue { background: #ffe08a; }
+
+  .leaflet-popup-content {
+    min-width: 210px;
   }
 
-  .map-marker[data-kind="showcase"] {
-    background: #ff6f91;
-    box-shadow: 0 0 0 5px rgba(255, 111, 145, 0.18);
+  .leaflet-popup-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
   }
 
   .preview-panel {
@@ -177,7 +202,7 @@
   <header class="app-panel map-hero">
     <p class="hero-kicker">Find the Beat Near You</p>
     <h1>See where the music community is moving.</h1>
-    <p>Browse mapped gigs, creators, venues, showcases, collaborations, churches, and live events from real Find The Beat records.</p>
+    <p>Browse mapped gigs, creators, venues, showcases, collaborations, churches, and live events from Find The Beat records.</p>
   </header>
 
   <section class="app-panel map-controls">
@@ -224,37 +249,31 @@
     <div class="activity-list">
       {% for item in activity %}
         <span>{{ item }}</span>
+      {% else %}
+        <span>No new mapped activity matches these filters yet.</span>
       {% endfor %}
     </div>
   </section>
 
   <section class="map-layout {% if filters.view == 'list' %}is-hidden{% endif %}">
     <div class="app-panel map-stage">
-      <div class="us-map" aria-label="United States activity map">
-        {% for record in records %}
-          {% if record.position %}
-            <button
-              class="map-marker"
-              style="--x: {{ record.position.x }}%; --y: {{ record.position.y }}%;"
-              data-kind="{{ record.kind }}"
-              data-index="{{ loop.index0 }}"
-              type="button"
-              aria-label="{{ record.title }}"
-            ></button>
-          {% endif %}
-        {% endfor %}
+      <div class="map-shell">
+        <div id="ftbMap" aria-label="Interactive Find The Beat map"></div>
+        <div class="map-empty" id="mapEmpty" {% if records %}hidden{% endif %}>No mapped results match these filters yet.</div>
+        <div class="map-fallback" id="mapFallback" hidden>Map tiles are unavailable right now, but mapped records remain listed below.</div>
       </div>
     </div>
     <aside class="preview-panel" id="markerPreview">
       {% if records %}
-        <p class="hero-kicker">{{ records[0].category|replace("_", " ") }}</p>
+        <p class="hero-kicker">{{ categories.get(records[0].category, records[0].category) }}</p>
         <h2>{{ records[0].title }}</h2>
         <p>{{ records[0].subtitle }}</p>
         <p>{{ records[0].city }}{% if records[0].city and records[0].state %}, {% endif %}{{ records[0].state }}</p>
         <a class="button primary" href="{{ records[0].href }}">Open</a>
       {% else %}
         <p class="hero-kicker">No mapped records</p>
-        <h2>Try a wider radius or view remote records.</h2>
+        <h2>No mapped results match these filters yet.</h2>
+        <p>Remote and location-not-listed records appear below.</p>
       {% endif %}
     </aside>
   </section>
@@ -274,7 +293,7 @@
       </article>
     {% else %}
       <article class="discovery-record">
-        <h2>No mapped records found.</h2>
+        <h2>No mapped results match these filters yet.</h2>
         <p>Try a wider radius, statewide, nationwide, or remote opportunities.</p>
       </article>
     {% endfor %}
@@ -297,30 +316,79 @@
   </section>
 </section>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
   const discoveryMarkers = {{ marker_json|safe }};
   const preview = document.getElementById("markerPreview");
-  document.querySelectorAll(".map-marker").forEach((marker) => {
-    marker.addEventListener("click", () => {
-      const record = discoveryMarkers[Number(marker.dataset.index)];
-      if (!record || !preview) return;
-      const place = [record.city, record.state].filter(Boolean).join(", ");
-      preview.replaceChildren();
-      const kicker = document.createElement("p");
-      kicker.className = "hero-kicker";
-      kicker.textContent = record.category;
-      const title = document.createElement("h2");
-      title.textContent = record.title;
-      const subtitle = document.createElement("p");
-      subtitle.textContent = record.subtitle || "";
-      const location = document.createElement("p");
-      location.textContent = `${place}${record.distance !== null ? " / " + record.distance + " miles away" : ""}`;
-      const link = document.createElement("a");
-      link.className = "button primary";
-      link.href = record.href;
-      link.textContent = "Open";
-      preview.append(kicker, title, subtitle, location, link);
+  const fallback = document.getElementById("mapFallback");
+  const empty = document.getElementById("mapEmpty");
+
+  function markerLabel(kind) {
+    return { opportunity: "G", creator: "A", venue: "V", showcase: "S", event: "E" }[kind] || "M";
+  }
+
+  function setPreview(record) {
+    if (!record || !preview) return;
+    const place = [record.city, record.state].filter(Boolean).join(", ") || "Location not listed";
+    preview.replaceChildren();
+    const kicker = document.createElement("p");
+    kicker.className = "hero-kicker";
+    kicker.textContent = record.category || record.kind;
+    const title = document.createElement("h2");
+    title.textContent = record.title;
+    const subtitle = document.createElement("p");
+    subtitle.textContent = record.subtitle || record.kind;
+    const location = document.createElement("p");
+    location.textContent = `${place}${record.distance !== null && record.distance !== undefined ? " / " + record.distance + " miles away" : ""}`;
+    const link = document.createElement("a");
+    link.className = "button primary";
+    link.href = record.href;
+    link.textContent = "Open";
+    preview.append(kicker, title, subtitle, location, link);
+  }
+
+  function popupHtml(record) {
+    const place = [record.city, record.state].filter(Boolean).join(", ") || "Location not listed";
+    const safe = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[char]));
+    return `<strong>${safe(record.title)}</strong><span>${safe(record.kind)} / ${safe(place)}</span><br><a href="${safe(record.href)}">Open</a>`;
+  }
+
+  if (window.L) {
+    const map = L.map("ftbMap", { scrollWheelZoom: true }).setView([37.8, -96], 4);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const layer = window.L.markerClusterGroup ? L.markerClusterGroup() : L.layerGroup();
+    const bounds = [];
+    discoveryMarkers.forEach((record) => {
+      if (record.latitude === null || record.longitude === null) return;
+      const icon = L.divIcon({
+        className: "",
+        html: `<span class="ftb-pin ${record.kind}">${markerLabel(record.kind)}</span>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -14],
+      });
+      const marker = L.marker([record.latitude, record.longitude], { icon }).bindPopup(popupHtml(record));
+      marker.on("click", () => setPreview(record));
+      layer.addLayer(marker);
+      bounds.push([record.latitude, record.longitude]);
     });
-  });
+    layer.addTo(map);
+    if (bounds.length) {
+      map.fitBounds(bounds, { padding: [36, 36], maxZoom: 10 });
+      if (empty) empty.hidden = true;
+      setPreview(discoveryMarkers.find((record) => record.latitude !== null && record.longitude !== null));
+    } else if (empty) {
+      empty.hidden = false;
+    }
+  } else if (fallback) {
+    fallback.hidden = false;
+  }
 </script>
 {% endblock %}

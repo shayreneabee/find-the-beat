@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.title }} | Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .event-detail {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .event-detail section {
+    padding: 1rem;
+  }
+
+  .event-detail h1 {
+    margin: 0;
+    line-height: 1.08;
+  }
+
+  .detail-grid {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .detail-item {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+</style>
+
+<div class="event-detail">
+  <section class="app-panel">
+    <p class="hero-kicker">{{ event.event_type or "Live event" }}</p>
+    <h1>{{ event.title }}</h1>
+    <p class="muted">{{ event.description or "Live music activity listed on Find The Beat." }}</p>
+    <div class="detail-actions">
+      {% if event.ticket_url or event.source_url %}
+        <a class="button primary" href="{{ event.ticket_url or event.source_url }}" rel="noopener">Open Event Link</a>
+      {% endif %}
+      <a class="button secondary" href="{{ url_for('discovery_map', category='events') }}">View Events</a>
+    </div>
+  </section>
+
+  <section class="app-panel detail-grid" aria-label="Event details">
+    <div class="detail-item"><strong>Performer</strong><span>{{ event.performer or "Lineup not listed" }}</span></div>
+    <div class="detail-item"><strong>Venue</strong><span>{{ event.venue or "Venue not listed" }}</span></div>
+    <div class="detail-item"><strong>Location</strong><span>{{ event.city }}{% if event.city and event.state %}, {% endif %}{{ event.state or "Location not listed" }}</span></div>
+    <div class="detail-item"><strong>Date</strong><span>{{ event.start_datetime or "Date not listed" }}</span></div>
+    <div class="detail-item"><strong>Genre</strong><span>{{ event.genre or "Music" }}</span></div>
+    <div class="detail-item"><strong>Source</strong><span>{{ event.source_name or "Find The Beat" }}</span></div>
+  </section>
+</div>
+{% endblock %}

@@ -33,3 +33,13 @@ services:
         value: brent-co-identity,brent-co-sso
       - key: DEBUG_SSO
         value: "0"
+      - key: FTB_SEED_DEMO_CONTENT
+        value: "0"
+      - key: FTB_AUTO_IMPORT_GIGS
+        value: "0"
+      - key: TICKETMASTER_API_KEY
+        sync: false
+      - key: EVENTBRITE_OAUTH_TOKEN
+        sync: false
+      - key: BANDSINTOWN_APP_ID
+        sync: false

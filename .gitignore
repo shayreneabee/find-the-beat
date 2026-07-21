@@ -6,3 +6,4 @@ static/uploads/
 *.db
 *.sqlite
 *.sqlite3
+.codex-shots/
