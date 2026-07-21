@@ -166,7 +166,7 @@
 
 {% if user %}
   <div class="section-band">my profile</div>
-  <div class="profile-greeting">Hi {{ user.display_name }}!</div>
+  <div class="profile-greeting">Hi {{ user.display_name or user.full_name or "there" }}!</div>
 
   <div class="profile-photo-wrap">
     <div class="profile-photo">
@@ -178,8 +178,14 @@
     </div>
   </div>
 
-  <div class="profile-line">{{ user.city or "Add your city" }}</div>
-  <div class="profile-line">{{ user.role or "Add talent" }}{% if user.instrument %} • {{ user.instrument }}{% endif %}</div>
+  <div class="profile-line">
+    {% if user.city or user.state %}
+      {{ user.city }}{% if user.city and user.state %}, {% endif %}{{ user.state }}
+    {% else %}
+      Add your location
+    {% endif %}
+  </div>
+  <div class="profile-line">{{ user.role or "Add your role" }}{% if user.instrument %} • {{ user.instrument }}{% endif %}</div>
   {% if user.official_badges %}
     <div class="founder-badges">
       {% for badge in user.official_badges %}
@@ -193,7 +199,7 @@
     <p class="muted">Complete your profile to help other creators find you. You can still skip and browse anytime.</p>
     <div class="completion-meter" aria-label="Profile completion"><span style="width: {{ completion.percent }}%;"></span></div>
     <div class="completion-list">
-      {% for label, done in completion.items %}
+      {% for label, done in completion["items"] %}
         <span class="{{ 'done' if done else '' }}">{{ label }}</span>
       {% endfor %}
     </div>
@@ -232,7 +238,7 @@
     <div class="detail-row"><small>Services</small><strong>{{ user.services_csv or "Add services" }}</strong></div>
     <div class="detail-row"><small>Tags</small><strong>{{ user.tags_csv or "Add tags" }}</strong></div>
     <div class="detail-row"><small>Social</small><strong>{{ "Added" if user.social_links else "Add social links" }}</strong></div>
-    <div class="detail-row"><small>Bio</small><strong>{{ user.bio or "Add bio" }}</strong></div>
+    <div class="detail-row"><small>Bio</small><strong>{{ user.bio or "Tell people about your music" }}</strong></div>
   </section>
 
   <section class="danger-actions">

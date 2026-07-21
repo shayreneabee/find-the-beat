@@ -201,13 +201,20 @@
 
     <div class="artist-copy">
       <div>
-        <p class="artist-meta">{{ profile.role or "Add talent" }} • {{ profile.city or "Add city" }}</p>
-        <h1>{{ profile.display_name }}</h1>
+        <p class="artist-meta">
+          {{ profile.role or "Add your role" }} •
+          {% if profile.city or profile.state %}
+            {{ profile.city }}{% if profile.city and profile.state %}, {% endif %}{{ profile.state }}
+          {% else %}
+            Add your location
+          {% endif %}
+        </p>
+        <h1>{{ profile.display_name or profile.full_name or "Creator profile" }}</h1>
         {% if profile.username %}
           <p class="artist-meta">@{{ profile.username }}{% if profile.join_date %} • Joined {{ profile.join_date[:10] }}{% endif %}</p>
         {% endif %}
       </div>
-      <p>{{ profile.bio or "Add bio" }}</p>
+      <p>{{ profile.bio or "Tell people about your music" }}</p>
       <div class="badge-line">
         {% for badge in profile.badges[:8] %}
           <span class="badge {{ 'official' if badge in profile.official_badges else '' }}">{{ badge }}</span>
@@ -248,7 +255,7 @@
   <section class="artist-section" id="details">
     <h2>Creative Details</h2>
     <p><strong>Genres:</strong> {{ profile.genre or "Add genre" }}</p>
-    <p><strong>Instruments/services:</strong> {{ profile.instrument or "Add talent" }}{% if profile.services_csv %} • {{ profile.services_csv }}{% endif %}</p>
+    <p><strong>Instruments/services:</strong> {{ profile.instrument or "Add your role" }}{% if profile.services_csv %} • {{ profile.services_csv }}{% endif %}</p>
     <p><strong>Tags:</strong> {{ profile.tags_csv or "Available for Collabs" }}</p>
   </section>
 

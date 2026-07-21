@@ -679,8 +679,24 @@ def init_db():
             CREATE TABLE IF NOT EXISTS profiles (
                 user_id INTEGER PRIMARY KEY,
                 email TEXT DEFAULT '',
+                full_name TEXT DEFAULT '',
                 display_name TEXT DEFAULT '',
                 username TEXT DEFAULT '',
+                role TEXT DEFAULT '',
+                account_type TEXT DEFAULT 'user',
+                genre TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                country TEXT DEFAULT '',
+                phone TEXT DEFAULT '',
+                bio TEXT DEFAULT '',
+                tags_csv TEXT DEFAULT '',
+                instrument TEXT DEFAULT '',
+                services_csv TEXT DEFAULT '',
+                avatar_url TEXT DEFAULT '',
+                profile_photo TEXT DEFAULT '',
+                profile_pic TEXT DEFAULT '',
+                profile_video TEXT DEFAULT '',
                 source_app TEXT DEFAULT 'find-the-beat',
                 profile_completion_status TEXT DEFAULT 'incomplete',
                 profile_completion_percentage INTEGER DEFAULT 0,
@@ -764,8 +780,24 @@ def init_db():
         }
         for column, definition in {
             "email": "TEXT DEFAULT ''",
+            "full_name": "TEXT DEFAULT ''",
             "display_name": "TEXT DEFAULT ''",
             "username": "TEXT DEFAULT ''",
+            "role": "TEXT DEFAULT ''",
+            "account_type": "TEXT DEFAULT 'user'",
+            "genre": "TEXT DEFAULT ''",
+            "city": "TEXT DEFAULT ''",
+            "state": "TEXT DEFAULT ''",
+            "country": "TEXT DEFAULT ''",
+            "phone": "TEXT DEFAULT ''",
+            "bio": "TEXT DEFAULT ''",
+            "tags_csv": "TEXT DEFAULT ''",
+            "instrument": "TEXT DEFAULT ''",
+            "services_csv": "TEXT DEFAULT ''",
+            "avatar_url": "TEXT DEFAULT ''",
+            "profile_photo": "TEXT DEFAULT ''",
+            "profile_pic": "TEXT DEFAULT ''",
+            "profile_video": "TEXT DEFAULT ''",
             "source_app": "TEXT DEFAULT 'find-the-beat'",
             "profile_completion_status": "TEXT DEFAULT 'incomplete'",
             "profile_completion_percentage": "INTEGER DEFAULT 0",
@@ -1054,15 +1086,34 @@ def ensure_master_profile(conn, user_id, app_name="find-the-beat", role="user"):
     conn.execute(
         """
         INSERT INTO profiles (
-            user_id, email, display_name, username, source_app,
+            user_id, email, full_name, display_name, username,
+            role, account_type, genre, city, state, country, phone, bio,
+            tags_csv, instrument, services_csv, avatar_url, profile_photo,
+            profile_pic, profile_video, source_app,
             profile_completion_status, profile_completion_percentage, profile_visibility,
             social_links, interests, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'public', ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'public', ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(user_id) DO UPDATE SET
             email = excluded.email,
+            full_name = excluded.full_name,
             display_name = excluded.display_name,
             username = excluded.username,
+            role = excluded.role,
+            account_type = excluded.account_type,
+            genre = excluded.genre,
+            city = excluded.city,
+            state = excluded.state,
+            country = excluded.country,
+            phone = excluded.phone,
+            bio = excluded.bio,
+            tags_csv = excluded.tags_csv,
+            instrument = excluded.instrument,
+            services_csv = excluded.services_csv,
+            avatar_url = excluded.avatar_url,
+            profile_photo = excluded.profile_photo,
+            profile_pic = excluded.profile_pic,
+            profile_video = excluded.profile_video,
             source_app = excluded.source_app,
             profile_completion_status = excluded.profile_completion_status,
             profile_completion_percentage = excluded.profile_completion_percentage,
@@ -1073,8 +1124,24 @@ def ensure_master_profile(conn, user_id, app_name="find-the-beat", role="user"):
         (
             user_id,
             user["email"] or "",
+            user["full_name"] or "",
             user["display_name"] or user["full_name"] or user["email"].split("@")[0],
             user["username"] or "",
+            user["role"] or "",
+            user["account_type"] or "",
+            user["genre"] or "",
+            user["city"] or "",
+            user["state"] or "",
+            user["country"] or "",
+            user["phone"] or "",
+            user["bio"] or "",
+            user["tags_csv"] or "",
+            user["instrument"] or "",
+            user["services_csv"] or "",
+            user["avatar_url"] or "",
+            user["profile_photo"] or "",
+            user["profile_pic"] or "",
+            user["profile_video"] or "",
             app_name,
             completion_status,
             completion,
@@ -1128,7 +1195,7 @@ def profile_form_fields():
         for key in SOCIAL_FIELDS
     }
     email_name = request.form.get("email", "").strip().split("@")[0]
-    display_name = request.form.get("display_name", "").strip() or email_name or "New Creator"
+    display_name = request.form.get("display_name", "").strip() or email_name
     return {
         "display_name": display_name,
         "username": request.form.get("username", "").strip(),
@@ -1784,7 +1851,7 @@ def row_to_profile(row):
     data["join_date"] = data.get("created_at") or ""
     data["createdAt"] = data["join_date"]
     data["providerId"] = data.get("provider_id") or ""
-    data["initials"] = "".join(part[:1] for part in (data["name"] or data["email"] or "SB").replace("/", " ").split()[:2]).upper() or "SB"
+    data["initials"] = "".join(part[:1] for part in (data["name"] or data["email"] or "FTB").replace("/", " ").split()[:2]).upper() or "FTB"
     data["tags"] = split_csv(data.get("tags_csv", ""))
     data["services"] = split_csv(data.get("services_csv", ""))
     for field in SOCIAL_FIELDS:
@@ -2021,55 +2088,83 @@ def seed_demo_profiles_if_empty():
     demo_profiles = [
         {
             "email": "sample.producer.dallas@example.com",
-            "display_name": "Sample Dallas Producer",
+            "display_name": "Dallas Studio Producer",
             "role": "Producer",
             "genre": "Hip-Hop, R&B",
             "city": "Dallas, TX",
-            "bio": "Sample profile only: a Dallas producer looking for artists, songwriters, and engineers to build polished records.",
-            "tags_csv": "Sample Data, Available for Collabs, Producer",
+            "bio": "A Dallas producer looking for artists, songwriters, and engineers to build polished records.",
+            "tags_csv": "Available for Collabs, Producer",
             "instrument": "Keys, Beat Production",
             "services_csv": "Production, Arrangement, Mixing Prep",
         },
         {
             "email": "sample.vocalist.atlanta@example.com",
-            "display_name": "Sample Atlanta Vocalist",
+            "display_name": "Atlanta Session Vocalist",
             "role": "Vocalist",
             "genre": "Soul, Pop, Gospel",
             "city": "Atlanta, GA",
-            "bio": "Sample profile only: a vocalist with warm tone, harmony skills, and interest in studio sessions or live features.",
-            "tags_csv": "Sample Data, Vocalist, Available for Collabs",
+            "bio": "A vocalist with warm tone, harmony skills, and interest in studio sessions or live features.",
+            "tags_csv": "Vocalist, Available for Collabs",
             "instrument": "Voice",
             "services_csv": "Hooks, Background Vocals, Live Performance",
         },
         {
             "email": "sample.drummer.houston@example.com",
-            "display_name": "Sample Houston Drummer",
+            "display_name": "Houston Live Drummer",
             "role": "Musician",
             "genre": "Funk, Gospel, Live Band",
             "city": "Houston, TX",
-            "bio": "Sample profile only: a drummer available for live shows, rehearsals, and studio tracking.",
-            "tags_csv": "Sample Data, Drummer, Live Ready",
+            "bio": "A drummer available for live shows, rehearsals, and studio tracking.",
+            "tags_csv": "Drummer, Live Ready",
             "instrument": "Drums",
             "services_csv": "Live Drums, Studio Tracking, Rehearsals",
         },
         {
             "email": "sample.songwriter.memphis@example.com",
-            "display_name": "Sample Memphis Songwriter",
+            "display_name": "Memphis Songwriter",
             "role": "Songwriter",
             "genre": "Country Soul, R&B",
             "city": "Memphis, TN",
-            "bio": "Sample profile only: a songwriter focused on hooks, storytelling, and artist development sessions.",
-            "tags_csv": "Sample Data, Songwriter, Available for Collabs",
+            "bio": "A songwriter focused on hooks, storytelling, and artist development sessions.",
+            "tags_csv": "Songwriter, Available for Collabs",
             "instrument": "Lyrics, Melody",
             "services_csv": "Topline Writing, Lyrics, Song Concepts",
         },
     ]
     with get_db() as conn:
+        for profile in demo_profiles:
+            existing = conn.execute(
+                "SELECT id FROM users WHERE lower(email) = lower(?)",
+                (profile["email"],),
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    """
+                    UPDATE users
+                    SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                        tags_csv = ?, instrument = ?, services_csv = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (
+                        profile["display_name"],
+                        profile["role"],
+                        profile["genre"],
+                        profile["city"],
+                        profile["bio"],
+                        profile["tags_csv"],
+                        profile["instrument"],
+                        profile["services_csv"],
+                        existing["id"],
+                    ),
+                )
+                ensure_master_profile(conn, existing["id"], "find-the-beat", profile["role"])
+
         count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         if count:
             return
         for profile in demo_profiles:
-            conn.execute(
+            cursor = conn.execute(
                 """
                 INSERT INTO users (
                     email, password_hash, display_name, role, genre, city, bio,
@@ -2090,6 +2185,7 @@ def seed_demo_profiles_if_empty():
                     profile["services_csv"],
                 ),
             )
+            ensure_master_profile(conn, cursor.lastrowid, "find-the-beat", profile["role"])
 
 
 def seed_demo_opportunities_if_empty():

@@ -209,11 +209,18 @@
           {% endif %}
           <div>
             <h2>{{ p.display_name }}</h2>
-            <p class="creator-meta">{{ p.role or "Add talent" }} • {{ p.city or "Add city" }}</p>
+            <p class="creator-meta">
+              {{ p.role or "Add your role" }} •
+              {% if p.city or p.state %}
+                {{ p.city }}{% if p.city and p.state %}, {% endif %}{{ p.state }}
+              {% else %}
+                Add your location
+              {% endif %}
+            </p>
             <p class="creator-meta">{{ p.genre or "Add genre" }}{% if p.instrument %} • {{ p.instrument }}{% endif %}</p>
           </div>
         </div>
-        <p class="creator-bio">{{ p.bio or "Add bio" }}</p>
+        <p class="creator-bio">{{ p.bio or "Tell people about your music" }}</p>
         {% if p.social_links %}
           <div class="social-icons" aria-label="Social links">
             {% for label, url in p.social_links[:5] %}
