@@ -952,6 +952,27 @@ def request_destination():
     return request.full_path if request.query_string else request.path
 
 
+FTB_GIG_BOARD_ENDPOINT = "opportunities_board"
+
+
+def ftb_gig_board_url(**values):
+    return url_for(FTB_GIG_BOARD_ENDPOINT, **values)
+
+
+def ftb_opportunity_url(opportunity_id):
+    return url_for("opportunity_detail", opportunity_id=opportunity_id)
+
+
+def ftb_apply_url(opportunity_id):
+    return url_for("apply_opportunity", opportunity_id=opportunity_id)
+
+
+def redirect_to_ftb_gig_board(**values):
+    params = request.args.to_dict(flat=True)
+    params.update({key: value for key, value in values.items() if value not in (None, "")})
+    return redirect(ftb_gig_board_url(**params), code=302)
+
+
 def profile_action_ready(user):
     return bool(
         user
@@ -1924,6 +1945,9 @@ def inject_user():
         "brent_co_url": BRENT_CO_URL,
         "find_the_beat_url": FIND_THE_BEAT_URL,
         "second_chance_url": SECOND_CHANCE_URL,
+        "ftb_gig_board_url": ftb_gig_board_url,
+        "ftb_opportunity_url": ftb_opportunity_url,
+        "ftb_apply_url": ftb_apply_url,
     }
 
 
@@ -2545,7 +2569,6 @@ def home():
 
 
 @app.route("/opportunities")
-@app.route("/gigs")
 def opportunities_board():
     filters = opportunity_filters_from_request()
     return render_template(
@@ -2555,14 +2578,35 @@ def opportunities_board():
     )
 
 
+@app.route("/gigs")
+@app.route("/gig-search")
+@app.route("/find-a-gig")
+@app.route("/explore-gigs")
+@app.route("/open-gigs")
+@app.route("/open-gigs-and-opportunities")
+@app.route("/who-is-looking")
+@app.route("/whos-looking")
+def gig_board_alias():
+    return redirect_to_ftb_gig_board()
+
+
+@app.route("/find-matches")
+def find_matches_alias():
+    return redirect(url_for("profiles", **request.args.to_dict(flat=True)), code=302)
+
+
 @app.route("/opportunities/<int:opportunity_id>")
-@app.route("/gigs/<int:opportunity_id>")
 def opportunity_detail(opportunity_id):
     opportunity = get_opportunity(opportunity_id)
     if not opportunity:
         flash("Opportunity not found.")
-        return redirect(url_for("opportunities_board"))
+        return redirect(ftb_gig_board_url())
     return render_template("opportunity_detail.html", opportunity=opportunity)
+
+
+@app.route("/gigs/<int:opportunity_id>")
+def gig_detail_alias(opportunity_id):
+    return redirect(ftb_opportunity_url(opportunity_id), code=302)
 
 
 @app.route("/opportunities/<int:opportunity_id>/apply", methods=["GET", "POST"])
@@ -2571,11 +2615,11 @@ def apply_opportunity(opportunity_id):
     opportunity = get_opportunity(opportunity_id)
     if not opportunity:
         flash("Opportunity not found.")
-        return redirect(url_for("opportunities_board"))
+        return redirect(ftb_gig_board_url())
     user = current_user()
     track_onboarding_event("first_action_taken", user.id, {"action": "opportunity_apply", "opportunity_id": opportunity.id})
     flash("Your profile is ready. Review the opportunity details to continue.")
-    return redirect(f"/opportunities/{opportunity.id}")
+    return redirect(ftb_opportunity_url(opportunity.id))
 
 
 @app.route("/opportunities/new", methods=["GET", "POST"])
@@ -3384,7 +3428,7 @@ def admin_import_opportunities():
 <body class="page-shell"><main class="admin-dashboard">
 <p class="eyebrow">Find The Beat admin</p><h1>Gig import results</h1>
 <section class="admin-panel"><table><thead><tr><th>Source</th><th>Fetched</th><th>Created</th><th>Updated</th><th>Note</th></tr></thead><tbody>{rows}</tbody></table></section>
-<p><a class="button secondary" href="/opportunities">View Opportunities</a> <a class="button secondary" href="/admin">Back to admin</a></p>
+<p><a class="button secondary" href="{ftb_gig_board_url()}">View Opportunities</a> <a class="button secondary" href="/admin">Back to admin</a></p>
 </main></body></html>"""
 
 

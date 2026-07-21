@@ -57,10 +57,10 @@
     <h1>{{ opportunity.title }}</h1>
     <p class="muted">{{ opportunity.description }}</p>
     <div class="detail-actions">
-      <form method="POST" action="{{ url_for('apply_opportunity', opportunity_id=opportunity.id) }}">
+      <form method="POST" action="{{ ftb_apply_url(opportunity.id) }}">
         <button class="button primary" type="submit">Apply</button>
       </form>
-      <a class="button secondary" href="{{ url_for('opportunities_board') }}">View Opportunities</a>
+      <a class="button secondary" href="{{ ftb_gig_board_url() }}">View Opportunities</a>
     </div>
   </section>
 

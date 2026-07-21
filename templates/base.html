@@ -851,7 +851,7 @@
       {% set current_endpoint = request.endpoint or "" %}
       <nav class="nav" aria-label="Main navigation">
         <a href="{{ url_for('home') }}" class="nav-pill home-link{% if current_endpoint == 'home' %} is-active{% endif %}"{% if current_endpoint == 'home' %} aria-current="page"{% endif %}>Home</a>
-        <a href="{{ url_for('opportunities_board') }}" class="nav-pill{% if current_endpoint in ['opportunities_board', 'opportunity_detail', 'post_opportunity'] %} is-active{% endif %}"{% if current_endpoint in ['opportunities_board', 'opportunity_detail', 'post_opportunity'] %} aria-current="page"{% endif %}>Gigs</a>
+        <a href="{{ ftb_gig_board_url() }}" class="nav-pill{% if current_endpoint in ['opportunities_board', 'opportunity_detail', 'post_opportunity'] %} is-active{% endif %}"{% if current_endpoint in ['opportunities_board', 'opportunity_detail', 'post_opportunity'] %} aria-current="page"{% endif %}>Gigs</a>
         {% if user %}
           <a href="{{ url_for('search') }}" class="nav-pill search-link{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} is-active{% endif %}"{% if current_endpoint in ['search', 'profiles', 'production', 'producers', 'artists', 'musicians', 'singers', 'composers'] %} aria-current="page"{% endif %}>Search</a>
           <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link{% if current_endpoint in ['showcase', 'performance_detail'] %} is-active{% endif %}"{% if current_endpoint in ['showcase', 'performance_detail'] %} aria-current="page"{% endif %}>Showcase</a>

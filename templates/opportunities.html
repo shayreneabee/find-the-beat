@@ -80,7 +80,7 @@
   </section>
 
   <section class="app-panel opportunity-filter">
-    <form method="GET" action="{{ url_for('opportunities_board') }}">
+    <form method="GET" action="{{ ftb_gig_board_url() }}">
       <input name="q" value="{{ filters.q }}" placeholder="Keyword or venue">
       <input name="role" value="{{ filters.role }}" placeholder="Role needed">
       <input name="instrument" value="{{ filters.instrument }}" placeholder="Instrument">
@@ -92,7 +92,7 @@
         {% endfor %}
       </select>
       <button class="button primary" type="submit">Filter</button>
-      <a class="button secondary" href="{{ url_for('opportunities_board') }}">Clear</a>
+      <a class="button secondary" href="{{ ftb_gig_board_url() }}">Clear</a>
     </form>
   </section>
 
@@ -109,8 +109,8 @@
           {% if opp.paid_status %}<span>{{ opp.paid_status }}</span>{% endif %}
         </div>
         <div class="opportunity-actions">
-          <a class="button primary" href="{{ url_for('opportunity_detail', opportunity_id=opp.id) }}">View Opportunity</a>
-          <form method="POST" action="{{ url_for('apply_opportunity', opportunity_id=opp.id) }}">
+          <a class="button primary" href="{{ ftb_opportunity_url(opp.id) }}">View Opportunity</a>
+          <form method="POST" action="{{ ftb_apply_url(opp.id) }}">
             <button class="button secondary" type="submit">Apply</button>
           </form>
         </div>

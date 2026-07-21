@@ -190,7 +190,7 @@
   <h1>Find musicians, producers, and collaborators near you.</h1>
   <p>Create a profile, upload performances, browse artists by role or city, and message the people you want to build with.</p>
   <div class="hero-actions">
-    <a class="button primary" href="{{ url_for('opportunities_board') }}">Find a Gig</a>
+    <a class="button primary" href="{{ ftb_gig_board_url() }}">Find a Gig</a>
     <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
     <a class="button secondary" href="{{ url_for('post_opportunity') }}">Post an Opportunity</a>
   </div>
@@ -210,8 +210,8 @@
             {% if opp.genre %}<span class="badge">{{ opp.genre }}</span>{% endif %}
           </span>
           <span class="hero-actions" style="margin-top:0.75rem;">
-            <a class="button primary" href="{{ url_for('opportunity_detail', opportunity_id=opp.id) }}">View Opportunity</a>
-            <form method="POST" action="{{ url_for('apply_opportunity', opportunity_id=opp.id) }}">
+            <a class="button primary" href="{{ ftb_opportunity_url(opp.id) }}">View Opportunity</a>
+            <form method="POST" action="{{ ftb_apply_url(opp.id) }}">
               <button class="button secondary" type="submit">Apply</button>
             </form>
           </span>
@@ -220,7 +220,7 @@
     {% endfor %}
   </section>
   <div class="hero-actions" style="margin-top:1rem;">
-    <a class="button secondary" href="{{ url_for('opportunities_board') }}">View Opportunities</a>
+    <a class="button secondary" href="{{ ftb_gig_board_url() }}">View Opportunities</a>
   </div>
 {% endif %}
 
