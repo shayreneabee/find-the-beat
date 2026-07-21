@@ -119,6 +119,48 @@
     margin-top: 1rem;
   }
 
+  .near-map-preview {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 208, 93, 0.24);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(7, 15, 35, 0.98), rgba(18, 30, 57, 0.96));
+    color: #fffaf0;
+    box-shadow: var(--lift);
+  }
+
+  .near-map-preview h2,
+  .near-map-preview p {
+    margin: 0;
+  }
+
+  .near-map-preview p {
+    color: rgba(255, 250, 238, 0.78);
+  }
+
+  .map-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .map-stats span {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.7rem;
+    border: 1px solid rgba(255, 208, 93, 0.22);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.07);
+    font-weight: 900;
+  }
+
+  .map-stats small {
+    color: rgba(255, 250, 238, 0.68);
+    font-weight: 800;
+  }
+
   .category-tile {
     position: relative;
     min-height: 142px;
@@ -193,6 +235,23 @@
     <a class="button primary" href="{{ ftb_gig_board_url() }}">Find a Gig</a>
     <a class="button secondary" href="{{ url_for('profiles') }}">Browse Creators</a>
     <a class="button secondary" href="{{ url_for('post_opportunity') }}">Post an Opportunity</a>
+  </div>
+</section>
+
+<section class="near-map-preview" aria-label="Find the Beat Near You preview">
+  <div>
+    <p class="hero-kicker">Find the Beat Near You</p>
+    <h2>Explore musicians, gigs, venues, and live opportunities happening in your area.</h2>
+  </div>
+  <div class="map-stats">
+    <span>{{ map_summary.opportunity_count }}<small>opportunities</small></span>
+    <span>{{ map_summary.creator_count }}<small>creators</small></span>
+    <span>{{ map_summary.showcase_count }}<small>showcases</small></span>
+  </div>
+  <div class="hero-actions">
+    <a class="button primary" href="{{ url_for('discovery_map') }}">Explore the Map</a>
+    <a class="button secondary" href="{{ url_for('discovery_map', use_profile=1) }}">Use My Location</a>
+    <a class="button secondary" href="{{ ftb_gig_board_url() }}">View All Opportunities</a>
   </div>
 </section>
 
