@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ opportunity.title }} | Find the Beat{% endblock %}
+
+{% block content %}
+<style>
+  .opportunity-detail {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .opportunity-detail section {
+    padding: 1rem;
+  }
+
+  .opportunity-detail h1 {
+    margin: 0;
+    line-height: 1.05;
+  }
+
+  .detail-grid {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .detail-item {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--cream);
+  }
+
+  .detail-item strong {
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+  }
+
+  .detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  @media (min-width: 720px) {
+    .detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<div class="opportunity-detail">
+  <section class="app-panel">
+    <p class="hero-kicker">{{ opportunity.opportunity_type or "Opportunity" }}</p>
+    <h1>{{ opportunity.title }}</h1>
+    <p class="muted">{{ opportunity.description }}</p>
+    <div class="detail-actions">
+      <form method="POST" action="{{ ftb_apply_url(opportunity.id) }}">
+        <button class="button primary" type="submit">Apply</button>
+      </form>
+      <a class="button secondary" href="{{ ftb_gig_board_url() }}">View Opportunities</a>
+    </div>
+  </section>
+
+  <section class="app-panel detail-grid">
+    <div class="detail-item"><strong>Role</strong><span>{{ opportunity.role_needed or "Open" }}</span></div>
+    <div class="detail-item"><strong>Instrument</strong><span>{{ opportunity.instrument_needed or "Any" }}</span></div>
+    <div class="detail-item"><strong>Genre</strong><span>{{ opportunity.genre or "Any" }}</span></div>
+    <div class="detail-item"><strong>Location</strong><span>{{ opportunity.location_name or "" }}{% if opportunity.location_name and (opportunity.city or opportunity.state) %} / {% endif %}{{ opportunity.city }}{% if opportunity.city and opportunity.state %}, {% endif %}{{ opportunity.state }}</span></div>
+    <div class="detail-item"><strong>Pay</strong><span>{{ opportunity.paid_status or "Not listed" }}{% if opportunity.compensation %} / {{ opportunity.compensation }}{% endif %}</span></div>
+    <div class="detail-item"><strong>Date</strong><span>{{ opportunity.event_date or "Flexible" }}</span></div>
+    <div class="detail-item"><strong>Deadline</strong><span>{{ opportunity.application_deadline or "Open until filled" }}</span></div>
+    <div class="detail-item"><strong>Contact</strong><span>{{ opportunity.contact_method or "Apply through Find The Beat" }}</span></div>
+  </section>
+</div>
+{% endblock %}

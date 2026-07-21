@@ -3,6 +3,7 @@ import base64
 import binascii
 import hmac
 import json
+import math
 import os
 import re
 import secrets
@@ -13,7 +14,9 @@ from email.message import EmailMessage
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
+from urllib.request import Request, urlopen
 
 from authlib.integrations.flask_client import OAuth
 from authlib.jose import jwt
@@ -53,6 +56,65 @@ SECOND_CHANCE_URL = os.getenv(
 )
 LETS_COOK_URL = os.getenv("LETS_COOK_URL", "https://letscookyall.com/")
 BEU_URL = os.getenv("BEU_URL", "https://beutravel.org/")
+TICKETMASTER_API_KEY = os.getenv("TICKETMASTER_API_KEY", "").strip()
+TICKETMASTER_IMPORT_KEYWORDS = [
+    item.strip()
+    for item in os.getenv("TICKETMASTER_IMPORT_KEYWORDS", "music,open mic,concert,audition").split(",")
+    if item.strip()
+]
+TICKETMASTER_IMPORT_CITY = os.getenv("TICKETMASTER_IMPORT_CITY", "").strip()
+TICKETMASTER_IMPORT_STATE = os.getenv("TICKETMASTER_IMPORT_STATE", "").strip()
+TICKETMASTER_IMPORT_COUNTRY = os.getenv("TICKETMASTER_IMPORT_COUNTRY", "US").strip() or "US"
+EVENTBRITE_OAUTH_TOKEN = os.getenv("EVENTBRITE_OAUTH_TOKEN", "").strip()
+EVENTBRITE_IMPORT_QUERY = os.getenv("EVENTBRITE_IMPORT_QUERY", "music audition gig open mic").strip()
+EVENTBRITE_IMPORT_LOCATION = os.getenv("EVENTBRITE_IMPORT_LOCATION", "Mississippi").strip()
+BANDSINTOWN_APP_ID = os.getenv("BANDSINTOWN_APP_ID", "").strip()
+BANDSINTOWN_IMPORT_ARTISTS = [
+    item.strip()
+    for item in os.getenv("BANDSINTOWN_IMPORT_ARTISTS", "").split(",")
+    if item.strip()
+]
+FTB_AUTO_IMPORT_GIGS = os.getenv("FTB_AUTO_IMPORT_GIGS", "").strip().lower() in {"1", "true", "yes", "on"}
+
+US_GEO_POINTS = {
+    "atlanta ga": (33.7490, -84.3880),
+    "baton rouge la": (30.4515, -91.1871),
+    "dallas tx": (32.7767, -96.7970),
+    "gulfport ms": (30.3674, -89.0928),
+    "hattiesburg ms": (31.3271, -89.2903),
+    "houston tx": (29.7604, -95.3698),
+    "jackson ms": (32.2988, -90.1848),
+    "meridian ms": (32.3643, -88.7037),
+    "memphis tn": (35.1495, -90.0490),
+    "new orleans la": (29.9511, -90.0715),
+}
+
+ZIP_GEO_POINTS = {
+    "303": (33.7490, -84.3880),
+    "392": (32.2988, -90.1848),
+    "394": (31.3271, -89.2903),
+    "395": (30.3674, -89.0928),
+    "701": (29.9511, -90.0715),
+    "708": (30.4515, -91.1871),
+    "752": (32.7767, -96.7970),
+    "770": (29.7604, -95.3698),
+}
+
+DISCOVERY_CATEGORY_LABELS = {
+    "all": "All activity",
+    "gigs": "Gigs and paid opportunities",
+    "auditions": "Auditions",
+    "musicians": "Musicians and vocalists",
+    "producers": "Producers and songwriters",
+    "venues": "Venues",
+    "churches": "Churches seeking musicians",
+    "showcases": "Showcases",
+    "collaborations": "Collaborations",
+    "events": "Upcoming live events",
+    "remote": "Remote opportunities",
+}
+
+FTB_GIG_BOARD_ENDPOINT = "opportunities_board"
 BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start").strip()
 SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me").strip()
 SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "900") or "900")
@@ -878,6 +940,9 @@ def init_db():
             "auth_provider": "TEXT DEFAULT 'local'",
             "authentication_provider": "TEXT DEFAULT 'local'",
             "profile_photo": "TEXT DEFAULT ''",
+            "latitude": "REAL",
+            "longitude": "REAL",
+            "location_source": "TEXT DEFAULT ''",
             "is_admin": "INTEGER DEFAULT 0",
             "is_founder": "INTEGER DEFAULT 0",
             "is_verified": "INTEGER DEFAULT 0",
@@ -914,12 +979,16 @@ def init_db():
 
         for table, columns in {
             "opportunities": {
+                "source_url": "TEXT DEFAULT ''",
+                "imported_at": "TEXT DEFAULT ''",
+                "location_source": "TEXT DEFAULT ''",
                 "is_featured": "INTEGER DEFAULT 0",
                 "is_seeded_demo": "INTEGER DEFAULT 0",
                 "status": "TEXT DEFAULT 'active'",
                 "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
             },
             "events": {
+                "location_source": "TEXT DEFAULT ''",
                 "is_featured": "INTEGER DEFAULT 0",
                 "is_seeded_demo": "INTEGER DEFAULT 0",
                 "verification_status": "TEXT DEFAULT 'pending'",
@@ -928,6 +997,11 @@ def init_db():
             "feed_items": {
                 "is_seeded_demo": "INTEGER DEFAULT 0",
                 "visibility": "TEXT DEFAULT 'public'",
+            },
+            "performances": {
+                "latitude": "REAL",
+                "longitude": "REAL",
+                "location_source": "TEXT DEFAULT ''",
             },
         }.items():
             existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -1302,13 +1376,19 @@ def profile_form_fields():
     ]
     manual_instrument = request.form.get("instrument", "").strip()
     instruments = [*selected_instruments, *split_csv(manual_instrument)]
+    city = request.form.get("city", "").strip()
+    state = request.form.get("state", "").strip()
+    latitude, longitude, location_source = geocode_location(city, state)
     return {
         "display_name": request.form.get("display_name", "").strip(),
         "role": normalize_profile_role(request.form.get("role", "")),
         "genre": request.form.get("genre", "").strip(),
-        "city": request.form.get("city", "").strip(),
-        "state": request.form.get("state", "").strip(),
+        "city": city,
+        "state": state,
         "country": request.form.get("country", "").strip(),
+        "latitude": latitude,
+        "longitude": longitude,
+        "location_source": location_source,
         "bio": request.form.get("bio", "").strip(),
         "previous_work": request.form.get("previous_work", "").strip(),
         "availability": request.form.get("availability", "").strip(),
@@ -1349,10 +1429,11 @@ def create_user(email, password, fields, profile_pic):
                 email, password_hash, full_name, display_name, role, genre, city, state, country, bio,
                 previous_work, availability,
                 tags_csv, instrument, services_csv, profile_pic,
+                latitude, longitude, location_source,
                 instagram_url, tiktok_url, youtube_url, spotify_url, linkedin_url,
                 brent_account_id, provider, auth_provider, authentication_provider, profile_photo, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -1371,6 +1452,9 @@ def create_user(email, password, fields, profile_pic):
                 fields.get("instrument", ""),
                 fields.get("services_csv", ""),
                 profile_pic,
+                fields.get("latitude"),
+                fields.get("longitude"),
+                fields.get("location_source", ""),
                 fields.get("instagram_url", ""),
                 fields.get("tiktok_url", ""),
                 fields.get("youtube_url", ""),
@@ -1410,6 +1494,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 display_name = ?, role = ?, genre = ?, city = ?, state = ?, country = ?, bio = ?,
                 previous_work = ?, availability = ?, tags_csv = ?, instrument = ?, services_csv = ?,
                 avatar_url = ?, profile_pic = ?, profile_video = ?,
+                latitude = ?, longitude = ?, location_source = ?,
                 instagram_url = ?, tiktok_url = ?, youtube_url = ?,
                 spotify_url = ?, linkedin_url = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
@@ -1431,6 +1516,9 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 profile_pic,
                 profile_pic,
                 profile_video,
+                fields.get("latitude"),
+                fields.get("longitude"),
+                fields.get("location_source", ""),
                 fields.get("instagram_url", ""),
                 fields.get("tiktok_url", ""),
                 fields.get("youtube_url", ""),
@@ -1531,8 +1619,9 @@ def create_performance(profile_id, title, description, video_filename, audio_fil
             """
             INSERT INTO performances
                 (profile_id, title, description, video_filename, audio_filename, image_filename,
-                 thumb_filename, external_url, media_type, media_url, thumbnail_url, genre, city, tags_csv, category)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 thumb_filename, external_url, media_type, media_url, thumbnail_url, genre, city, state,
+                 latitude, longitude, location_source, tags_csv, category)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 profile_id,
@@ -1548,6 +1637,10 @@ def create_performance(profile_id, title, description, video_filename, audio_fil
                 thumb_filename or image_filename,
                 profile.genre if profile else "",
                 profile.city if profile else "",
+                profile.state if profile else "",
+                profile.latitude if profile else None,
+                profile.longitude if profile else None,
+                profile.location_source if profile else "",
                 profile.tags_csv if profile else "",
                 profile.role if profile else "",
             ),
@@ -1738,6 +1831,62 @@ def profile_coordinates(profile):
     return None
 
 
+def normalize_geo_key(*parts):
+    return re.sub(r"[^a-z0-9]+", " ", " ".join(str(part or "") for part in parts)).strip().lower()
+
+
+def geocode_location(city="", state="", zip_code="", location_text=""):
+    zip_digits = re.sub(r"\D", "", zip_code or location_text or "")
+    if zip_digits:
+        point = ZIP_GEO_POINTS.get(zip_digits[:3])
+        if point:
+            return (*point, "zip")
+
+    candidates = []
+    if city and state:
+        candidates.append(normalize_geo_key(city, state))
+    if location_text:
+        candidates.append(normalize_geo_key(location_text))
+    if city:
+        city_key = normalize_geo_key(city)
+        candidates.append(city_key)
+        candidates.extend(key for key in US_GEO_POINTS if key.startswith(f"{city_key} "))
+    for key in candidates:
+        point = US_GEO_POINTS.get(key)
+        if point:
+            return (*point, "city_state")
+    return (None, None, "")
+
+
+def miles_between(lat1, lng1, lat2, lng2):
+    radius = 3958.8
+    phi1 = math.radians(float(lat1))
+    phi2 = math.radians(float(lat2))
+    delta_phi = math.radians(float(lat2) - float(lat1))
+    delta_lam = math.radians(float(lng2) - float(lng1))
+    hav = (
+        math.sin(delta_phi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lam / 2) ** 2
+    )
+    return radius * (2 * math.atan2(math.sqrt(hav), math.sqrt(1 - hav)))
+
+
+def us_marker_position(latitude, longitude):
+    if latitude is None or longitude is None:
+        return None
+    x = (float(longitude) + 125.0) / 58.0 * 100
+    y = (50.0 - float(latitude)) / 26.0 * 100
+    return {
+        "x": max(2, min(98, round(x, 2))),
+        "y": max(2, min(98, round(y, 2))),
+    }
+
+
+def is_remote_record(*values):
+    haystack = " ".join(str(value or "").lower() for value in values)
+    return "remote" in haystack or "virtual" in haystack or "online" in haystack
+
+
 def normalize_social_url(value):
     if not value:
         return ""
@@ -1760,6 +1909,9 @@ def row_to_profile(row):
     data.setdefault("avatar_url", "")
     data.setdefault("profile_pic", "")
     data.setdefault("profile_video", "")
+    data.setdefault("latitude", None)
+    data.setdefault("longitude", None)
+    data.setdefault("location_source", "")
     data.setdefault("previous_work", "")
     data.setdefault("availability", "")
     data.setdefault("tags_csv", "")
@@ -1833,6 +1985,10 @@ def row_to_performance(row, profile=None):
     data.setdefault("thumbnail_url", "")
     data.setdefault("genre", "")
     data.setdefault("city", "")
+    data.setdefault("state", "")
+    data.setdefault("latitude", None)
+    data.setdefault("longitude", None)
+    data.setdefault("location_source", "")
     data.setdefault("tags_csv", "")
     data.setdefault("category", "")
     data.setdefault("external_url", "")
@@ -1847,6 +2003,10 @@ def row_to_performance(row, profile=None):
     if profile:
         data["genre"] = data.get("genre") or profile.genre
         data["city"] = data.get("city") or profile.city
+        data["state"] = data.get("state") or profile.state
+        data["latitude"] = data.get("latitude") or profile.latitude
+        data["longitude"] = data.get("longitude") or profile.longitude
+        data["location_source"] = data.get("location_source") or profile.location_source
         data["tags_csv"] = data.get("tags_csv") or profile.tags_csv
         data["category"] = data.get("category") or profile.role
     data["profile"] = profile
@@ -1929,6 +2089,10 @@ def inject_user_context():
     return {
         "user": user,
         "unread_count": unread,
+        "ftb_gig_board_url": ftb_gig_board_url,
+        "ftb_opportunity_url": ftb_opportunity_url,
+        "ftb_apply_url": ftb_apply_url,
+        "current_endpoint": request.endpoint,
     }
 
 
@@ -1936,8 +2100,53 @@ def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not current_user():
+            destination = request_destination()
+            session["post_login_redirect"] = destination
             flash("Please log in first.")
-            return redirect(url_for("login"))
+            return redirect(url_for("login", next=destination))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def request_destination():
+    if request.method == "GET":
+        return request.full_path.rstrip("?")
+    return request.referrer or request.path
+
+
+def safe_redirect_target(value):
+    if not value:
+        return ""
+    parsed = urlparse(value)
+    if parsed.netloc or parsed.scheme:
+        return ""
+    return value if value.startswith("/") else ""
+
+
+def profile_action_ready(user):
+    return bool(
+        user
+        and (user.display_name or user.full_name)
+        and (user.role or user.instrument or user.services_csv)
+        and (user.city or user.state)
+    )
+
+
+def require_profile_action(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = current_user()
+        if not user:
+            destination = request_destination()
+            session["post_login_redirect"] = destination
+            flash("Please log in first.")
+            return redirect(url_for("login", next=destination))
+        if not profile_action_ready(user):
+            destination = request_destination()
+            session["post_profile_redirect"] = destination
+            flash("Complete the required parts of your profile to continue.")
+            return redirect(url_for("edit_profile", next=destination))
         return view(*args, **kwargs)
 
     return wrapped
@@ -2317,6 +2526,343 @@ def ns(row):
     return SimpleNamespace(**dict(row)) if row is not None else None
 
 
+def ftb_gig_board_url(**values):
+    return url_for(FTB_GIG_BOARD_ENDPOINT, **values)
+
+
+def ftb_opportunity_url(opportunity_id):
+    return url_for("opportunity_detail", opportunity_id=opportunity_id)
+
+
+def ftb_apply_url(opportunity_id):
+    return url_for("apply_opportunity", opportunity_id=opportunity_id)
+
+
+def redirect_to_ftb_gig_board(**values):
+    params = request.args.to_dict(flat=True)
+    params.update({key: value for key, value in values.items() if value not in (None, "")})
+    return redirect(ftb_gig_board_url(**params), code=302)
+
+
+def opportunity_filters_from_request():
+    return {
+        "q": request.args.get("q", "").strip(),
+        "role": request.args.get("role", "").strip(),
+        "instrument": request.args.get("instrument", "").strip(),
+        "genre": request.args.get("genre", "").strip(),
+        "city": request.args.get("city", "").strip(),
+        "state": request.args.get("state", "").strip(),
+        "paid": request.args.get("paid", "").strip(),
+    }
+
+
+def row_to_opportunity(row):
+    data = dict(row) if row is not None else {}
+    for field in [
+        "description", "opportunity_type", "role_needed", "instrument_needed",
+        "genre", "city", "state", "location_name", "paid_status", "compensation",
+        "event_date", "application_deadline", "contact_method", "application_url",
+        "source_type", "source_name", "external_id", "source_url", "imported_at",
+        "location_source", "created_at", "updated_at", "status",
+    ]:
+        data.setdefault(field, "")
+    data.setdefault("latitude", None)
+    data.setdefault("longitude", None)
+    data.setdefault("is_featured", 0)
+    data.setdefault("is_seeded_demo", 0)
+    data.setdefault("created_by", None)
+    return SimpleNamespace(**data) if data else None
+
+
+def get_opportunities(filters=None, limit=None):
+    filters = filters or {}
+    clauses = ["status = 'active'"]
+    params = []
+    q = filters.get("q", "")
+    if q:
+        clauses.append(
+            """
+            (
+                title LIKE ? OR description LIKE ? OR role_needed LIKE ? OR
+                instrument_needed LIKE ? OR genre LIKE ? OR location_name LIKE ?
+            )
+            """
+        )
+        params.extend([f"%{q}%"] * 6)
+    for key, column in {
+        "role": "role_needed",
+        "instrument": "instrument_needed",
+        "genre": "genre",
+        "city": "city",
+        "state": "state",
+        "paid": "paid_status",
+    }.items():
+        if filters.get(key):
+            clauses.append(f"{column} LIKE ?")
+            params.append(f"%{filters[key]}%")
+    sql = f"""
+        SELECT *
+        FROM opportunities
+        WHERE {' AND '.join(clauses)}
+        ORDER BY datetime(created_at) DESC, id DESC
+    """
+    if limit:
+        sql += " LIMIT ?"
+        params.append(limit)
+    with get_db() as conn:
+        return [row_to_opportunity(row) for row in conn.execute(sql, params).fetchall()]
+
+
+def get_opportunity(opportunity_id):
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM opportunities WHERE id = ? AND status = 'active'",
+            (opportunity_id,),
+        ).fetchone()
+    return row_to_opportunity(row)
+
+
+def create_opportunity(user_id, fields):
+    latitude, longitude, location_source = geocode_location(
+        fields.get("city", ""),
+        fields.get("state", ""),
+        location_text=fields.get("location_name", ""),
+    )
+    with get_db() as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO opportunities (
+                title, description, opportunity_type, role_needed, instrument_needed,
+                genre, city, state, location_name, paid_status, compensation,
+                event_date, application_deadline, contact_method, application_url,
+                latitude, longitude, location_source,
+                created_by, source_name, status, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Find The Beat', 'active', CURRENT_TIMESTAMP)
+            """,
+            (
+                fields["title"],
+                fields["description"],
+                fields["opportunity_type"],
+                fields["role_needed"],
+                fields["instrument_needed"],
+                fields["genre"],
+                fields["city"],
+                fields["state"],
+                fields["location_name"],
+                fields["paid_status"],
+                fields["compensation"],
+                fields["event_date"],
+                fields["application_deadline"],
+                fields["contact_method"],
+                fields["application_url"],
+                latitude,
+                longitude,
+                location_source,
+                user_id,
+            ),
+        )
+        log_activity(user_id, "opportunity_posted", fields["title"])
+        return cursor.lastrowid
+
+
+def http_json(url, params=None, headers=None, timeout=15):
+    query = urlencode(params or {}, doseq=True)
+    request_url = f"{url}?{query}" if query else url
+    req = Request(request_url, headers=headers or {"User-Agent": "FindTheBeat/1.0"})
+    try:
+        with urlopen(req, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+        app.logger.warning("Opportunity import request failed for %s: %s", url, exc)
+        return None
+
+
+def upsert_imported_opportunity(conn, item):
+    source_name = item.get("source_name", "").strip()
+    external_id = item.get("external_id", "").strip()
+    if not source_name or not external_id or not item.get("title"):
+        return False
+    existing = conn.execute(
+        "SELECT id FROM opportunities WHERE source_name = ? AND external_id = ?",
+        (source_name, external_id),
+    ).fetchone()
+    latitude, longitude, location_source = geocode_location(
+        item.get("city", ""),
+        item.get("state", ""),
+        location_text=item.get("location_name", ""),
+    )
+    values = (
+        item["title"],
+        item.get("description", ""),
+        item.get("opportunity_type", ""),
+        item.get("role_needed", ""),
+        item.get("instrument_needed", ""),
+        item.get("genre", ""),
+        item.get("city", ""),
+        item.get("state", ""),
+        item.get("location_name", ""),
+        item.get("paid_status", ""),
+        item.get("compensation", ""),
+        item.get("event_date", ""),
+        item.get("application_deadline", ""),
+        item.get("contact_method", ""),
+        item.get("application_url", ""),
+        item.get("source_url", ""),
+        latitude,
+        longitude,
+        location_source,
+        source_name,
+        external_id,
+    )
+    if existing:
+        conn.execute(
+            """
+            UPDATE opportunities
+            SET title = ?, description = ?, opportunity_type = ?, role_needed = ?,
+                instrument_needed = ?, genre = ?, city = ?, state = ?, location_name = ?,
+                paid_status = ?, compensation = ?, event_date = ?, application_deadline = ?,
+                contact_method = ?, application_url = ?, source_url = ?, latitude = ?,
+                longitude = ?, location_source = ?, source_name = ?, external_id = ?,
+                imported_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
+                status = 'active'
+            WHERE id = ?
+            """,
+            (*values, existing["id"]),
+        )
+        return False
+    conn.execute(
+        """
+        INSERT INTO opportunities (
+            title, description, opportunity_type, role_needed, instrument_needed,
+            genre, city, state, location_name, paid_status, compensation,
+            event_date, application_deadline, contact_method, application_url,
+            source_url, latitude, longitude, location_source, source_name, external_id,
+            imported_at, status, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active', CURRENT_TIMESTAMP)
+        """,
+        values,
+    )
+    return True
+
+
+def import_ticketmaster_opportunities():
+    if not TICKETMASTER_API_KEY:
+        return 0
+    imported = 0
+    with get_db() as conn:
+        for keyword in TICKETMASTER_IMPORT_KEYWORDS:
+            data = http_json(
+                "https://app.ticketmaster.com/discovery/v2/events.json",
+                {
+                    "apikey": TICKETMASTER_API_KEY,
+                    "keyword": keyword,
+                    "city": TICKETMASTER_IMPORT_CITY or None,
+                    "stateCode": TICKETMASTER_IMPORT_STATE or None,
+                    "countryCode": TICKETMASTER_IMPORT_COUNTRY,
+                    "classificationName": "music",
+                    "size": 20,
+                },
+            )
+            for event in ((data or {}).get("_embedded") or {}).get("events", []):
+                venue = (((event.get("_embedded") or {}).get("venues") or [{}])[0])
+                dates = event.get("dates") or {}
+                start = dates.get("start") or {}
+                imported += int(upsert_imported_opportunity(conn, {
+                    "title": event.get("name") or "Live music event",
+                    "description": event.get("info") or event.get("pleaseNote") or "Music event imported for Find The Beat discovery.",
+                    "opportunity_type": "Upcoming Live Event",
+                    "role_needed": "Performer or attendee",
+                    "genre": keyword,
+                    "city": venue.get("city", {}).get("name", ""),
+                    "state": venue.get("state", {}).get("stateCode", ""),
+                    "location_name": venue.get("name", ""),
+                    "paid_status": "Ticketed",
+                    "event_date": " ".join(part for part in [start.get("localDate", ""), start.get("localTime", "")] if part),
+                    "contact_method": "External link",
+                    "application_url": event.get("url", ""),
+                    "source_url": event.get("url", ""),
+                    "source_name": "Ticketmaster",
+                    "external_id": str(event.get("id") or ""),
+                }))
+    return imported
+
+
+def import_eventbrite_opportunities():
+    if not EVENTBRITE_OAUTH_TOKEN:
+        return 0
+    data = http_json(
+        "https://www.eventbriteapi.com/v3/events/search/",
+        {"q": EVENTBRITE_IMPORT_QUERY, "location.address": EVENTBRITE_IMPORT_LOCATION, "expand": "venue"},
+        headers={"Authorization": f"Bearer {EVENTBRITE_OAUTH_TOKEN}", "User-Agent": "FindTheBeat/1.0"},
+    )
+    imported = 0
+    with get_db() as conn:
+        for event in (data or {}).get("events", []):
+            venue = event.get("venue") or {}
+            address = venue.get("address") or {}
+            imported += int(upsert_imported_opportunity(conn, {
+                "title": event.get("name", {}).get("text") or "Music event",
+                "description": event.get("description", {}).get("text") or "Music opportunity imported for Find The Beat discovery.",
+                "opportunity_type": "Upcoming Live Event",
+                "role_needed": "Performer or attendee",
+                "city": address.get("city", ""),
+                "state": address.get("region", ""),
+                "location_name": venue.get("name", ""),
+                "paid_status": "Ticketed",
+                "event_date": (event.get("start") or {}).get("local", ""),
+                "contact_method": "External link",
+                "application_url": event.get("url", ""),
+                "source_url": event.get("url", ""),
+                "source_name": "Eventbrite",
+                "external_id": str(event.get("id") or ""),
+            }))
+    return imported
+
+
+def import_bandsintown_opportunities():
+    if not BANDSINTOWN_APP_ID or not BANDSINTOWN_IMPORT_ARTISTS:
+        return 0
+    imported = 0
+    with get_db() as conn:
+        for artist in BANDSINTOWN_IMPORT_ARTISTS:
+            events = http_json(
+                f"https://rest.bandsintown.com/artists/{artist}/events",
+                {"app_id": BANDSINTOWN_APP_ID},
+            )
+            if not isinstance(events, list):
+                continue
+            for event in events[:20]:
+                venue = event.get("venue") or {}
+                imported += int(upsert_imported_opportunity(conn, {
+                    "title": f"{artist} live opportunity",
+                    "description": "Artist tour activity imported for Find The Beat discovery.",
+                    "opportunity_type": "Upcoming Live Event",
+                    "role_needed": "Performer or attendee",
+                    "genre": "Live music",
+                    "city": venue.get("city", ""),
+                    "state": venue.get("region", ""),
+                    "location_name": venue.get("name", ""),
+                    "event_date": event.get("datetime", ""),
+                    "contact_method": "External link",
+                    "application_url": event.get("url", ""),
+                    "source_url": event.get("url", ""),
+                    "source_name": "Bandsintown",
+                    "external_id": str(event.get("id") or event.get("url") or ""),
+                }))
+    return imported
+
+
+def import_live_opportunities():
+    totals = {
+        "Ticketmaster": import_ticketmaster_opportunities(),
+        "Eventbrite": import_eventbrite_opportunities(),
+        "Bandsintown": import_bandsintown_opportunities(),
+    }
+    return totals
+
+
 def seed_demo_profiles_if_empty():
     with get_db() as conn:
         existing = conn.execute(
@@ -2503,6 +3049,218 @@ def archive_expired_listings():
               AND verification_status != 'completed'
             """
         )
+
+
+def discovery_record_category(record):
+    text = " ".join(
+        str(record.get(key, "") or "").lower()
+        for key in ("title", "subtitle", "description", "type", "role", "location_name")
+    )
+    if record["kind"] == "showcase":
+        return "showcases"
+    if record["kind"] == "creator":
+        if any(word in text for word in ["producer", "songwriter", "composer"]):
+            return "producers"
+        return "musicians"
+    if "church" in text or "worship" in text:
+        return "churches"
+    if "audition" in text:
+        return "auditions"
+    if "collab" in text or "collaboration" in text:
+        return "collaborations"
+    if any(word in text for word in ["event", "live", "show", "concert", "open mic"]):
+        return "events"
+    if record.get("location_name"):
+        return "venues"
+    return "gigs"
+
+
+def record_matches_category(record, category):
+    if category in ("", "all"):
+        return True
+    if category == "remote":
+        return record.get("is_remote")
+    if category == "gigs":
+        return record["kind"] == "opportunity"
+    if category == "musicians":
+        return record["kind"] == "creator" and discovery_record_category(record) == "musicians"
+    if category == "producers":
+        return record["kind"] == "creator" and discovery_record_category(record) == "producers"
+    return discovery_record_category(record) == category
+
+
+def map_record(kind, record_id, title, subtitle, description, city, state, latitude, longitude, href, **extra):
+    title = title or "Music activity"
+    latitude = extra.get("fallback_latitude", latitude)
+    longitude = extra.get("fallback_longitude", longitude)
+    position = us_marker_position(latitude, longitude)
+    data = {
+        "kind": kind,
+        "id": record_id,
+        "title": title,
+        "subtitle": subtitle or "",
+        "description": description or "",
+        "city": city or "",
+        "state": state or "",
+        "latitude": latitude,
+        "longitude": longitude,
+        "href": href,
+        "position": position,
+        "distance": None,
+        "is_remote": is_remote_record(title, subtitle, description, city, state, extra.get("location_name", "")),
+        **extra,
+    }
+    data["category"] = discovery_record_category(data)
+    return SimpleNamespace(**data)
+
+
+def collect_discovery_records():
+    records = []
+    for opp in get_opportunities():
+        subtitle_parts = [
+            opp.opportunity_type or "Opportunity",
+            opp.role_needed,
+            opp.instrument_needed,
+            opp.paid_status,
+        ]
+        records.append(
+            map_record(
+                "opportunity",
+                opp.id,
+                opp.title,
+                " / ".join(part for part in subtitle_parts if part),
+                opp.description,
+                opp.city,
+                opp.state,
+                opp.latitude,
+                opp.longitude,
+                ftb_opportunity_url(opp.id),
+                type=opp.opportunity_type,
+                role=opp.role_needed,
+                location_name=opp.location_name,
+                created_at=opp.created_at,
+            )
+        )
+    for profile in search_profiles():
+        records.append(
+            map_record(
+                "creator",
+                profile.id,
+                profile.display_name or profile.full_name or "Creator profile",
+                profile.role or profile.instrument or "Creator",
+                profile.bio,
+                profile.city,
+                profile.state,
+                profile.latitude,
+                profile.longitude,
+                url_for("profile_detail", profile_id=profile.id),
+                role=profile.role,
+                created_at=profile.created_at,
+            )
+        )
+    for perf in get_performances():
+        profile = perf.profile
+        records.append(
+            map_record(
+                "showcase",
+                perf.id,
+                perf.title,
+                profile.display_name if profile else "Showcase",
+                perf.description,
+                perf.city or (profile.city if profile else ""),
+                perf.state or (profile.state if profile else ""),
+                perf.latitude or (profile.latitude if profile else None),
+                perf.longitude or (profile.longitude if profile else None),
+                url_for("performance_detail", perf_id=perf.id),
+                role=profile.role if profile else "",
+                created_at=perf.created_at,
+            )
+        )
+    return records
+
+
+def discovery_filters_from_request():
+    user = current_user()
+    location = request.args.get("location", "").strip()
+    use_profile = request.args.get("use_profile") == "1"
+    if use_profile and user and not location:
+        location = ", ".join(part for part in [user.city, user.state] if part)
+    radius = request.args.get("radius", "25").strip() or "25"
+    category = request.args.get("category", "all").strip() or "all"
+    view = request.args.get("view", "map").strip() or "map"
+    latitude, longitude, source = geocode_location(location_text=location)
+    state = request.args.get("state", "").strip()
+    if not state and location:
+        state_match = re.search(r"\b([A-Z]{2})\b", location.upper())
+        state = state_match.group(1) if state_match else ""
+    return SimpleNamespace(
+        location=location,
+        radius=radius,
+        category=category,
+        view=view,
+        use_profile=use_profile,
+        latitude=latitude,
+        longitude=longitude,
+        geo_source=source,
+        state=state,
+    )
+
+
+def filtered_discovery_records(filters):
+    records = [record for record in collect_discovery_records() if record_matches_category(record.__dict__, filters.category)]
+    remote_records = []
+    map_records = []
+    for record in records:
+        if record.is_remote or not record.position:
+            remote_records.append(record)
+            continue
+        if filters.radius == "remote":
+            continue
+        if filters.radius == "statewide" and filters.state:
+            if (record.state or "").upper() != filters.state.upper():
+                continue
+        elif filters.radius not in ("nationwide", "statewide"):
+            if filters.latitude is not None and filters.longitude is not None:
+                distance = miles_between(filters.latitude, filters.longitude, record.latitude, record.longitude)
+                record.distance = round(distance, 1)
+                if distance > int(filters.radius):
+                    continue
+        map_records.append(record)
+    if filters.radius == "remote":
+        return [], remote_records
+    return map_records, remote_records
+
+
+def discovery_activity(records, filters):
+    city_counts = {}
+    for record in records:
+        key = ", ".join(part for part in [record.city, record.state] if part) or "your area"
+        city_counts.setdefault(key, {"opportunity": 0, "creator": 0, "showcase": 0})
+        city_counts[key][record.kind] += 1
+    activity = []
+    for place, counts in city_counts.items():
+        if counts["opportunity"]:
+            activity.append(f"{counts['opportunity']} opportunities active near {place}")
+        if counts["creator"]:
+            activity.append(f"{counts['creator']} creators available in {place}")
+        if counts["showcase"]:
+            activity.append(f"{counts['showcase']} showcases posted from {place}")
+    if not activity and filters.location:
+        activity.append(f"No mapped records yet for {filters.location}")
+    return activity[:5]
+
+
+def discovery_summary():
+    records = collect_discovery_records()
+    mapped = [record for record in records if record.position]
+    remote = [record for record in records if record.is_remote or not record.position]
+    return SimpleNamespace(
+        mapped_count=len(mapped),
+        remote_count=len(remote),
+        opportunity_count=sum(1 for record in records if record.kind == "opportunity"),
+        creator_count=sum(1 for record in records if record.kind == "creator"),
+        showcase_count=sum(1 for record in records if record.kind == "showcase"),
+    )
 
 
 def homepage_context(user=None):
@@ -3066,11 +3824,125 @@ def home():
         featured_musicians=community["featured_musicians"],
         personalized=community["personalized"],
         admin_listing_counts=community["admin_listing_counts"],
+        map_summary=discovery_summary(),
         q=q,
         role_filter=role,
         genre_filter=genre,
         city_filter=city,
     )
+
+
+@app.route("/map")
+@app.route("/discover")
+def discovery_map():
+    filters = discovery_filters_from_request()
+    map_records, remote_records = filtered_discovery_records(filters)
+    marker_json = json.dumps([record.__dict__ for record in map_records])
+    query_args = request.args.to_dict(flat=True)
+    return render_template(
+        "map.html",
+        filters=filters,
+        categories=DISCOVERY_CATEGORY_LABELS,
+        records=map_records,
+        remote_records=remote_records,
+        activity=discovery_activity(map_records + remote_records, filters),
+        marker_json=marker_json,
+        query_args=query_args,
+    )
+
+
+@app.route("/opportunities")
+def opportunities_board():
+    filters = SimpleNamespace(**opportunity_filters_from_request())
+    return render_template(
+        "opportunities.html",
+        opportunities=get_opportunities(filters.__dict__),
+        filters=filters,
+    )
+
+
+@app.route("/gigs")
+@app.route("/gig-search")
+@app.route("/find-a-gig")
+@app.route("/explore-gigs")
+@app.route("/open-gigs")
+@app.route("/open-gigs-and-opportunities")
+@app.route("/who-is-looking")
+@app.route("/whos-looking")
+def gig_board_alias():
+    return redirect_to_ftb_gig_board()
+
+
+@app.route("/find-matches")
+def find_matches_alias():
+    return redirect(url_for("profiles", **request.args.to_dict(flat=True)), code=302)
+
+
+@app.route("/opportunities/<int:opportunity_id>")
+def opportunity_detail(opportunity_id):
+    opportunity = get_opportunity(opportunity_id)
+    if not opportunity:
+        flash("Opportunity not found.")
+        return redirect(ftb_gig_board_url())
+    return render_template("opportunity_detail.html", opportunity=opportunity)
+
+
+@app.route("/gigs/<int:opportunity_id>")
+def gig_detail_alias(opportunity_id):
+    return redirect(ftb_opportunity_url(opportunity_id), code=302)
+
+
+@app.route("/opportunities/<int:opportunity_id>/apply", methods=["GET", "POST"])
+@require_profile_action
+def apply_opportunity(opportunity_id):
+    opportunity = get_opportunity(opportunity_id)
+    if not opportunity:
+        flash("Opportunity not found.")
+        return redirect(ftb_gig_board_url())
+    user = current_user()
+    log_activity(
+        user.id,
+        "opportunity_apply",
+        f"Applied to opportunity {opportunity.id}",
+        {"opportunity_id": opportunity.id},
+    )
+    flash("Your profile is ready. Review the opportunity details to continue.")
+    return redirect(ftb_opportunity_url(opportunity.id))
+
+
+@app.route("/opportunities/new", methods=["GET", "POST"])
+@app.route("/post-opportunity", methods=["GET", "POST"])
+@require_profile_action
+def post_opportunity():
+    user = current_user()
+    if request.method == "POST":
+        fields = {
+            "title": request.form.get("title", "").strip(),
+            "description": request.form.get("description", "").strip(),
+            "opportunity_type": request.form.get("opportunity_type", "").strip(),
+            "role_needed": request.form.get("role_needed", "").strip(),
+            "instrument_needed": request.form.get("instrument_needed", "").strip(),
+            "genre": request.form.get("genre", "").strip(),
+            "city": request.form.get("city", "").strip(),
+            "state": request.form.get("state", "").strip(),
+            "location_name": request.form.get("location_name", "").strip(),
+            "paid_status": request.form.get("paid_status", "").strip(),
+            "compensation": request.form.get("compensation", "").strip(),
+            "event_date": request.form.get("event_date", "").strip(),
+            "application_deadline": request.form.get("application_deadline", "").strip(),
+            "contact_method": request.form.get("contact_method", "").strip(),
+            "application_url": request.form.get("application_url", "").strip(),
+        }
+        if not fields["title"] or not fields["description"]:
+            flash("Title and description are required.")
+            return redirect(url_for("post_opportunity"))
+        if fields["application_url"] and not valid_media_url(fields["application_url"]):
+            flash("Use a full application link that starts with http:// or https://.")
+            return redirect(url_for("post_opportunity"))
+        opportunity_id = create_opportunity(user.id, fields)
+        flash("Opportunity posted.")
+        return redirect(ftb_opportunity_url(opportunity_id))
+    return render_template("opportunity_form.html", user=user)
 
 
 @app.route("/healthz")
@@ -3194,6 +4066,15 @@ def admin_dashboard():
 @admin_required
 def admin_users():
     return admin_dashboard()
+
+
+@app.route("/admin/import-opportunities", methods=["POST"])
+@admin_required
+def admin_import_opportunities():
+    totals = import_live_opportunities()
+    imported = sum(totals.values())
+    flash(f"Imported {imported} opportunity records.")
+    return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/admin/users/<int:user_id>")
@@ -3648,7 +4529,7 @@ def delete_performance(perf_id):
 @app.route("/upload", methods=["GET", "POST"])
 @app.route("/upload-performance", methods=["GET", "POST"])
 @app.route("/performances/upload", methods=["GET", "POST"])
-@login_required
+@require_profile_action
 def upload_performance():
     user = current_user()
     if request.method == "POST":
@@ -3797,6 +4678,9 @@ def signup():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    next_target = safe_redirect_target(request.values.get("next", ""))
+    if next_target:
+        session["post_login_redirect"] = next_target
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
@@ -3807,7 +4691,7 @@ def login():
             flash("Invalid email or password.")
             return redirect(url_for("login"))
 
-        post_login_redirect = session.get("post_login_redirect")
+        post_login_redirect = safe_redirect_target(session.get("post_login_redirect"))
         session.clear()
         session["user_id"] = row["id"]
         with get_db() as conn:
@@ -4055,6 +4939,9 @@ def profile():
 @login_required
 def edit_profile(profile_id=None):
     user = current_user()
+    next_target = safe_redirect_target(request.values.get("next", ""))
+    if next_target:
+        session["post_profile_redirect"] = next_target
     if profile_id is not None and profile_id != user.id:
         flash("You can only edit your own profile.")
         return redirect(url_for("profile_detail", profile_id=profile_id))
@@ -4080,7 +4967,7 @@ def edit_profile(profile_id=None):
 
         update_user_profile(user.id, fields, profile_pic, profile_video)
         flash("Profile updated.")
-        return redirect(url_for("profile"))
+        return redirect(safe_redirect_target(session.pop("post_profile_redirect", "")) or url_for("profile"))
 
     return render_template("edit_profile.html", user=user, instrument_options=INSTRUMENT_OPTIONS)
 
@@ -4170,7 +5057,7 @@ def my_profile():
 
 @app.route("/messages/new", methods=["GET", "POST"])
 @app.route("/profiles/<int:recipient_id>/message", methods=["GET", "POST"])
-@login_required
+@require_profile_action
 def new_message(recipient_id=None):
     user = current_user()
     profiles = [profile for profile in search_profiles() if profile.id != user.id]
@@ -4202,6 +5089,7 @@ def new_message(recipient_id=None):
     )
 
 
+@app.route("/messages")
 @app.route("/inbox")
 @login_required
 def inbox():

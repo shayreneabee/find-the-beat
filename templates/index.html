@@ -450,8 +450,8 @@
       <h1 id="beat-home-title">Where Musicians Find Their Next Opportunity</h1>
       <p>Discover people, gigs, shows, open calls, and collaborations shaping the sound in your city.</p>
       <div class="hero-actions">
-        <a class="button primary" href="#the-beat">Explore The Beat</a>
-        <a class="button secondary" href="#open-gigs">Find a Gig</a>
+        <a class="button primary" href="{{ url_for('showcase') }}">Explore The Beat</a>
+        <a class="button secondary" href="{{ ftb_gig_board_url() }}">Find a Gig</a>
         <a class="button secondary" href="{{ url_for('profiles') }}">Discover Musicians</a>
       </div>
     </div>
@@ -477,6 +477,21 @@
         </div>
       {% endif %}
     </aside>
+  </section>
+
+  <section class="beat-section" aria-labelledby="music-near-you-title">
+    <div class="beat-section-head">
+      <div>
+        <p class="beat-section-kicker">Music Near You</p>
+        <h2 id="music-near-you-title">Find the Beat Near You</h2>
+      </div>
+      <a class="button secondary" href="{{ url_for('discovery_map') }}">Explore the Map</a>
+    </div>
+    <div class="dashboard-actions">
+      <a class="dashboard-card" href="{{ url_for('discovery_map') }}"><span class="feed-badge">Map</span><strong>{{ map_summary.mapped_count }} mapped records</strong><p>Explore musicians, gigs, venues, showcases, and live opportunities happening in your area.</p></a>
+      <a class="dashboard-card" href="{{ url_for('discovery_map', use_profile=1) }}"><span class="feed-badge">Location</span><strong>Use My Location</strong><p>Use your saved profile city and state when you want the nearby view.</p></a>
+      <a class="dashboard-card" href="{{ ftb_gig_board_url() }}"><span class="feed-badge">Gigs</span><strong>View All Opportunities</strong><p>{{ map_summary.opportunity_count }} opportunity records are available on the live board.</p></a>
+    </div>
   </section>
 
   <section id="the-beat" class="beat-section dark" aria-labelledby="beat-title">
@@ -515,7 +530,7 @@
       <div class="dashboard-actions">
         <a class="dashboard-card" href="{{ url_for('upload_performance') }}"><span class="feed-badge">Performance</span><strong>Upload what you are working on</strong><p>Keep the community feed alive with videos, audio, demos, and media links.</p></a>
         <a class="dashboard-card" href="{{ url_for('search') }}"><span class="feed-badge">Collaborate</span><strong>Find people by city, role, or sound</strong><p>Search musicians, producers, singers, engineers, bands, and services.</p></a>
-        <a class="dashboard-card" href="{{ url_for('signup') }}"><span class="feed-badge">Opportunity</span><strong>Post an opportunity</strong><p>Let musicians know who you need, where, when, and what kind of gig it is.</p></a>
+        <a class="dashboard-card" href="{{ url_for('post_opportunity') }}"><span class="feed-badge">Opportunity</span><strong>Post an opportunity</strong><p>Let musicians know who you need, where, when, and what kind of gig it is.</p></a>
       </div>
     </div>
   </section>
@@ -526,7 +541,7 @@
         <p class="beat-section-kicker">Open gigs and opportunities</p>
         <h2 id="opportunities-title">Who needs someone like you?</h2>
       </div>
-      <a class="button primary" href="{{ url_for('signup') }}">Post an Opportunity</a>
+      <a class="button primary" href="{{ url_for('post_opportunity') }}">Post an Opportunity</a>
     </div>
 
     <div class="beat-filters" aria-label="Opportunity filters">
@@ -556,7 +571,7 @@
             {% if opp.instrument_needed %}<span>{{ opp.instrument_needed }}</span>{% endif %}
             {% if opp.compensation %}<span>{{ opp.compensation }}</span>{% endif %}
           </div>
-          <a class="button secondary" href="{{ url_for('signup') }}">View Opportunity</a>
+          <a class="button secondary" href="{{ ftb_opportunity_url(opp.id) }}">View Opportunity</a>
         </article>
       {% else %}
         <p>No open opportunities yet. Post the first one and give musicians something to chase.</p>
@@ -570,7 +585,7 @@
         <p class="beat-section-kicker">Who's Looking?</p>
         <h2 id="looking-title">The live board for musicians who are needed right now.</h2>
       </div>
-      <a class="button secondary" href="{{ url_for('search') }}">Find Matches</a>
+      <a class="button secondary" href="{{ url_for('profiles') }}">Find Matches</a>
     </div>
 
     <div class="beat-filters" aria-label="Who's Looking filters">
@@ -591,7 +606,9 @@
             <span>{{ item.city }}{% if item.state %}, {{ item.state }}{% endif %}</span>
             {% if item.paid_status %}<span>{{ item.paid_status }}</span>{% endif %}
           </div>
-          <a class="button primary" href="{{ url_for('signup') }}">Apply</a>
+          <form method="POST" action="{{ ftb_apply_url(item.id) }}">
+            <button class="button primary" type="submit">Apply</button>
+          </form>
         </article>
       {% else %}
         <div class="home-empty-note">Collaboration requests, open calls, and musician-needed posts will appear here.</div>

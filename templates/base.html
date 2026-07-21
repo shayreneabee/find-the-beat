@@ -958,15 +958,18 @@
       </a>
 
       <nav class="nav" aria-label="Main navigation">
-        <a href="{{ url_for('home') }}" class="nav-pill home-link">Home</a>
-        <a href="{{ url_for('search') }}" class="nav-pill search-link">Search</a>
+        <a href="{{ url_for('home') }}" class="nav-pill home-link">Discover</a>
+        <a href="{{ ftb_gig_board_url() }}" class="nav-pill search-link">Gigs</a>
+        <a href="{{ url_for('profiles') }}" class="nav-pill artists-link">Artists</a>
+        <a href="{{ url_for('discovery_map', category='venues') }}" class="nav-pill search-link">Venues</a>
+        <a href="{{ url_for('discovery_map', category='events') }}" class="nav-pill performances-link">Events</a>
         <a href="{{ url_for('showcase') }}" class="nav-pill showcase-link">Showcases</a>
 
         {% if user %}
           <a href="{{ url_for('inbox') }}" class="nav-pill messages-link">Messages<span class="nav-badge" data-unread-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count and unread_count < 10 else "9+" if unread_count else "" }}</span></a>
           <a href="{{ url_for('profile') }}" class="nav-pill profile-link">Profile</a>
         {% else %}
-          <a href="{{ url_for('login') }}" class="nav-pill messages-link">Messages</a>
+          <a href="{{ url_for('login', next=url_for('inbox')) }}" class="nav-pill messages-link">Messages</a>
           <a href="{{ url_for('login') }}" class="nav-pill profile-link">Profile</a>
         {% endif %}
       </nav>

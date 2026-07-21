@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Find the Beat Near You{% endblock %}
+
+{% block content %}
+<style>
+  .map-page {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .map-hero,
+  .map-controls,
+  .map-stage,
+  .activity-panel,
+  .record-list,
+  .remote-panel {
+    padding: 1rem;
+  }
+
+  .map-hero {
+    display: grid;
+    gap: 0.65rem;
+    background: linear-gradient(135deg, rgba(7, 15, 35, 0.98), rgba(22, 35, 62, 0.98));
+    color: #fffaf0;
+  }
+
+  .map-hero h1,
+  .map-hero p {
+    margin: 0;
+  }
+
+  .map-hero p {
+    color: rgba(255, 250, 238, 0.76);
+  }
+
+  .map-controls form {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .map-controls input,
+  .map-controls select {
+    min-height: 46px;
+    width: 100%;
+    padding: 0 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--cream);
+    color: var(--text);
+  }
+
+  .map-actions,
+  .view-tabs,
+  .activity-list,
+  .record-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .view-tabs button {
+    min-height: 42px;
+  }
+
+  .map-layout {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .us-map {
+    position: relative;
+    min-height: 430px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 208, 93, 0.24);
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(9, 20, 42, 0.98), rgba(18, 34, 64, 0.98));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+
+  .us-map::before {
+    content: "";
+    position: absolute;
+    inset: 10% 8% 12% 6%;
+    clip-path: polygon(8% 40%, 18% 22%, 31% 14%, 47% 16%, 61% 19%, 74% 18%, 88% 31%, 92% 47%, 83% 64%, 68% 76%, 51% 78%, 35% 73%, 18% 66%);
+    background: rgba(255, 250, 238, 0.08);
+    border: 1px solid rgba(255, 208, 93, 0.18);
+  }
+
+  .map-marker {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: 1.15rem;
+    height: 1.15rem;
+    transform: translate(-50%, -50%);
+    border: 2px solid #fffaf0;
+    border-radius: 999px;
+    background: #f5a524;
+    box-shadow: 0 0 0 5px rgba(245, 165, 36, 0.2);
+    cursor: pointer;
+  }
+
+  .map-marker[data-kind="creator"] {
+    background: #55c6ff;
+    box-shadow: 0 0 0 5px rgba(85, 198, 255, 0.18);
+  }
+
+  .map-marker[data-kind="showcase"] {
+    background: #ff6f91;
+    box-shadow: 0 0 0 5px rgba(255, 111, 145, 0.18);
+  }
+
+  .preview-panel {
+    display: grid;
+    gap: 0.65rem;
+    align-self: start;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+  }
+
+  .preview-panel h2,
+  .preview-panel p {
+    margin: 0;
+  }
+
+  .record-list {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .discovery-record {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+  }
+
+  .discovery-record h2,
+  .discovery-record p {
+    margin: 0;
+  }
+
+  .record-tags span,
+  .activity-list span {
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  .is-hidden {
+    display: none;
+  }
+
+  @media (min-width: 880px) {
+    .map-controls form {
+      grid-template-columns: 1.4fr 0.8fr 1fr auto;
+      align-items: end;
+    }
+
+    .map-layout {
+      grid-template-columns: minmax(0, 1fr) 320px;
+    }
+  }
+</style>
+
+<section class="map-page">
+  <header class="app-panel map-hero">
+    <p class="hero-kicker">Find the Beat Near You</p>
+    <h1>See where the music community is moving.</h1>
+    <p>Browse mapped gigs, creators, venues, showcases, collaborations, churches, and live events from real Find The Beat records.</p>
+  </header>
+
+  <section class="app-panel map-controls">
+    <form method="GET" action="{{ url_for('discovery_map') }}">
+      <label>
+        <span class="sr-only">City, state, or ZIP</span>
+        <input name="location" value="{{ filters.location }}" placeholder="City, state, or ZIP">
+      </label>
+      <label>
+        <span class="sr-only">Radius</span>
+        <select name="radius">
+          {% for value, label in [("10", "Within 10 miles"), ("25", "Within 25 miles"), ("50", "Within 50 miles"), ("100", "Within 100 miles"), ("statewide", "Statewide"), ("nationwide", "Nationwide"), ("remote", "Remote opportunities")] %}
+            <option value="{{ value }}" {% if filters.radius == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span class="sr-only">Category</span>
+        <select name="category">
+          {% for value, label in categories.items() %}
+            <option value="{{ value }}" {% if filters.category == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="map-actions">
+        <button class="button primary" type="submit">Search</button>
+        <a class="button secondary" href="{{ url_for('discovery_map', use_profile=1, radius=filters.radius, category=filters.category, view=filters.view) }}">Use My Location</a>
+      </div>
+      <input type="hidden" name="view" value="{{ filters.view }}">
+    </form>
+    <div class="view-tabs" aria-label="View mode">
+      <form method="GET" action="{{ url_for('discovery_map') }}">
+        <input type="hidden" name="location" value="{{ filters.location }}">
+        <input type="hidden" name="radius" value="{{ filters.radius }}">
+        <input type="hidden" name="category" value="{{ filters.category }}">
+        <button class="button {{ 'primary' if filters.view == 'map' else 'secondary' }}" name="view" value="map" type="submit">Map View</button>
+        <button class="button {{ 'primary' if filters.view == 'list' else 'secondary' }}" name="view" value="list" type="submit">List View</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="app-panel activity-panel">
+    <p class="hero-kicker">What's Happening Near You</p>
+    <div class="activity-list">
+      {% for item in activity %}
+        <span>{{ item }}</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="map-layout {% if filters.view == 'list' %}is-hidden{% endif %}">
+    <div class="app-panel map-stage">
+      <div class="us-map" aria-label="United States activity map">
+        {% for record in records %}
+          {% if record.position %}
+            <button
+              class="map-marker"
+              style="--x: {{ record.position.x }}%; --y: {{ record.position.y }}%;"
+              data-kind="{{ record.kind }}"
+              data-index="{{ loop.index0 }}"
+              type="button"
+              aria-label="{{ record.title }}"
+            ></button>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <aside class="preview-panel" id="markerPreview">
+      {% if records %}
+        <p class="hero-kicker">{{ records[0].category|replace("_", " ") }}</p>
+        <h2>{{ records[0].title }}</h2>
+        <p>{{ records[0].subtitle }}</p>
+        <p>{{ records[0].city }}{% if records[0].city and records[0].state %}, {% endif %}{{ records[0].state }}</p>
+        <a class="button primary" href="{{ records[0].href }}">Open</a>
+      {% else %}
+        <p class="hero-kicker">No mapped records</p>
+        <h2>Try a wider radius or view remote records.</h2>
+      {% endif %}
+    </aside>
+  </section>
+
+  <section class="record-list {% if filters.view != 'list' %}is-hidden{% endif %}" aria-label="Discovery results">
+    {% for record in records %}
+      <article class="discovery-record">
+        <p class="hero-kicker">{{ categories.get(record.category, record.category) }}</p>
+        <h2>{{ record.title }}</h2>
+        <p>{{ record.subtitle }}</p>
+        <p>{{ record.city }}{% if record.city and record.state %}, {% endif %}{{ record.state }}{% if record.distance is not none %} / {{ record.distance }} miles away{% endif %}</p>
+        <div class="record-tags">
+          <span>{{ record.kind }}</span>
+          {% if record.location_name %}<span>{{ record.location_name }}</span>{% endif %}
+        </div>
+        <a class="button primary" href="{{ record.href }}">Open</a>
+      </article>
+    {% else %}
+      <article class="discovery-record">
+        <h2>No mapped records found.</h2>
+        <p>Try a wider radius, statewide, nationwide, or remote opportunities.</p>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section class="app-panel remote-panel">
+    <p class="hero-kicker">Remote or Location Not Listed</p>
+    <div class="record-list">
+      {% for record in remote_records %}
+        <article class="discovery-record">
+          <h2>{{ record.title }}</h2>
+          <p>{{ record.subtitle }}</p>
+          <p>{{ record.description }}</p>
+          <a class="button secondary" href="{{ record.href }}">Open</a>
+        </article>
+      {% else %}
+        <p>No remote or ungeocoded records match these filters.</p>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+
+<script>
+  const discoveryMarkers = {{ marker_json|safe }};
+  const preview = document.getElementById("markerPreview");
+  document.querySelectorAll(".map-marker").forEach((marker) => {
+    marker.addEventListener("click", () => {
+      const record = discoveryMarkers[Number(marker.dataset.index)];
+      if (!record || !preview) return;
+      const place = [record.city, record.state].filter(Boolean).join(", ");
+      preview.replaceChildren();
+      const kicker = document.createElement("p");
+      kicker.className = "hero-kicker";
+      kicker.textContent = record.category;
+      const title = document.createElement("h2");
+      title.textContent = record.title;
+      const subtitle = document.createElement("p");
+      subtitle.textContent = record.subtitle || "";
+      const location = document.createElement("p");
+      location.textContent = `${place}${record.distance !== null ? " / " + record.distance + " miles away" : ""}`;
+      const link = document.createElement("a");
+      link.className = "button primary";
+      link.href = record.href;
+      link.textContent = "Open";
+      preview.append(kicker, title, subtitle, location, link);
+    });
+  });
+</script>
+{% endblock %}
