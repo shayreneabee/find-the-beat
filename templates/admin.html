@@ -9,7 +9,7 @@
       margin-bottom: 1.2rem;
       padding: clamp(1.25rem, 4vw, 2.2rem);
       border-radius: 1.4rem;
-      color: #fff7e9;
+      color: var(--text-inverse);
       background:
         radial-gradient(circle at 84% 16%, rgba(255, 190, 88, 0.38), transparent 13rem),
         linear-gradient(135deg, #321b0d, #6b3818 48%, #f58a00);
@@ -48,14 +48,14 @@
 
     .stat-card strong {
       display: block;
-      color: #321b0d;
+      color: var(--heading-color);
       font-size: clamp(1.75rem, 4vw, 2.8rem);
       line-height: 1;
     }
 
     .stat-card span,
     .muted {
-      color: #6c4a2b;
+      color: var(--text-muted);
       font-weight: 800;
     }
 
@@ -72,7 +72,7 @@
     .directory-card h2 {
       margin: 0;
       padding: 1rem 1rem 0.7rem;
-      color: #321b0d;
+      color: var(--heading-color);
       font-size: 1.15rem;
     }
 
@@ -89,17 +89,17 @@
       gap: 0.22rem;
       padding: 0.75rem 0;
       border-top: 1px solid rgba(89, 54, 23, 0.12);
-      color: #5f4a3f;
+      color: var(--text-secondary);
     }
 
     .admin-list strong,
     .directory-table strong {
-      color: #2b1a12;
+      color: var(--text-primary);
     }
 
     .admin-meta {
       font-size: 0.86rem;
-      color: #8a6b4a;
+      color: var(--text-muted);
     }
 
     .directory-card {
@@ -120,8 +120,8 @@
       border: 1px solid rgba(89, 54, 23, 0.18);
       border-radius: 999px;
       padding: 0 0.85rem;
-      background: #fffaf1;
-      color: #2b1a12;
+      background: var(--field-bg);
+      color: var(--field-text);
       font-weight: 800;
     }
 
@@ -130,7 +130,7 @@
       flex-wrap: wrap;
       gap: 0.65rem;
       align-items: center;
-      color: #5f4a3f;
+      color: var(--text-secondary);
       font-weight: 850;
     }
 
@@ -156,11 +156,11 @@
       border-top: 1px solid rgba(89, 54, 23, 0.12);
       text-align: left;
       vertical-align: top;
-      color: #5f4a3f;
+      color: var(--text-secondary);
     }
 
     .directory-table th {
-      color: #321b0d;
+      color: var(--heading-color);
       font-size: 0.78rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -175,19 +175,19 @@
       padding: 0 0.55rem;
       border-radius: 999px;
       background: rgba(245, 138, 0, 0.12);
-      color: #6b3818;
+      color: var(--warning-color);
       font-size: 0.78rem;
       font-weight: 900;
     }
 
     .status-pill.online {
       background: rgba(27, 126, 78, 0.14);
-      color: #195f3d;
+      color: var(--success-color);
     }
 
     .status-pill.offline {
       background: rgba(89, 54, 23, 0.10);
-      color: #6c4a2b;
+      color: var(--text-muted);
     }
 
     .completion-bar {

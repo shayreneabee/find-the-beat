@@ -20,7 +20,7 @@
       radial-gradient(circle at 8% 6%, rgba(53, 216, 255, 0.18), transparent 16rem),
       radial-gradient(circle at 86% 18%, rgba(155, 92, 255, 0.28), transparent 18rem),
       linear-gradient(180deg, #05060a 0%, #111522 62%, #07080d 100%);
-    color: #f8fbff;
+    color: var(--text-inverse);
   }
 
   .artist-cover {
@@ -129,7 +129,7 @@
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.09);
-    color: #fff;
+    color: var(--text-inverse);
     font-size: 0.78rem;
     font-weight: 950;
   }
@@ -137,7 +137,7 @@
   .artist-badge.gold {
     border-color: rgba(247, 201, 72, 0.55);
     background: rgba(247, 201, 72, 0.16);
-    color: #ffeaa0;
+    color: var(--featured-on-dark);
   }
 
   .artist-actions {
@@ -157,14 +157,14 @@
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    color: var(--text-inverse);
     font-weight: 950;
     text-decoration: none;
   }
 
   .artist-action.primary {
     background: linear-gradient(135deg, var(--ap-gold), #ff7ac8);
-    color: #08090e;
+    color: var(--text-on-gold);
   }
 
   .artist-action:hover .note-float {
@@ -252,7 +252,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    color: var(--text-inverse);
     text-decoration: none;
   }
 
@@ -264,7 +264,7 @@
     place-items: center;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--ap-purple), var(--ap-blue));
-    color: #fff;
+    color: var(--text-inverse);
     font-weight: 950;
   }
 
@@ -281,7 +281,7 @@
     width: 4px;
     height: 16px;
     border-radius: 99px;
-    background: #fff;
+    background: var(--text-inverse);
     animation: equalizer 950ms ease-in-out infinite;
   }
 
@@ -299,7 +299,7 @@
     padding: 0.38rem 0.62rem;
     border-radius: 999px;
     background: rgba(53, 240, 161, 0.11);
-    color: #b8ffd9;
+    color: var(--success-on-dark);
     font-size: 0.8rem;
     font-weight: 900;
   }

@@ -19,7 +19,7 @@
       radial-gradient(circle at 14% 8%, rgba(155, 92, 255, 0.28), transparent 18rem),
       radial-gradient(circle at 84% 2%, rgba(53, 216, 255, 0.18), transparent 15rem),
       linear-gradient(180deg, #05060a 0%, #10131f 58%, #08090e 100%);
-    color: #f8fbff;
+    color: var(--text-inverse);
   }
 
   .music-banner {
@@ -118,7 +118,7 @@
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.09);
-    color: #fff;
+    color: var(--text-inverse);
     font-size: 0.78rem;
     font-weight: 950;
   }
@@ -126,7 +126,7 @@
   .music-badge.gold {
     border-color: rgba(247, 201, 72, 0.55);
     background: rgba(247, 201, 72, 0.16);
-    color: #ffeaa0;
+    color: var(--featured-on-dark);
   }
 
   .music-actions {
@@ -142,14 +142,14 @@
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    color: var(--text-inverse);
     font-weight: 950;
     text-decoration: none;
   }
 
   .music-action-btn.primary {
     background: linear-gradient(135deg, var(--mp-gold), #ff7ac8);
-    color: #08090e;
+    color: var(--text-on-gold);
   }
 
   .music-action-btn:hover .play-icon {
@@ -237,7 +237,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    color: var(--text-inverse);
     text-decoration: none;
   }
 
@@ -249,7 +249,7 @@
     place-items: center;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--mp-purple), var(--mp-blue));
-    color: #fff;
+    color: var(--text-inverse);
     font-weight: 950;
   }
 
@@ -262,7 +262,7 @@
     width: 4px;
     height: 16px;
     border-radius: 99px;
-    background: #fff;
+    background: var(--text-inverse);
     animation: equalizer 950ms ease-in-out infinite;
   }
 
@@ -296,7 +296,7 @@
     padding: 0.38rem 0.62rem;
     border-radius: 999px;
     background: rgba(53, 240, 161, 0.11);
-    color: #b8ffd9;
+    color: var(--success-on-dark);
     font-size: 0.8rem;
     font-weight: 900;
   }
@@ -316,7 +316,7 @@
     border: 1px solid var(--mp-line);
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.07);
-    color: #fff;
+    color: var(--text-inverse);
     text-decoration: none;
   }
 
@@ -370,7 +370,7 @@
   }
 
   .completion-list .done {
-    color: #10131f;
+    color: var(--text-on-gold);
     background: var(--mp-gold);
   }
 
