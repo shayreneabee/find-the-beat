@@ -374,6 +374,24 @@
     background: var(--mp-gold);
   }
 
+  .profile-tuning-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .profile-tuning-dismiss {
+    min-height: 38px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    padding: 0 0.75rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-inverse);
+    font-weight: 900;
+    cursor: pointer;
+  }
+
   @keyframes recordSpin {
     to { transform: rotate(360deg); }
   }
@@ -531,8 +549,11 @@
         </div>
       </section>
 
-      <section class="music-panel">
-        <h2>Profile Tuning</h2>
+      <section class="music-panel" data-profile-completion-card>
+        <div class="profile-tuning-head">
+          <h2>Profile Tuning</h2>
+          <button class="profile-tuning-dismiss" type="button" data-dismiss-profile-completion>Dismiss</button>
+        </div>
         <p>Complete your profile to help other creators find you. You can still browse gigs, artists, showcases, and the feed anytime.</p>
         <div class="completion-meter" aria-label="Profile completion"><span style="width: {{ completion.percent }}%;"></span></div>
         <div class="completion-list">
@@ -566,4 +587,14 @@
     <a href="{{ url_for('home') }}" class="button primary">Back Home</a>
   </section>
 {% endif %}
+<script>
+  const completionCard = document.querySelector("[data-profile-completion-card]");
+  if (completionCard && localStorage.getItem("ftbProfileCompletionDismissed") === "1") {
+    completionCard.hidden = true;
+  }
+  document.querySelector("[data-dismiss-profile-completion]")?.addEventListener("click", () => {
+    localStorage.setItem("ftbProfileCompletionDismissed", "1");
+    completionCard.hidden = true;
+  });
+</script>
 {% endblock %}

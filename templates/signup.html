@@ -1,286 +1,210 @@
 {% extends "base.html" %}
 
-{% block title %}Create Profile | Find the Beat{% endblock %}
+{% block title %}Create Account | Find The Beat{% endblock %}
 
 {% block content %}
 <style>
-  .signup-form {
-    padding: 1rem;
-  }
-
-  .photo-row {
+  .auth-shell {
+    max-width: 560px;
     display: grid;
-    grid-template-columns: 96px 1fr;
     gap: 1rem;
-    align-items: start;
-    margin-bottom: 1.2rem;
+    margin: 0 auto;
   }
 
-  .photo-upload {
-    min-height: 84px;
+  .auth-card {
     display: grid;
-    place-items: center;
-    padding: 0.55rem;
-    background: var(--accent);
-    box-shadow: var(--lift);
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.95rem;
-    line-height: 1.1;
-    cursor: pointer;
+    gap: 1rem;
+    padding: clamp(1rem, 4vw, 1.45rem);
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 24px;
+    background: var(--surface-light);
+    color: var(--text-primary);
+    box-shadow: var(--bc-lift, var(--lift));
   }
 
-  .photo-upload input {
-    display: none;
-  }
-
-  .field-stack {
+  .auth-brand {
     display: grid;
-    gap: 0.55rem;
-  }
-
-  .field label,
-  .role-title {
-    display: block;
+    gap: 0.35rem;
     text-align: center;
-    color: var(--muted);
-    font-size: 1.25rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    font-weight: 400;
   }
 
-  .field input,
-  .field select,
-  .field textarea {
+  .auth-brand strong {
+    font-size: clamp(2rem, 8vw, 3.35rem);
+    line-height: 0.95;
+  }
+
+  .auth-brand span {
+    color: var(--text-muted);
+    font-weight: 850;
+  }
+
+  .auth-form {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .auth-field {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .auth-field label {
+    font-weight: 950;
+  }
+
+  .auth-field input {
     width: 100%;
-    min-height: 48px;
-    border: 0;
-    padding: 0 0.9rem;
-    background: var(--cream);
-    box-shadow: inset 0 -1px 0 rgba(55, 31, 7, 0.14);
-    color: var(--text);
-  }
-
-  .field textarea {
-    min-height: 94px;
-    padding-top: 0.8rem;
-    resize: vertical;
-  }
-
-  .role-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.9rem;
-    margin: 0.75rem 0 1rem;
-  }
-
-  .instrument-select {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin: 0.75rem 0 1rem;
-  }
-
-  .instrument-select label {
-    cursor: pointer;
-  }
-
-  .instrument-select span {
-    display: inline-flex;
-    min-height: 40px;
-    align-items: center;
-    padding: 0 0.75rem;
+    min-height: 54px;
     border: 1px solid rgba(55, 31, 7, 0.16);
+    border-radius: 14px;
+    padding: 0 0.95rem;
+    background: var(--field-bg);
+    color: var(--field-text);
+  }
+
+  .password-row {
+    position: relative;
+  }
+
+  .password-row input {
+    padding-right: 4.6rem;
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 0.45rem;
+    top: 50%;
+    min-height: 40px;
+    transform: translateY(-50%);
+    border: 0;
     border-radius: 999px;
-    background: rgba(255, 250, 238, 0.78);
-    font-weight: 900;
-  }
-
-  .instrument-select input:checked + span {
-    background: var(--accent);
-    color: var(--text);
-  }
-
-  .role-card {
-    min-height: 106px;
-    display: grid;
-    place-items: center;
-    background: var(--accent);
-    box-shadow: var(--lift);
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    padding: 0 0.75rem;
+    background: rgba(47, 30, 13, 0.1);
+    color: var(--text-primary);
+    font-weight: 950;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: 0.2s ease;
   }
 
-  .role-card:hover,
-  .role-card:has(input:focus-visible) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
+  .field-error,
+  .form-error {
+    color: var(--error-color);
+    font-size: 0.9rem;
+    font-weight: 850;
   }
 
-  .role-card:has(input:checked) {
-    background: var(--text);
-    color: var(--cream);
-    border-color: var(--accent);
+  .form-error {
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: rgba(160, 63, 31, 0.1);
   }
 
-  .role-card span {
-    display: block;
-    font-size: 2.15rem;
-    line-height: 1;
-    margin-bottom: 0.25rem;
-  }
-
-  .signup-actions {
+  .auth-actions,
+  .oauth-actions,
+  .auth-links {
     display: grid;
-    gap: 0.75rem;
-    margin-top: 1rem;
+    gap: 0.7rem;
   }
 
-  .signup-note {
-    margin: 0.45rem 0 1rem;
+  .oauth-actions {
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(55, 31, 7, 0.12);
+  }
+
+  .auth-links {
     text-align: center;
-    color: var(--muted);
-    font-size: 0.92rem;
   }
 
-  @media (min-width: 560px) {
-    .signup-actions {
-      grid-template-columns: 1fr 1fr;
-    }
+  .auth-links a,
+  .legal-links a {
+    color: var(--link-color);
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .legal-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
   }
 </style>
 
-<div class="section-band">create profile</div>
+<section class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <a href="{{ url_for('home') }}" class="auth-links">Back to Home</a>
+      <strong>Find The Beat</strong>
+      <span>Create your account in under a minute. Build the detailed profile later.</span>
+    </div>
 
-<section class="app-panel signup-form">
-  <form method="POST" enctype="multipart/form-data">
-    <div class="photo-row">
-      <label class="photo-upload">
-        Upload<br>a<br>Photo
-        <input id="profile_pic" name="profile_pic" type="file" accept="image/*">
-      </label>
+    <form method="POST" class="auth-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% if next_target %}<input type="hidden" name="next" value="{{ next_target }}">{% endif %}
+      {% if errors.form %}<div class="form-error" role="alert">{{ errors.form }}</div>{% endif %}
 
-      <div class="field-stack">
-        <div class="field">
-          <label for="display_name">Name:</label>
-          <input id="display_name" name="display_name" required>
-        </div>
-        <div class="field">
-          <label for="city">Location:</label>
-          <input id="city" name="city" placeholder="Chicago">
-        </div>
-        <div class="field">
-          <label for="state">State:</label>
-          <input id="state" name="state" placeholder="IL or Illinois">
-        </div>
+      <div class="auth-field">
+        <label for="display_name">Display name</label>
+        <input id="display_name" name="display_name" autocomplete="name" value="{{ form_values.display_name or '' }}" required>
+        {% if errors.display_name %}<span class="field-error" role="alert">{{ errors.display_name }}</span>{% endif %}
       </div>
+
+      <div class="auth-field">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" autocomplete="email" inputmode="email" value="{{ form_values.email or '' }}" required>
+        {% if errors.email %}<span class="field-error" role="alert">{{ errors.email }}</span>{% endif %}
+      </div>
+
+      <div class="auth-field">
+        <label for="password">Password</label>
+        <div class="password-row">
+          <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8">
+          <button class="password-toggle" type="button" data-toggle-password="password" aria-label="Show password">Show</button>
+        </div>
+        {% if errors.password %}<span class="field-error" role="alert">{{ errors.password }}</span>{% endif %}
+      </div>
+
+      <div class="auth-field">
+        <label for="confirm_password">Confirm password</label>
+        <div class="password-row">
+          <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8">
+          <button class="password-toggle" type="button" data-toggle-password="confirm_password" aria-label="Show confirm password">Show</button>
+        </div>
+        {% if errors.confirm_password %}<span class="field-error" role="alert">{{ errors.confirm_password }}</span>{% endif %}
+      </div>
+
+      <div class="auth-actions">
+        <button class="button primary" type="submit">Create My Account</button>
+      </div>
+    </form>
+
+    <div class="oauth-actions">
+      <a class="button secondary" href="{{ url_for('auth_google', next=next_target) if next_target else url_for('auth_google') }}">Continue with Google</a>
+      <a class="button secondary" href="{{ url_for('sso_login', next=next_target or url_for('profile')) }}">Continue with Brent &amp; Co</a>
     </div>
 
-    <div class="field">
-      <label for="email">Email:</label>
-      <input id="email" name="email" type="email" required>
+    <div class="auth-links">
+      <a href="{{ url_for('login', next=next_target) if next_target else url_for('login') }}">Already have an account? Sign in</a>
     </div>
 
-    <div class="field">
-      <label for="password">Password:</label>
-      <input id="password" name="password" type="password" required>
-    </div>
-    <div class="field">
-      <label for="confirm_password">Confirm Password:</label>
-      <input id="confirm_password" name="confirm_password" type="password" required>
-    </div>
-    <p class="signup-note">Required: name, email, and an 8+ character password. Everything else can be updated later.</p>
-
-    <div class="role-title" style="margin-top:1rem;">I play the:</div>
-    <div class="instrument-select">
-      {% for option in instrument_options %}
-        <label>
-          <input type="checkbox" name="instruments" value="{{ option }}" hidden>
-          <span>{{ option }}</span>
-        </label>
-      {% endfor %}
-    </div>
-    <div class="field">
-      <input id="instrument" name="instrument" placeholder="Other instruments, separated by commas">
-    </div>
-
-    <div class="role-title" style="margin-top:1rem;">I work in:</div>
-    <div class="role-grid">
-      <label class="role-card">
-        <input type="radio" name="role" value="Artist" hidden>
-        <span>◖</span>
-        Artist
-      </label>
-      <label class="role-card">
-        <input type="radio" name="role" value="Musician" hidden>
-        <span>▥</span>
-        Musician
-      </label>
-      <label class="role-card">
-        <input type="radio" name="role" value="Producer" hidden>
-        <span>◠</span>
-        Producer
-      </label>
-      <label class="role-card">
-        <input type="radio" name="role" value="Composer" hidden>
-        <span>▣</span>
-        Composer
-      </label>
-    </div>
-
-    <div class="field">
-      <label for="genre">Genre:</label>
-      <input id="genre" name="genre" placeholder="R&B, gospel, trap, jazz">
-    </div>
-
-    <div class="field">
-      <label for="services_csv">Services:</label>
-      <input id="services_csv" name="services_csv" placeholder="Mixing, songwriting, beats, vocals">
-    </div>
-
-    <div class="field">
-      <label for="previous_work">Previous Work:</label>
-      <textarea id="previous_work" name="previous_work" placeholder="Share shows, placements, projects, credits, gigs, or collaborations."></textarea>
-    </div>
-
-    <div class="field">
-      <label for="availability">Availability:</label>
-      <select id="availability" name="availability">
-        <option value="">Choose availability</option>
-        <option value="Available for Collabs">Available for Collabs</option>
-        <option value="Available for Studio Sessions">Available for Studio Sessions</option>
-        <option value="Available for Live Shows">Available for Live Shows</option>
-        <option value="Booking Soon">Booking Soon</option>
-        <option value="Not Available Right Now">Not Available Right Now</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label for="tags_csv">Tags:</label>
-      <input id="tags_csv" name="tags_csv" placeholder="studio, live, hooks, beats">
-    </div>
-
-    <div class="field">
-      <label for="bio">Bio:</label>
-      <textarea id="bio" name="bio" placeholder="Tell people what you do and who you want to connect with."></textarea>
-    </div>
-
-    <div class="signup-actions">
-      <button class="button primary" type="submit">Create Profile</button>
-      <a class="button secondary" href="{{ url_for('login') }}">Sign In Instead</a>
-    </div>
-    <div class="oauth-prep" aria-label="Future social sign in">
-      <button type="button" disabled>Continue with Google</button>
-      <button type="button" disabled>Continue with Apple</button>
-      <button type="button" disabled>Continue with Email</button>
-      <button type="button" disabled>Facebook later</button>
-    </div>
-  </form>
+    <nav class="legal-links" aria-label="Authentication links">
+      <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+      <a href="{{ url_for('terms') }}">Terms</a>
+    </nav>
+  </div>
 </section>
+
+<script>
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.dataset.togglePassword);
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      button.textContent = showing ? "Show" : "Hide";
+      button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    });
+  });
+</script>
 {% endblock %}

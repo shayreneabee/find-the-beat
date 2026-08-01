@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Privacy Policy" if page == "privacy" else "Terms" }} | Find The Beat{% endblock %}
+
+{% block content %}
+<section class="app-panel" style="padding:1.25rem;">
+  {% if page == "privacy" %}
+    <h1>Privacy Policy</h1>
+    <p class="muted">Find The Beat stores account, profile, message, opportunity, and upload information needed to run the platform. Private diagnostics and secrets are not shown publicly.</p>
+    <p class="muted">A full legal policy can be added here before launch. For now, use only the information needed to create your account, profile, performances, and connections.</p>
+  {% else %}
+    <h1>Terms</h1>
+    <p class="muted">Use Find The Beat respectfully. Only upload content you have the right to share, and do not misuse messaging, profiles, gigs, or showcase features.</p>
+    <p class="muted">A full terms document can be added here before launch.</p>
+  {% endif %}
+  <a class="button primary" href="{{ url_for('home') }}">Back to Find The Beat</a>
+</section>
+{% endblock %}

@@ -1,148 +1,205 @@
 {% extends "base.html" %}
 
-{% block title %}Login | Find the Beat{% endblock %}
+{% block title %}Sign In | Find The Beat{% endblock %}
 
 {% block content %}
 <style>
-  .login-hero {
-    background: var(--accent);
-    padding: 1.35rem 1.25rem 1.55rem;
-    text-align: center;
-    border-bottom: 7px solid var(--cream);
-    box-shadow: 0 8px 14px rgba(55, 31, 7, 0.18);
+  .auth-shell {
+    max-width: 540px;
+    display: grid;
+    gap: 1rem;
+    margin: 0 auto;
   }
 
-  .login-icon {
-    width: 112px;
-    height: 88px;
-    margin: 0 auto 0.75rem;
+  .auth-card {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 4vw, 1.45rem);
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 24px;
+    background: var(--surface-light);
+    color: var(--text-primary);
+    box-shadow: var(--bc-lift, var(--lift));
+  }
+
+  .auth-brand {
+    display: grid;
+    gap: 0.35rem;
+    text-align: center;
+  }
+
+  .auth-logo {
+    width: 72px;
+    aspect-ratio: 1;
     display: grid;
     place-items: center;
-    border: 8px solid var(--text);
-    border-radius: 9px;
-    font-size: 4rem;
-    line-height: 1;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: var(--surface-dark-solid);
+    color: var(--text-inverse);
+    font-size: 2.6rem;
   }
 
-  .login-hero h1 {
-    margin: 0;
-    font-size: clamp(2rem, 10vw, 3rem);
+  .auth-brand strong {
+    font-size: clamp(2rem, 8vw, 3.2rem);
     line-height: 0.95;
-    letter-spacing: 0.06em;
-    text-transform: lowercase;
-    font-weight: 400;
   }
 
-  .social-signin {
+  .auth-brand span {
+    color: var(--text-muted);
+    font-weight: 850;
+  }
+
+  .auth-form,
+  .auth-actions,
+  .oauth-actions,
+  .auth-links {
     display: grid;
-    gap: 0.65rem;
-    padding: 1.25rem 1rem 0;
+    gap: 0.75rem;
   }
 
-  .social-signin h2 {
-    margin: 0;
-    color: rgba(47, 30, 13, 0.68);
-    font-size: clamp(1.7rem, 8vw, 2.35rem);
-    font-weight: 300;
-    text-align: center;
-    text-transform: lowercase;
-  }
-
-  .social-button {
-    min-height: 52px;
+  .auth-field {
     display: grid;
-    place-items: center;
-    border: 1px solid rgba(47, 30, 13, 0.16);
-    border-radius: 0 0 22px 22px;
-    background: rgba(255, 250, 238, 0.84);
-    box-shadow: 0 7px 0 rgba(47, 30, 13, 0.1);
-    color: rgba(47, 30, 13, 0.78);
-    font-weight: 900;
+    gap: 0.35rem;
   }
 
-  .social-button.disabled {
-    opacity: 0.58;
+  .auth-field label {
+    font-weight: 950;
   }
 
-  .login-form {
-    padding: 2rem 1rem 1rem;
-    display: grid;
-    gap: 0.8rem;
-  }
-
-  .login-form label {
-    display: block;
-    padding: 0.7rem 0.75rem 0.35rem;
-    background: var(--accent);
-    text-align: center;
-    font-size: 1.25rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .login-form input {
+  .auth-field input {
     width: 100%;
-    min-height: 50px;
+    min-height: 54px;
+    border: 1px solid rgba(55, 31, 7, 0.16);
+    border-radius: 14px;
+    padding: 0 0.95rem;
+    background: var(--field-bg);
+    color: var(--field-text);
+  }
+
+  .password-row {
+    position: relative;
+  }
+
+  .password-row input {
+    padding-right: 4.6rem;
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 0.45rem;
+    top: 50%;
+    min-height: 40px;
+    transform: translateY(-50%);
     border: 0;
-    padding: 0 1rem;
-    background: var(--cream);
-    box-shadow: inset 0 -1px 0 rgba(55, 31, 7, 0.14);
+    border-radius: 999px;
+    padding: 0 0.75rem;
+    background: rgba(47, 30, 13, 0.1);
+    color: var(--text-primary);
+    font-weight: 950;
+    cursor: pointer;
   }
 
-  .login-actions {
-    display: grid;
-    gap: 0.8rem;
-    padding: 1rem 4rem 0;
+  .field-error,
+  .form-error {
+    color: var(--error-color);
+    font-size: 0.9rem;
+    font-weight: 850;
   }
 
-  .login-note {
-    margin: 0.2rem 0 0;
+  .form-error {
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: rgba(160, 63, 31, 0.1);
+  }
+
+  .oauth-actions {
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(55, 31, 7, 0.12);
+  }
+
+  .auth-links {
     text-align: center;
-    color: var(--muted);
-    font-size: 0.95rem;
   }
 
-  @media (min-width: 560px) {
-    .login-hero {
-      margin-top: 0;
-      border-radius: 0 0 22px 22px;
-    }
+  .auth-links a,
+  .legal-links a {
+    color: var(--link-color);
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 
-    .login-actions {
-      max-width: 520px;
-      margin: 0 auto;
-      grid-template-columns: 1fr 1fr;
-      padding-left: 1rem;
-      padding-right: 1rem;
-    }
+  .legal-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
   }
 </style>
 
-<section class="login-hero">
-  <div class="login-icon">♪</div>
-  <h1>welcome<br>to<br>find the beat</h1>
+<section class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <a href="{{ url_for('home') }}" class="auth-links">Back to Home</a>
+      <div class="auth-logo">♪</div>
+      <strong>Sign in</strong>
+      <span>Get back to gigs, messages, showcases, and your music profile.</span>
+    </div>
+
+    <form method="POST" class="auth-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% if next_target %}<input type="hidden" name="next" value="{{ next_target }}">{% endif %}
+      {% if errors.form %}<div class="form-error" role="alert">{{ errors.form }}</div>{% endif %}
+
+      <div class="auth-field">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" autocomplete="email" inputmode="email" value="{{ form_values.email or '' }}" required>
+        {% if errors.email %}<span class="field-error" role="alert">{{ errors.email }}</span>{% endif %}
+      </div>
+
+      <div class="auth-field">
+        <label for="password">Password</label>
+        <div class="password-row">
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button class="password-toggle" type="button" data-toggle-password="password" aria-label="Show password">Show</button>
+        </div>
+        {% if errors.password %}<span class="field-error" role="alert">{{ errors.password }}</span>{% endif %}
+      </div>
+
+      <div class="auth-actions">
+        <button class="button primary" type="submit">Sign In</button>
+        <a href="{{ url_for('forgot_password') }}">Forgot Password?</a>
+      </div>
+    </form>
+
+    <div class="oauth-actions">
+      <a class="button secondary" href="{{ url_for('auth_google', next=next_target) if next_target else url_for('auth_google') }}">Continue with Google</a>
+      <a class="button secondary" href="{{ url_for('sso_login', next=next_target or url_for('profile')) }}">Continue with Brent &amp; Co</a>
+    </div>
+
+    <div class="auth-links">
+      <a href="{{ url_for('signup', next=next_target) if next_target else url_for('signup') }}">Create Account</a>
+    </div>
+
+    <nav class="legal-links" aria-label="Authentication links">
+      <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+      <a href="{{ url_for('terms') }}">Terms</a>
+    </nav>
+  </div>
 </section>
 
-<section class="social-signin" aria-label="Social sign in">
-  <h2>sign in your way</h2>
-  <a class="social-button" href="{{ url_for('sso_login') }}">Continue with Brent &amp; Co</a>
-  <span class="social-button disabled">Google, Apple, and Facebook live through Brent SSO</span>
-  <span class="social-button">Email login below</span>
-</section>
-
-<form method="POST" class="login-form">
-  <div>
-    <label for="email">Email Address:</label>
-    <input id="email" name="email" type="email" required>
-  </div>
-  <div>
-    <label for="password">Password:</label>
-    <input id="password" name="password" type="password" required>
-  </div>
-  <div class="login-actions">
-    <a href="{{ url_for('signup') }}" class="button secondary">Register</a>
-    <button type="submit" class="button primary">Login</button>
-  </div>
-  <p class="login-note">Use your Brent &amp; Co account or the email and password from your Find the Beat profile.</p>
-</form>
+<script>
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.dataset.togglePassword);
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      button.textContent = showing ? "Show" : "Hide";
+      button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    });
+  });
+</script>
 {% endblock %}

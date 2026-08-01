@@ -150,6 +150,9 @@ SSO_ACCEPTED_ISSUERS = {
 DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
+LOGIN_ATTEMPTS = {}
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = 15 * 60
+LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 8
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
@@ -739,6 +742,19 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT NOT NULL,
+                used_at TEXT DEFAULT '',
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS activity_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
@@ -1127,6 +1143,8 @@ def init_db():
             "CREATE INDEX IF NOT EXISTS idx_profile_follows_followed_id ON profile_follows(followed_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_follows_follower_id ON profile_follows(follower_id)",
             "CREATE INDEX IF NOT EXISTS idx_activity_log_user_id ON activity_log(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)",
         ):
             conn.execute(statement)
 
@@ -2242,6 +2260,68 @@ def safe_redirect_target(value):
     return value if value.startswith("/") else ""
 
 
+def capture_auth_destination():
+    next_target = safe_redirect_target(request.values.get("next", ""))
+    if next_target:
+        session["post_login_redirect"] = next_target
+    return next_target
+
+
+def pop_auth_destination(default_endpoint="profile"):
+    destination = safe_redirect_target(session.pop("post_login_redirect", ""))
+    return destination or url_for(default_endpoint)
+
+
+def auth_csrf_token():
+    token = session.get("auth_csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["auth_csrf_token"] = token
+    return token
+
+
+def validate_auth_csrf():
+    token = session.get("auth_csrf_token")
+    posted = request.form.get("csrf_token", "")
+    return bool(token and posted and hmac.compare_digest(token, posted))
+
+
+def login_rate_key(email):
+    return f"{request.remote_addr or 'local'}:{(email or '').strip().lower()}"
+
+
+def login_rate_limited(email):
+    now = time.time()
+    key = login_rate_key(email)
+    attempts = [stamp for stamp in LOGIN_ATTEMPTS.get(key, []) if now - stamp < LOGIN_RATE_LIMIT_WINDOW_SECONDS]
+    LOGIN_ATTEMPTS[key] = attempts
+    return len(attempts) >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS
+
+
+def record_login_failure(email):
+    key = login_rate_key(email)
+    LOGIN_ATTEMPTS.setdefault(key, []).append(time.time())
+
+
+def clear_login_failures(email):
+    LOGIN_ATTEMPTS.pop(login_rate_key(email), None)
+
+
+def valid_email(value):
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value or ""))
+
+
+def auth_form_context(form_values=None, errors=None, next_target=""):
+    return {
+        "form_values": form_values or {},
+        "errors": errors or {},
+        "next_target": safe_redirect_target(next_target or session.get("post_login_redirect", "")),
+        "csrf_token": auth_csrf_token(),
+        "google_ready": GOOGLE_OAUTH_READY,
+        "apple_ready": APPLE_OAUTH_READY,
+    }
+
+
 def profile_action_ready(user):
     return bool(
         user
@@ -2939,6 +3019,68 @@ def upsert_imported_opportunity(conn, item):
         """,
         values,
     )
+    return True
+
+
+def token_digest(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_password_reset_token(user_id):
+    token = secrets.token_urlsafe(36)
+    expires_at = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() + 3600))
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+            VALUES (?, ?, ?)
+            """,
+            (user_id, token_digest(token), expires_at),
+        )
+    return token
+
+
+def get_valid_password_reset(token):
+    if not token:
+        return None
+    with get_db() as conn:
+        return conn.execute(
+            """
+            SELECT password_reset_tokens.*, users.email
+            FROM password_reset_tokens
+            JOIN users ON users.id = password_reset_tokens.user_id
+            WHERE password_reset_tokens.token_hash = ?
+              AND COALESCE(password_reset_tokens.used_at, '') = ''
+              AND datetime(password_reset_tokens.expires_at) > datetime('now')
+            """,
+            (token_digest(token),),
+        ).fetchone()
+
+
+def send_password_reset_email(email, reset_url):
+    if not SMTP_HOST or not email:
+        app.logger.info("Password reset email skipped because SMTP is not configured.")
+        return False
+    message = EmailMessage()
+    message["Subject"] = "Reset your Find The Beat password"
+    message["From"] = SMTP_FROM_EMAIL or SMTP_USERNAME or "no-reply@findthebeatmusic.com"
+    message["To"] = email
+    message.set_content(
+        "\n".join(
+            [
+                "Reset your Find The Beat password using this link:",
+                reset_url,
+                "",
+                "This link expires in 1 hour. If you did not request this, you can ignore this email.",
+            ]
+        )
+    )
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as smtp:
+        if SMTP_USE_TLS:
+            smtp.starttls()
+        if SMTP_USERNAME and SMTP_PASSWORD:
+            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+        smtp.send_message(message)
     return True
 
 
@@ -5332,64 +5474,103 @@ def upload_media():
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+    next_target = capture_auth_destination()
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
-        try:
-            fields = profile_form_fields()
-        except ValueError as exc:
-            flash(str(exc))
-            return redirect(url_for("signup"))
-        if not email or not password or not fields["display_name"]:
-            flash("Display name, email, and password are required.")
-            return redirect(url_for("signup"))
+        display_name = request.form.get("display_name", "").strip()
+        form_values = {"display_name": display_name, "email": email}
+        errors = {}
+        if not validate_auth_csrf():
+            errors["form"] = "That form expired. Please try again."
+        if not display_name:
+            errors["display_name"] = "Enter the name people should see."
+        if not valid_email(email):
+            errors["email"] = "Enter a valid email address."
+        if not password:
+            errors["password"] = "Enter a password."
         if len(password) < 8:
-            flash("Password must be at least 8 characters.")
-            return redirect(url_for("signup"))
-        if confirm_password and password != confirm_password:
-            flash("Passwords do not match.")
-            return redirect(url_for("signup"))
+            errors["password"] = "Your password must be at least 8 characters."
+        if password != confirm_password:
+            errors["confirm_password"] = "These passwords do not match."
+        if errors:
+            return render_template("signup.html", **auth_form_context(form_values, errors, next_target))
+
+        fields = {
+            "display_name": display_name,
+            "stage_name": "",
+            "role": "",
+            "genre": "",
+            "city": "",
+            "state": "",
+            "country": "",
+            "bio": "",
+            "previous_work": "",
+            "availability": "",
+            "tags_csv": "",
+            "instrument": "",
+            "services_csv": "",
+            "latitude": None,
+            "longitude": None,
+            "location_source": "",
+            "instagram_url": "",
+            "tiktok_url": "",
+            "youtube_url": "",
+            "spotify_url": "",
+            "linkedin_url": "",
+        }
 
         try:
-            profile_pic, _ = uploaded_profile_media()
-        except ValueError as exc:
-            flash(str(exc))
-            return redirect(url_for("signup"))
-
-        try:
-            user_id = create_user(email, password, fields, profile_pic)
+            user_id = create_user(email, password, fields, "")
         except sqlite3.IntegrityError:
-            remove_upload(profile_pic)
-            flash("An account with that email already exists.")
-            return redirect(url_for("signup"))
+            errors["email"] = "An account with this email already exists. Try signing in instead."
+            return render_template("signup.html", **auth_form_context(form_values, errors, next_target))
 
+        destination = safe_redirect_target(session.get("post_login_redirect", ""))
         session.clear()
         session["user_id"] = user_id
-        flash("Welcome to Find the Beat. Complete your profile to help other creators find you.")
-        return redirect(url_for("profile"))
+        if destination:
+            flash("Account created. You are signed in.")
+            return redirect(destination)
+        session["post_onboarding_redirect"] = url_for("profile")
+        flash("Account created. You can finish your profile now or skip for later.")
+        return redirect(url_for("onboarding", step=1))
 
-    return render_template("signup.html", instrument_options=INSTRUMENT_OPTIONS)
+    return render_template("signup.html", **auth_form_context(next_target=next_target))
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    next_target = safe_redirect_target(request.values.get("next", ""))
-    if next_target:
-        session["post_login_redirect"] = next_target
+    next_target = capture_auth_destination()
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        form_values = {"email": email}
+        errors = {}
+        if not validate_auth_csrf():
+            errors["form"] = "That form expired. Please try again."
+        if not valid_email(email):
+            errors["email"] = "Enter a valid email address."
+        if not password:
+            errors["password"] = "Enter your password."
+        if login_rate_limited(email):
+            errors["form"] = "Too many sign-in attempts. Wait a few minutes and try again."
+        if errors:
+            return render_template("login.html", **auth_form_context(form_values, errors, next_target))
+
         with get_db() as conn:
             row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
 
         if not row or not check_password_hash(row["password_hash"], password):
-            flash("Invalid email or password.")
-            return redirect(url_for("login"))
+            record_login_failure(email)
+            errors["form"] = "We could not sign you in. Check your email and password."
+            return render_template("login.html", **auth_form_context(form_values, errors, next_target))
 
         post_login_redirect = safe_redirect_target(session.get("post_login_redirect"))
         session.clear()
         session["user_id"] = row["id"]
+        clear_login_failures(email)
         with get_db() as conn:
             conn.execute(
                 """
@@ -5410,15 +5591,185 @@ def login():
         flash("You have new messages." if count else "You are logged in.")
         return redirect(post_login_redirect or url_for("profile"))
 
+    return render_template("login.html", **auth_form_context(next_target=next_target))
+
+
+ONBOARDING_ROLES = [
+    "Artist", "Musician", "Producer", "Beat Maker", "Songwriter", "Composer",
+    "Engineer", "DJ", "Band", "Studio", "Venue", "Photographer", "Videographer",
+    "Manager", "Other",
+]
+
+
+def onboarding_return():
+    return safe_redirect_target(session.pop("post_onboarding_redirect", "")) or url_for("profile")
+
+
+@app.route("/onboarding")
+@login_required
+def onboarding_start():
+    return redirect(url_for("onboarding", step=1))
+
+
+@app.route("/onboarding/<int:step>", methods=["GET", "POST"])
+@login_required
+def onboarding(step):
+    if step not in {1, 2, 3}:
+        return redirect(url_for("onboarding", step=1))
+    user = current_user()
+    errors = {}
+    if request.method == "POST":
+        if request.form.get("skip"):
+            flash("You can finish your profile anytime.")
+            return redirect(onboarding_return())
+        if not validate_auth_csrf():
+            errors["form"] = "That form expired. Please try again."
+        elif step == 1:
+            roles = [role for role in request.form.getlist("roles") if role in ONBOARDING_ROLES]
+            if roles:
+                with get_db() as conn:
+                    conn.execute(
+                        "UPDATE users SET role = ?, tags_csv = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                        (", ".join(roles), ", ".join(roles), user.id),
+                    )
+                    ensure_app_profile(conn, user.id, "find-the-beat")
+            return redirect(url_for("onboarding", step=2))
+        elif step == 2:
+            genre = request.form.get("genre", "").strip()
+            location = request.form.get("location", "").strip()
+            intro = request.form.get("bio", "").strip()
+            city = location
+            state = ""
+            if "," in location:
+                city, state = [part.strip() for part in location.split(",", 1)]
+            latitude, longitude, location_source = geocode_location(city, state)
+            with get_db() as conn:
+                conn.execute(
+                    """
+                    UPDATE users
+                    SET genre = ?, city = ?, state = ?, bio = ?,
+                        latitude = ?, longitude = ?, location_source = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (genre, city, state, intro, latitude, longitude, location_source, user.id),
+                )
+                ensure_app_profile(conn, user.id, "find-the-beat")
+            return redirect(url_for("onboarding", step=3))
+        elif step == 3:
+            old_pic = user.profile_pic
+            try:
+                profile_pic, _profile_video = uploaded_profile_media(old_pic, user.profile_video)
+            except ValueError as exc:
+                errors["photo"] = str(exc)
+            else:
+                if profile_pic != old_pic:
+                    with get_db() as conn:
+                        conn.execute(
+                            "UPDATE users SET avatar_url = ?, profile_pic = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                            (profile_pic, profile_pic, user.id),
+                        )
+                        ensure_app_profile(conn, user.id, "find-the-beat")
+                    remove_replaced_uploads(old_pic, user.profile_video, profile_pic, user.profile_video)
+                flash("Welcome in. Your profile is ready to keep building.")
+                return redirect(onboarding_return())
     return render_template(
-        "login.html",
-        google_ready=GOOGLE_OAUTH_READY,
-        apple_ready=APPLE_OAUTH_READY,
+        "onboarding.html",
+        user=user,
+        step=step,
+        roles=ONBOARDING_ROLES,
+        errors=errors,
+        csrf_token=auth_csrf_token(),
     )
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    errors = {}
+    email = request.form.get("email", "").strip().lower() if request.method == "POST" else ""
+    sent = False
+    if request.method == "POST":
+        if not validate_auth_csrf():
+            errors["form"] = "That form expired. Please try again."
+        elif not valid_email(email):
+            errors["email"] = "Enter a valid email address."
+        else:
+            app.logger.info("Password reset requested for email hash=%s", hashlib.sha256(email.encode("utf-8")).hexdigest()[:12])
+            with get_db() as conn:
+                user = conn.execute("SELECT id, email FROM users WHERE email = ?", (email,)).fetchone()
+            if user:
+                token = create_password_reset_token(user["id"])
+                reset_url = url_for("reset_password", token=token, _external=True)
+                try:
+                    sent_email = send_password_reset_email(user["email"], reset_url)
+                    if not sent_email:
+                        app.logger.info("Password reset link generated for user_id=%s; SMTP is not configured.", user["id"])
+                except Exception as exc:
+                    app.logger.warning("Password reset email failed for user_id=%s: %s", user["id"], exc)
+            sent = True
+    return render_template(
+        "forgot_password.html",
+        errors=errors,
+        form_values={"email": email},
+        sent=sent,
+        csrf_token=auth_csrf_token(),
+        next_target=safe_redirect_target(session.get("post_login_redirect", "")),
+    )
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    reset_row = get_valid_password_reset(token)
+    errors = {}
+    token_invalid = reset_row is None
+    if request.method == "POST" and not token_invalid:
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        if not validate_auth_csrf():
+            errors["form"] = "That form expired. Please try again."
+        elif len(password) < 8:
+            errors["password"] = "Use at least 8 characters."
+        elif password != confirm_password:
+            errors["confirm_password"] = "Passwords do not match."
+        else:
+            with get_db() as conn:
+                conn.execute(
+                    "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (generate_password_hash(password), reset_row["user_id"]),
+                )
+                conn.execute(
+                    "UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (reset_row["id"],),
+                )
+            session.pop("user_id", None)
+            flash("Password updated. Sign in to keep moving.")
+            next_target = safe_redirect_target(session.get("post_login_redirect", ""))
+            return redirect(url_for("login", next=next_target) if next_target else url_for("login"))
+    return render_template(
+        "reset_password.html",
+        errors=errors,
+        token=token,
+        token_invalid=token_invalid,
+        csrf_token=auth_csrf_token(),
+        next_target=safe_redirect_target(session.get("post_login_redirect", "")),
+    )
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("legal.html", page="privacy")
+
+
+@app.route("/terms")
+def terms():
+    return render_template("legal.html", page="terms")
 
 
 @app.route("/auth/google")
 def auth_google():
+    next_target = safe_redirect_target(request.args.get("next", ""))
+    if next_target:
+        session["post_login_redirect"] = next_target
     if not GOOGLE_OAUTH_READY:
         flash("Google sign-in needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Render first.")
         return redirect(url_for("login"))
@@ -5506,7 +5857,8 @@ def auth_apple_callback():
 
 @app.route("/sso/login")
 def sso_login():
-    next_path = request.args.get("next") or "/profile"
+    next_path = safe_redirect_target(request.args.get("next", "")) or "/profile"
+    session["post_login_redirect"] = next_path
     query = urlencode({"app": "find-the-beat", "next": next_path})
     log_sso_debug("login_redirect", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     return redirect(f"{BRENT_SSO_URL}?{query}")

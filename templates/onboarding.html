@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Onboarding | Find The Beat{% endblock %}
+
+{% block content %}
+<style>
+  .onboard-shell {
+    max-width: 720px;
+    display: grid;
+    gap: 1rem;
+    margin: 0 auto;
+  }
+
+  .onboard-card {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 4vw, 1.45rem);
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 24px;
+    background: var(--surface-light);
+    color: var(--text-primary);
+    box-shadow: var(--bc-lift, var(--lift));
+  }
+
+  .progress {
+    color: var(--link-color);
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .onboard-card h1 {
+    margin: 0;
+    font-size: clamp(2rem, 7vw, 3.6rem);
+    letter-spacing: 0;
+    line-height: 0.95;
+  }
+
+  .onboard-card p {
+    color: var(--text-muted);
+    font-weight: 800;
+  }
+
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 0.7rem;
+  }
+
+  .role-choice {
+    min-height: 58px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(55, 31, 7, 0.14);
+    border-radius: 16px;
+    background: var(--field-bg);
+    color: var(--text-primary);
+    font-weight: 950;
+    cursor: pointer;
+  }
+
+  .role-choice input {
+    position: absolute;
+    opacity: 0;
+  }
+
+  .role-choice:has(input:checked) {
+    background: var(--surface-dark-solid);
+    color: var(--text-inverse);
+  }
+
+  .field-stack {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .field-stack label {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 950;
+  }
+
+  .field-stack input,
+  .field-stack textarea {
+    width: 100%;
+    min-height: 54px;
+    border: 1px solid rgba(55, 31, 7, 0.16);
+    border-radius: 14px;
+    padding: 0 0.95rem;
+  }
+
+  .field-stack textarea {
+    min-height: 108px;
+    padding-top: 0.85rem;
+    resize: vertical;
+  }
+
+  .photo-choice {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1rem;
+    border: 1px dashed rgba(55, 31, 7, 0.24);
+    border-radius: 18px;
+    background: rgba(255, 250, 238, 0.72);
+  }
+
+  .photo-choice input {
+    width: 100%;
+  }
+
+  .field-error,
+  .form-error {
+    color: var(--error-color);
+    font-size: 0.9rem;
+    font-weight: 850;
+  }
+
+  .form-error {
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: rgba(160, 63, 31, 0.1);
+  }
+
+  .onboard-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  @media (min-width: 560px) {
+    .onboard-actions {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
+
+<section class="onboard-shell">
+  <form class="onboard-card" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="progress">Step {{ step }} of 3</div>
+    {% if errors.form %}<div class="form-error" role="alert">{{ errors.form }}</div>{% endif %}
+
+    {% if step == 1 %}
+      <h1>What do you do?</h1>
+      <p>Pick as many as fit. You can change this later.</p>
+      <div class="role-grid">
+        {% for role in roles %}
+          <label class="role-choice">
+            <input type="checkbox" name="roles" value="{{ role }}" {% if role in (user.role or '') %}checked{% endif %}>
+            {{ role }}
+          </label>
+        {% endfor %}
+      </div>
+      <div class="onboard-actions">
+        <button class="button primary" type="submit">Continue</button>
+        <button class="button secondary" type="submit" name="skip" value="1">Skip for Now</button>
+      </div>
+    {% elif step == 2 %}
+      <h1>Tell us about your sound</h1>
+      <p>Keep it short. This helps people find you.</p>
+      <div class="field-stack">
+        <label for="genre">Primary genre
+          <input id="genre" name="genre" value="{{ user.genre or '' }}" placeholder="Gospel, R&B, jazz, trap">
+        </label>
+        <label for="location">City or location
+          <input id="location" name="location" value="{{ user.city or '' }}{% if user.state %}, {{ user.state }}{% endif %}" placeholder="Jackson, MS">
+        </label>
+        <label for="bio">Short introduction
+          <textarea id="bio" name="bio" placeholder="Tell people what you make, play, or book.">{{ user.bio or '' }}</textarea>
+        </label>
+      </div>
+      <div class="onboard-actions">
+        <button class="button primary" type="submit">Continue</button>
+        <button class="button secondary" type="submit" name="skip" value="1">Skip for Now</button>
+      </div>
+    {% else %}
+      <h1>Add a photo</h1>
+      <p>A clear photo helps artists, venues, and collaborators recognize you. You can skip this.</p>
+      <div class="photo-choice">
+        {% if user.avatar_url and not user.profile_pic %}
+          <strong>Your Google or Brent &amp; Co profile photo is already available.</strong>
+        {% endif %}
+        <label for="profile_pic">Upload profile photo</label>
+        <input id="profile_pic" name="profile_pic" type="file" accept="image/*">
+        {% if errors.photo %}<span class="field-error" role="alert">{{ errors.photo }}</span>{% endif %}
+      </div>
+      <div class="onboard-actions">
+        <button class="button primary" type="submit">Finish My Profile</button>
+        <button class="button secondary" type="submit" name="skip" value="1">Skip for Now</button>
+      </div>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}
