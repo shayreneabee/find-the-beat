@@ -7,6 +7,7 @@ import math
 import os
 import re
 import secrets
+import shutil
 import sqlite3
 import smtplib
 import time
@@ -44,6 +45,18 @@ PHOTO_DIR = UPLOAD_DIR / "photos"
 VIDEO_DIR = UPLOAD_DIR / "videos"
 AUDIO_DIR = UPLOAD_DIR / "audio"
 DB_PATH = Path(os.getenv("DATABASE_PATH", INSTANCE_DIR / "find_the_beat_v2.db"))
+EXPECTED_PRODUCTION_DATA_DIR = Path("/var/data")
+EXPECTED_PRODUCTION_DB_PATH = EXPECTED_PRODUCTION_DATA_DIR / "find_the_beat_v2.db"
+EXPECTED_PRODUCTION_INSTANCE_DIR = EXPECTED_PRODUCTION_DATA_DIR / "instance"
+EXPECTED_PRODUCTION_UPLOAD_DIR = EXPECTED_PRODUCTION_DATA_DIR / "uploads"
+BUILD_COMMIT = (
+    os.getenv("RENDER_GIT_COMMIT")
+    or os.getenv("RENDER_COMMIT")
+    or os.getenv("COMMIT_SHA")
+    or "local"
+)
+BUILD_BRANCH = os.getenv("RENDER_GIT_BRANCH") or os.getenv("RENDER_BRANCH") or os.getenv("GIT_BRANCH") or "unknown"
+RENDER_SERVICE_NAME = os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_SLUG") or ""
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
@@ -570,14 +583,67 @@ if os.getenv("TRUST_PROXY", "1") == "1":
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 
+def is_production_runtime():
+    return any(
+        os.getenv(name)
+        for name in ("RENDER", "RENDER_SERVICE_ID", "RENDER_EXTERNAL_HOSTNAME", "RENDER_SERVICE_NAME")
+    ) or os.getenv("FLASK_ENV", "").lower() == "production" or os.getenv("APP_ENV", "").lower() == "production"
+
+
+def resolved_path(path):
+    return Path(path).expanduser().resolve(strict=False)
+
+
+def path_within(path, parent):
+    try:
+        resolved_path(path).relative_to(resolved_path(parent))
+        return True
+    except ValueError:
+        return False
+
+
+def validate_storage_configuration():
+    if not is_production_runtime():
+        return
+    required_env = {
+        "DATABASE_PATH": os.getenv("DATABASE_PATH", ""),
+        "INSTANCE_DIR": os.getenv("INSTANCE_DIR", ""),
+        "UPLOAD_DIR": os.getenv("UPLOAD_DIR", ""),
+    }
+    missing = [key for key, value in required_env.items() if not value]
+    if missing:
+        raise RuntimeError(
+            "Production storage is not configured. Missing: "
+            + ", ".join(missing)
+            + ". Refusing to start with a repository-local or temporary SQLite fallback."
+        )
+    if resolved_path(DB_PATH) != resolved_path(EXPECTED_PRODUCTION_DB_PATH):
+        raise RuntimeError(f"Production DATABASE_PATH must be {EXPECTED_PRODUCTION_DB_PATH}; got {DB_PATH}.")
+    if resolved_path(INSTANCE_DIR) != resolved_path(EXPECTED_PRODUCTION_INSTANCE_DIR):
+        raise RuntimeError(f"Production INSTANCE_DIR must be {EXPECTED_PRODUCTION_INSTANCE_DIR}; got {INSTANCE_DIR}.")
+    if resolved_path(UPLOAD_DIR) != resolved_path(EXPECTED_PRODUCTION_UPLOAD_DIR):
+        raise RuntimeError(f"Production UPLOAD_DIR must be {EXPECTED_PRODUCTION_UPLOAD_DIR}; got {UPLOAD_DIR}.")
+    for label, path in {"DATABASE_PATH": DB_PATH, "INSTANCE_DIR": INSTANCE_DIR, "UPLOAD_DIR": UPLOAD_DIR}.items():
+        if not path_within(path, EXPECTED_PRODUCTION_DATA_DIR):
+            raise RuntimeError(f"{label} must live on the persistent Render disk at {EXPECTED_PRODUCTION_DATA_DIR}; got {path}.")
+        if path_within(path, BASE_DIR) or str(resolved_path(path)).lower().startswith(("/tmp", "/var/tmp")):
+            raise RuntimeError(f"{label} points to non-persistent storage: {path}.")
+
+
+validate_storage_configuration()
+
+
 for folder in (INSTANCE_DIR, UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR, AUDIO_DIR):
     folder.mkdir(parents=True, exist_ok=True)
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = sqlite3.connect(DB_PATH, timeout=int(os.getenv("SQLITE_TIMEOUT_SECONDS", "30")))
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 30000")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
     return conn
 
 
@@ -1047,6 +1113,22 @@ def init_db():
             WHERE COALESCE(source_name, '') != '' AND COALESCE(external_id, '') != ''
             """
         )
+        for statement in (
+            "CREATE INDEX IF NOT EXISTS idx_users_email_normalized ON users(lower(trim(email)))",
+            "CREATE INDEX IF NOT EXISTS idx_users_username_normalized ON users(lower(trim(username)))",
+            "CREATE INDEX IF NOT EXISTS idx_users_public_search ON users(is_admin, is_founder, is_verified, role, genre, city, state)",
+            "CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_profiles_visibility ON profiles(profile_visibility)",
+            "CREATE INDEX IF NOT EXISTS idx_music_profiles_user_id ON music_profiles(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_performances_profile_id ON performances(profile_id)",
+            "CREATE INDEX IF NOT EXISTS idx_performances_created_at ON performances(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id)",
+            "CREATE INDEX IF NOT EXISTS idx_messages_recipient_id ON messages(recipient_id)",
+            "CREATE INDEX IF NOT EXISTS idx_profile_follows_followed_id ON profile_follows(followed_id)",
+            "CREATE INDEX IF NOT EXISTS idx_profile_follows_follower_id ON profile_follows(follower_id)",
+            "CREATE INDEX IF NOT EXISTS idx_activity_log_user_id ON activity_log(user_id)",
+        ):
+            conn.execute(statement)
 
 
 def allowed_file(filename, allowed_extensions):
@@ -1071,7 +1153,10 @@ def save_upload(file_storage, allowed_extensions, destination):
     original = secure_filename(file_storage.filename)
     extension = original.rsplit(".", 1)[1].lower()
     filename = f"{secrets.token_hex(12)}.{extension}"
-    file_storage.save(destination / filename)
+    saved_path = destination / filename
+    file_storage.save(saved_path)
+    if not saved_path.exists() or saved_path.stat().st_size <= 0:
+        raise ValueError("The upload could not be saved. Please try again.")
     return filename
 
 
@@ -1083,6 +1168,13 @@ def remove_upload(filename):
         path = folder / filename
         if path.exists() and path.is_file():
             path.unlink()
+
+
+def remove_replaced_uploads(old_pic="", old_video="", new_pic="", new_video=""):
+    if old_pic and old_pic != new_pic:
+        remove_upload(old_pic)
+    if old_video and old_video != new_video:
+        remove_upload(old_video)
 
 
 def brent_account_id(email):
@@ -1438,10 +1530,8 @@ def uploaded_profile_media(current_pic="", current_video=""):
         VIDEO_DIR,
     )
     if new_pic:
-        remove_upload(profile_pic)
         profile_pic = new_pic
     if new_video:
-        remove_upload(profile_video)
         profile_video = new_video
     return profile_pic, profile_video
 
@@ -4170,7 +4260,13 @@ def post_opportunity():
 
 @app.route("/healthz")
 def healthz():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "app": "find-the-beat",
+        "service": RENDER_SERVICE_NAME or "local",
+        "branch": BUILD_BRANCH,
+        "commit": BUILD_COMMIT[:12],
+    }
 
 
 @app.route("/admin")
@@ -4415,8 +4511,6 @@ def admin_media_status():
             "database_exists": DB_PATH.exists(),
             "upload_dir": str(UPLOAD_DIR),
             "upload_dir_exists": UPLOAD_DIR.exists(),
-            "sso_shared_secret_present": bool(SSO_SHARED_SECRET),
-            "sso_shared_secret_fingerprint": hashlib.sha256(SSO_SHARED_SECRET.encode("utf-8")).hexdigest()[:12],
             "video_dir": str(VIDEO_DIR),
             "audio_dir": str(AUDIO_DIR),
             "photo_dir": str(PHOTO_DIR),
@@ -4430,6 +4524,308 @@ def admin_media_status():
             "total_performances": conn.execute("SELECT COUNT(*) FROM performances").fetchone()[0],
         }
     return jsonify(report)
+
+
+def safe_path_status(path):
+    path = Path(path)
+    exists = path.exists()
+    stat = path.stat() if exists else None
+    return {
+        "path": str(path),
+        "absolute_path": str(resolved_path(path)),
+        "exists": exists,
+        "is_file": path.is_file() if exists else False,
+        "is_dir": path.is_dir() if exists else False,
+        "writable": os.access(path if exists else path.parent, os.W_OK),
+        "size_bytes": stat.st_size if stat and path.is_file() else None,
+        "modified_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime)) if stat else "",
+    }
+
+
+def table_count(conn, table):
+    return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
+
+def upload_bucket_files():
+    buckets = {"photos": PHOTO_DIR, "audio": AUDIO_DIR, "video": VIDEO_DIR}
+    files = {}
+    for bucket, folder in buckets.items():
+        if folder.exists():
+            files[bucket] = {path.name for path in folder.iterdir() if path.is_file()}
+        else:
+            files[bucket] = set()
+    return files
+
+
+def media_reference_rows(conn):
+    refs = []
+    def is_upload_filename(value):
+        raw = value or ""
+        return bool(raw) and "://" not in raw and not raw.startswith(("/static/", "static/"))
+
+    user_rows = conn.execute(
+        """
+        SELECT id, profile_pic, profile_photo, profile_video
+        FROM users
+        WHERE COALESCE(profile_pic, '') != ''
+           OR COALESCE(profile_photo, '') != ''
+           OR COALESCE(profile_video, '') != ''
+        """
+    ).fetchall()
+    for row in user_rows:
+        for field, bucket in (("profile_pic", "photos"), ("profile_photo", "photos"), ("profile_video", "video")):
+            filename = Path(row[field] or "").name
+            if filename and is_upload_filename(row[field]):
+                refs.append({"table": "users", "record_id": row["id"], "field": field, "bucket": bucket, "filename": filename})
+
+    perf_rows = conn.execute(
+        """
+        SELECT id, video_filename, audio_filename, image_filename, thumb_filename, thumbnail_url
+        FROM performances
+        WHERE COALESCE(video_filename, '') != ''
+           OR COALESCE(audio_filename, '') != ''
+           OR COALESCE(image_filename, '') != ''
+           OR COALESCE(thumb_filename, '') != ''
+           OR COALESCE(thumbnail_url, '') != ''
+        """
+    ).fetchall()
+    for row in perf_rows:
+        for field, bucket in (
+            ("video_filename", "video"),
+            ("audio_filename", "audio"),
+            ("image_filename", "photos"),
+            ("thumb_filename", "photos"),
+            ("thumbnail_url", "photos"),
+        ):
+            raw = row[field] or ""
+            filename = Path(raw).name
+            if filename and is_upload_filename(raw):
+                refs.append({"table": "performances", "record_id": row["id"], "field": field, "bucket": bucket, "filename": filename})
+    return refs
+
+
+def find_missing_media(conn):
+    files = upload_bucket_files()
+    missing = []
+    referenced = {"photos": set(), "audio": set(), "video": set()}
+    for ref in media_reference_rows(conn):
+        referenced[ref["bucket"]].add(ref["filename"])
+        if ref["filename"] not in files.get(ref["bucket"], set()):
+            missing.append(ref)
+    unreferenced = []
+    for bucket, filenames in files.items():
+        for filename in sorted(filenames - referenced.get(bucket, set())):
+            unreferenced.append({"bucket": bucket, "filename": filename})
+    return missing, unreferenced, files
+
+
+def storage_integrity_report():
+    var_data = EXPECTED_PRODUCTION_DATA_DIR
+    with get_db() as conn:
+        missing_media, unreferenced_media, files = find_missing_media(conn)
+        duplicate_emails = [
+            {
+                "email_hash": hashlib.sha256((row["normalized_email"] or "").encode("utf-8")).hexdigest()[:12],
+                "count": row["count"],
+            }
+            for row in conn.execute(
+                """
+                SELECT lower(trim(email)) AS normalized_email, COUNT(*) AS count
+                FROM users
+                WHERE COALESCE(email, '') != ''
+                GROUP BY lower(trim(email))
+                HAVING COUNT(*) > 1
+                ORDER BY count DESC
+                """
+            ).fetchall()
+        ]
+        duplicate_usernames = [
+            {"username": row["normalized_username"], "count": row["count"]}
+            for row in conn.execute(
+                """
+                SELECT lower(trim(username)) AS normalized_username, COUNT(*) AS count
+                FROM users
+                WHERE COALESCE(username, '') != ''
+                GROUP BY lower(trim(username))
+                HAVING COUNT(*) > 1
+                ORDER BY count DESC
+                """
+            ).fetchall()
+        ]
+        recent_users = [
+            dict(row)
+            for row in conn.execute(
+                """
+                SELECT id, display_name, username, role, city, state, created_at, updated_at, provider, auth_provider
+                FROM users
+                ORDER BY datetime(created_at) DESC, id DESC
+                LIMIT 10
+                """
+            ).fetchall()
+        ]
+        recent_profiles = [
+            dict(row)
+            for row in conn.execute(
+                """
+                SELECT p.user_id, u.display_name, p.profile_visibility, p.profile_completion_percentage,
+                       p.created_at, p.updated_at
+                FROM profiles p
+                LEFT JOIN users u ON u.id = p.user_id
+                ORDER BY datetime(p.created_at) DESC, p.user_id DESC
+                LIMIT 10
+                """
+            ).fetchall()
+        ]
+        recent_performances = [
+            dict(row)
+            for row in conn.execute(
+                """
+                SELECT p.id, p.profile_id, u.display_name, p.title, p.media_type, p.created_at
+                FROM performances p
+                LEFT JOIN users u ON u.id = p.profile_id
+                ORDER BY datetime(p.created_at) DESC, p.id DESC
+                LIMIT 10
+                """
+            ).fetchall()
+        ]
+        visibility_status = [dict(row) for row in conn.execute(
+            "SELECT COALESCE(profile_visibility, 'public') AS status, COUNT(*) AS count FROM profiles GROUP BY COALESCE(profile_visibility, 'public')"
+        ).fetchall()]
+        source_app_status = [dict(row) for row in conn.execute(
+            "SELECT COALESCE(source_app, 'unknown') AS source_app, COUNT(*) AS count FROM music_profiles GROUP BY COALESCE(source_app, 'unknown')"
+        ).fetchall()]
+        fk_check = [dict(row) for row in conn.execute("PRAGMA foreign_key_check").fetchall()]
+        report = {
+            "storage": {
+                "database": safe_path_status(DB_PATH),
+                "instance_dir": safe_path_status(INSTANCE_DIR),
+                "upload_dir": safe_path_status(UPLOAD_DIR),
+                "var_data": safe_path_status(var_data),
+                "expected_database_path": str(EXPECTED_PRODUCTION_DB_PATH),
+                "expected_upload_dir": str(EXPECTED_PRODUCTION_UPLOAD_DIR),
+                "production_runtime": is_production_runtime(),
+                "database_on_persistent_disk": path_within(DB_PATH, var_data),
+                "uploads_on_persistent_disk": path_within(UPLOAD_DIR, var_data),
+            },
+            "render": {
+                "service_name": RENDER_SERVICE_NAME,
+                "branch": BUILD_BRANCH,
+                "commit": BUILD_COMMIT[:12],
+            },
+            "counts": {
+                "users": table_count(conn, "users"),
+                "profiles": table_count(conn, "profiles"),
+                "music_profiles": table_count(conn, "music_profiles"),
+                "performances": table_count(conn, "performances"),
+                "showcases": conn.execute(
+                    "SELECT COUNT(*) FROM performances WHERE is_featured = 1 OR COALESCE(media_type, '') != ''"
+                ).fetchone()[0],
+                "upload_records": conn.execute(
+                    """
+                    SELECT COUNT(*) FROM performances
+                    WHERE COALESCE(video_filename, '') != ''
+                       OR COALESCE(audio_filename, '') != ''
+                       OR COALESCE(image_filename, '') != ''
+                       OR COALESCE(thumb_filename, '') != ''
+                       OR COALESCE(external_url, '') != ''
+                    """
+                ).fetchone()[0],
+                "upload_files_photos": len(files["photos"]),
+                "upload_files_audio": len(files["audio"]),
+                "upload_files_video": len(files["video"]),
+            },
+            "orphans": {
+                "users_without_profiles": conn.execute(
+                    "SELECT COUNT(*) FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE p.user_id IS NULL"
+                ).fetchone()[0],
+                "profiles_without_users": conn.execute(
+                    "SELECT COUNT(*) FROM profiles p LEFT JOIN users u ON u.id = p.user_id WHERE u.id IS NULL"
+                ).fetchone()[0],
+                "music_profiles_without_users": conn.execute(
+                    "SELECT COUNT(*) FROM music_profiles mp LEFT JOIN users u ON u.id = mp.user_id WHERE u.id IS NULL"
+                ).fetchone()[0],
+                "performances_without_profiles": conn.execute(
+                    "SELECT COUNT(*) FROM performances p LEFT JOIN users u ON u.id = p.profile_id WHERE u.id IS NULL"
+                ).fetchone()[0],
+                "profiles_with_missing_owners": conn.execute(
+                    "SELECT COUNT(*) FROM profiles p LEFT JOIN users u ON u.id = p.user_id WHERE u.id IS NULL"
+                ).fetchone()[0],
+            },
+            "media": {
+                "missing_media_count": len(missing_media),
+                "missing_media": missing_media[:50],
+                "unreferenced_media_count": len(unreferenced_media),
+                "unreferenced_media": unreferenced_media[:50],
+            },
+            "duplicates": {
+                "normalized_emails": duplicate_emails,
+                "usernames": duplicate_usernames,
+            },
+            "integrity": {
+                "foreign_key_errors": fk_check[:50],
+                "foreign_key_error_count": len(fk_check),
+                "legacy_table_records": {
+                    "music_profiles": table_count(conn, "music_profiles"),
+                },
+            },
+            "discovery": {
+                "visibility_status": visibility_status,
+                "source_app_status": source_app_status,
+                "users_missing_display_name": conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE COALESCE(display_name, '') = ''"
+                ).fetchone()[0],
+                "users_without_role": conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE COALESCE(role, '') = ''"
+                ).fetchone()[0],
+                "users_without_photo": conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE COALESCE(profile_pic, '') = '' AND COALESCE(avatar_url, '') = ''"
+                ).fetchone()[0],
+            },
+            "recent": {
+                "users": recent_users,
+                "profiles": recent_profiles,
+                "performances": recent_performances,
+            },
+        }
+    return report
+
+
+def create_database_backup():
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"Database file does not exist: {DB_PATH}")
+    backup_dir = DB_PATH.parent / "backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    backup_path = backup_dir / f"{DB_PATH.stem}-{timestamp}.db"
+    if backup_path.exists():
+        raise FileExistsError(f"Backup already exists: {backup_path}")
+    shutil.copy2(DB_PATH, backup_path)
+    return backup_path
+
+
+@app.route("/admin/storage")
+@admin_required
+def admin_storage():
+    return render_template("admin_storage.html", report=storage_integrity_report())
+
+
+@app.route("/admin/storage.json")
+@admin_required
+def admin_storage_json():
+    return jsonify(storage_integrity_report())
+
+
+@app.route("/admin/storage/backup", methods=["POST"])
+@admin_required
+def admin_storage_backup():
+    try:
+        backup_path = create_database_backup()
+    except Exception as exc:
+        app.logger.exception("Database backup failed")
+        flash(f"Database backup failed: {exc}")
+        return redirect(url_for("admin_storage"))
+    flash(f"Database backup created at {backup_path} ({backup_path.stat().st_size} bytes).")
+    return redirect(url_for("admin_storage"))
 
 
 @app.route("/search")
@@ -4784,11 +5180,15 @@ def delete_performance(perf_id):
             flash("You can only delete your own uploads.")
             return redirect(url_for("my_uploads"))
         perf = row_to_performance(row, user)
-        remove_upload(perf.video_filename)
-        remove_upload(perf.audio_filename)
-        remove_upload(perf.image_filename)
-        remove_upload(perf.thumb_filename)
-        conn.execute("DELETE FROM performances WHERE id = ?", (perf_id,))
+        filenames = (perf.video_filename, perf.audio_filename, perf.image_filename, perf.thumb_filename)
+        try:
+            conn.execute("DELETE FROM performances WHERE id = ?", (perf_id,))
+        except sqlite3.Error:
+            app.logger.exception("Performance delete database write failed")
+            flash("Upload could not be deleted. Please try again.")
+            return redirect(url_for("my_uploads"))
+    for filename in filenames:
+        remove_upload(filename)
     flash("Upload deleted.")
     return redirect(url_for("my_uploads"))
 
@@ -4848,16 +5248,32 @@ def upload_performance():
             flash("Add a video, audio demo, image, or media link.")
             return redirect(url_for("upload_performance"))
 
-        perf_id = create_performance(
-            profile.id,
-            title,
-            description,
-            video_filename,
-            audio_filename,
-            image_filename,
-            thumb_filename,
-            external_url,
-        )
+        try:
+            perf_id = create_performance(
+                profile.id,
+                title,
+                description,
+                video_filename,
+                audio_filename,
+                image_filename,
+                thumb_filename,
+                external_url,
+            )
+        except sqlite3.Error:
+            app.logger.exception("Performance upload database write failed")
+            for filename in (video_filename, audio_filename, image_filename, thumb_filename):
+                remove_upload(filename)
+            flash("The upload could not be saved. Please try again.")
+            return redirect(url_for("upload_performance"))
+        saved_perf = None
+        with get_db() as conn:
+            saved_perf = conn.execute("SELECT id FROM performances WHERE id = ?", (perf_id,)).fetchone()
+        if not saved_perf:
+            app.logger.error("Performance upload commit verification failed for id=%s", perf_id)
+            for filename in (video_filename, audio_filename, image_filename, thumb_filename):
+                remove_upload(filename)
+            flash("The upload could not be confirmed. Please try again.")
+            return redirect(url_for("upload_performance"))
         log_activity(
             user.id,
             "performance_uploaded",
@@ -4884,20 +5300,32 @@ def performance_new():
 @login_required
 def upload_media():
     user = current_user()
+    old_pic = user.profile_pic
+    old_video = user.profile_video
     try:
         profile_pic, profile_video = uploaded_profile_media(
-            user.profile_pic,
-            user.profile_video,
+            old_pic,
+            old_video,
         )
     except ValueError as exc:
         flash(str(exc))
         return redirect(url_for("edit_profile"))
 
-    with get_db() as conn:
-        conn.execute(
-            "UPDATE users SET avatar_url = ?, profile_pic = ?, profile_video = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (profile_pic, profile_pic, profile_video, user.id),
-        )
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE users SET avatar_url = ?, profile_pic = ?, profile_video = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (profile_pic, profile_pic, profile_video, user.id),
+            )
+    except sqlite3.Error:
+        app.logger.exception("Profile media database write failed")
+        if profile_pic != old_pic:
+            remove_upload(profile_pic)
+        if profile_video != old_video:
+            remove_upload(profile_video)
+        flash("Media could not be saved to your profile. Please try again.")
+        return redirect(url_for("edit_profile"))
+    remove_replaced_uploads(old_pic, old_video, profile_pic, profile_video)
     flash("Media uploaded.")
     return redirect(url_for("profile"))
 
@@ -5239,16 +5667,28 @@ def edit_profile(profile_id=None):
             flash("Display name is required.")
             return redirect(url_for("edit_profile"))
 
+        old_pic = user.profile_pic
+        old_video = user.profile_video
         try:
             profile_pic, profile_video = uploaded_profile_media(
-                user.profile_pic,
-                user.profile_video,
+                old_pic,
+                old_video,
             )
         except ValueError as exc:
             flash(str(exc))
             return redirect(url_for("edit_profile"))
 
-        update_user_profile(user.id, fields, profile_pic, profile_video)
+        try:
+            update_user_profile(user.id, fields, profile_pic, profile_video)
+        except sqlite3.Error:
+            app.logger.exception("Profile update database write failed")
+            if profile_pic != old_pic:
+                remove_upload(profile_pic)
+            if profile_video != old_video:
+                remove_upload(profile_video)
+            flash("Profile changes could not be saved. Please try again.")
+            return redirect(url_for("edit_profile"))
+        remove_replaced_uploads(old_pic, old_video, profile_pic, profile_video)
         flash("Profile updated.")
         return redirect(safe_redirect_target(session.pop("post_profile_redirect", "")) or url_for("profile"))
 
@@ -5264,20 +5704,23 @@ def delete_profile(profile_id=None):
         flash("You can only delete your own profile.")
         return redirect(url_for("profile_detail", profile_id=profile_id))
 
-    remove_upload(user.profile_pic)
-    remove_upload(user.profile_video)
+    filenames = [user.profile_pic, user.profile_video]
     with get_db() as conn:
         for perf in get_performances(profile_id=user.id):
-            remove_upload(perf.video_filename)
-            remove_upload(perf.audio_filename)
-            remove_upload(perf.image_filename)
-            remove_upload(perf.thumb_filename)
-        conn.execute("DELETE FROM performances WHERE profile_id = ?", (user.id,))
-        conn.execute(
-            "DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?",
-            (user.id, user.id),
-        )
-        conn.execute("DELETE FROM users WHERE id = ?", (user.id,))
+            filenames.extend([perf.video_filename, perf.audio_filename, perf.image_filename, perf.thumb_filename])
+        try:
+            conn.execute("DELETE FROM performances WHERE profile_id = ?", (user.id,))
+            conn.execute(
+                "DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?",
+                (user.id, user.id),
+            )
+            conn.execute("DELETE FROM users WHERE id = ?", (user.id,))
+        except sqlite3.Error:
+            app.logger.exception("Profile delete database write failed")
+            flash("Profile could not be deleted. Please try again.")
+            return redirect(url_for("profile"))
+    for filename in filenames:
+        remove_upload(filename)
     session.clear()
     flash("Your profile has been deleted.")
     return redirect(url_for("home"))
@@ -5287,9 +5730,15 @@ def delete_profile(profile_id=None):
 @login_required
 def delete_profile_photo():
     user = current_user()
-    remove_upload(user.profile_pic)
-    with get_db() as conn:
-        conn.execute("UPDATE users SET profile_pic = '' WHERE id = ?", (user.id,))
+    old_pic = user.profile_pic
+    try:
+        with get_db() as conn:
+            conn.execute("UPDATE users SET profile_pic = '', avatar_url = '' WHERE id = ?", (user.id,))
+    except sqlite3.Error:
+        app.logger.exception("Profile photo delete database write failed")
+        flash("Profile picture could not be removed. Please try again.")
+        return redirect(url_for("profile"))
+    remove_upload(old_pic)
     flash("Profile picture removed.")
     return redirect(url_for("profile"))
 
@@ -5298,9 +5747,15 @@ def delete_profile_photo():
 @login_required
 def delete_profile_video():
     user = current_user()
-    remove_upload(user.profile_video)
-    with get_db() as conn:
-        conn.execute("UPDATE users SET profile_video = '' WHERE id = ?", (user.id,))
+    old_video = user.profile_video
+    try:
+        with get_db() as conn:
+            conn.execute("UPDATE users SET profile_video = '' WHERE id = ?", (user.id,))
+    except sqlite3.Error:
+        app.logger.exception("Profile video delete database write failed")
+        flash("Profile video could not be removed. Please try again.")
+        return redirect(url_for("profile"))
+    remove_upload(old_video)
     flash("Profile video removed.")
     return redirect(url_for("profile"))
 

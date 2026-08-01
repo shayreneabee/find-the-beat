@@ -265,6 +265,22 @@
     </article>
 
     <article class="control-panel">
+      <h2>Storage Integrity</h2>
+      <ul class="admin-list">
+        <li>
+          <strong>Signup &amp; Profile Storage Debug</strong>
+          <span>Check database path, persistent uploads, orphaned records, and missing media before production repairs.</span>
+          <span class="admin-meta"><a href="{{ url_for('admin_storage') }}">Open storage audit</a></span>
+        </li>
+        <li>
+          <strong>Media status JSON</strong>
+          <span>Founder-only raw diagnostic response for profile and showcase storage.</span>
+          <span class="admin-meta"><a href="{{ url_for('admin_storage_json') }}">Open safe JSON report</a></span>
+        </li>
+      </ul>
+    </article>
+
+    <article class="control-panel">
       <h2>Most Used Features</h2>
       <ul class="admin-list">
         {% for row in analytics.top_features %}

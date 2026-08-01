@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Storage Integrity | Find The Beat{% endblock %}
+
+{% block head %}
+<style>
+  .storage-page {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .storage-hero,
+  .storage-panel {
+    border: 1px solid rgba(89, 54, 23, 0.15);
+    border-radius: 1.1rem;
+    background: rgba(255, 250, 238, 0.96);
+    box-shadow: 0 14px 34px rgba(74, 39, 11, 0.11);
+  }
+
+  .storage-hero {
+    padding: clamp(1rem, 4vw, 1.8rem);
+  }
+
+  .storage-hero h1 {
+    margin: 0;
+    color: #321b0d;
+    font-size: clamp(2rem, 6vw, 4rem);
+    letter-spacing: 0;
+  }
+
+  .storage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .storage-panel {
+    overflow: hidden;
+  }
+
+  .storage-panel h2 {
+    margin: 0;
+    padding: 1rem 1rem 0.7rem;
+    color: #321b0d;
+    font-size: 1.1rem;
+  }
+
+  .storage-list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0 1rem 1rem;
+    list-style: none;
+  }
+
+  .storage-list li {
+    display: grid;
+    gap: 0.18rem;
+    padding: 0.68rem 0;
+    border-top: 1px solid rgba(89, 54, 23, 0.12);
+    color: #5f4a3f;
+  }
+
+  .storage-list strong {
+    color: #2b1a12;
+  }
+
+  .storage-meta {
+    color: #8a6b4a;
+    font-size: 0.86rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .ok {
+    color: #176f42;
+  }
+
+  .warn {
+    color: #a03f1f;
+  }
+
+  .storage-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    padding: 0 1rem 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="storage-page">
+  <header class="storage-hero">
+    <p class="eyebrow">Founder-only storage audit</p>
+    <h1>Signup &amp; Profile Storage Debug</h1>
+    <p>Read-only integrity report for accounts, profiles, performances, showcases, and uploaded media. Back up before any production repair.</p>
+    <div class="storage-actions">
+      <a class="button secondary" href="{{ url_for('admin_dashboard') }}">Back to Admin</a>
+      <a class="button secondary" href="{{ url_for('admin_storage_json') }}">View JSON</a>
+      <form method="POST" action="{{ url_for('admin_storage_backup') }}">
+        <button class="button primary" type="submit">Create Database Backup</button>
+      </form>
+    </div>
+  </header>
+
+  <section class="storage-grid">
+    <article class="storage-panel">
+      <h2>Active Storage</h2>
+      <ul class="storage-list">
+        <li><strong>Database path</strong><span class="storage-meta">{{ report.storage.database.absolute_path }}</span></li>
+        <li><strong>Instance dir</strong><span class="storage-meta">{{ report.storage.instance_dir.absolute_path }}</span></li>
+        <li><strong>Upload dir</strong><span class="storage-meta">{{ report.storage.upload_dir.absolute_path }}</span></li>
+        <li><strong>/var/data exists</strong><span class="{{ 'ok' if report.storage.var_data.exists else 'warn' }}">{{ report.storage.var_data.exists }}</span></li>
+        <li><strong>/var/data writable</strong><span class="{{ 'ok' if report.storage.var_data.writable else 'warn' }}">{{ report.storage.var_data.writable }}</span></li>
+        <li><strong>Database exists</strong><span class="{{ 'ok' if report.storage.database.exists else 'warn' }}">{{ report.storage.database.exists }}</span></li>
+        <li><strong>Database size</strong><span>{{ report.storage.database.size_bytes or 0 }} bytes</span></li>
+        <li><strong>Database modified</strong><span>{{ report.storage.database.modified_at or "not found" }}</span></li>
+        <li><strong>Uploads on persistent disk</strong><span class="{{ 'ok' if report.storage.uploads_on_persistent_disk else 'warn' }}">{{ report.storage.uploads_on_persistent_disk }}</span></li>
+      </ul>
+    </article>
+
+    <article class="storage-panel">
+      <h2>Deployment</h2>
+      <ul class="storage-list">
+        <li><strong>Service</strong><span>{{ report.render.service_name or "not exposed" }}</span></li>
+        <li><strong>Branch</strong><span>{{ report.render.branch }}</span></li>
+        <li><strong>Commit</strong><span>{{ report.render.commit }}</span></li>
+        <li><strong>Production runtime</strong><span>{{ report.storage.production_runtime }}</span></li>
+      </ul>
+    </article>
+
+    <article class="storage-panel">
+      <h2>Counts</h2>
+      <ul class="storage-list">
+        <li><strong>Total users</strong><span>{{ report.counts.users }}</span></li>
+        <li><strong>Total profiles</strong><span>{{ report.counts.profiles }}</span></li>
+        <li><strong>Music profiles</strong><span>{{ report.counts.music_profiles }}</span></li>
+        <li><strong>Performances</strong><span>{{ report.counts.performances }}</span></li>
+        <li><strong>Showcases</strong><span>{{ report.counts.showcases }}</span></li>
+        <li><strong>Upload records</strong><span>{{ report.counts.upload_records }}</span></li>
+        <li><strong>Photo files</strong><span>{{ report.counts.upload_files_photos }}</span></li>
+        <li><strong>Audio files</strong><span>{{ report.counts.upload_files_audio }}</span></li>
+        <li><strong>Video files</strong><span>{{ report.counts.upload_files_video }}</span></li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="storage-grid">
+    <article class="storage-panel">
+      <h2>Orphans</h2>
+      <ul class="storage-list">
+        {% for label, count in report.orphans.items() %}
+          <li><strong>{{ label.replace("_", " ")|title }}</strong><span class="{{ 'ok' if count == 0 else 'warn' }}">{{ count }}</span></li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="storage-panel">
+      <h2>Media Integrity</h2>
+      <ul class="storage-list">
+        <li><strong>Missing media records</strong><span class="{{ 'ok' if report.media.missing_media_count == 0 else 'warn' }}">{{ report.media.missing_media_count }}</span></li>
+        <li><strong>Unreferenced media files</strong><span class="{{ 'ok' if report.media.unreferenced_media_count == 0 else 'warn' }}">{{ report.media.unreferenced_media_count }}</span></li>
+        {% for item in report.media.missing_media %}
+          <li><strong>{{ item.table }} #{{ item.record_id }}</strong><span class="storage-meta">{{ item.field }} expects {{ item.bucket }}/{{ item.filename }}</span></li>
+        {% else %}
+          <li><strong>No missing media references found.</strong></li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="storage-panel">
+      <h2>Duplicates &amp; Foreign Keys</h2>
+      <ul class="storage-list">
+        <li><strong>Duplicate normalized emails</strong><span class="{{ 'ok' if report.duplicates.normalized_emails|length == 0 else 'warn' }}">{{ report.duplicates.normalized_emails|length }}</span></li>
+        <li><strong>Duplicate usernames</strong><span class="{{ 'ok' if report.duplicates.usernames|length == 0 else 'warn' }}">{{ report.duplicates.usernames|length }}</span></li>
+        <li><strong>Foreign key errors</strong><span class="{{ 'ok' if report.integrity.foreign_key_error_count == 0 else 'warn' }}">{{ report.integrity.foreign_key_error_count }}</span></li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="storage-grid">
+    <article class="storage-panel">
+      <h2>Profile Visibility</h2>
+      <ul class="storage-list">
+        {% for row in report.discovery.visibility_status %}
+          <li><strong>{{ row.status }}</strong><span>{{ row.count }}</span></li>
+        {% else %}
+          <li>No profile visibility records yet.</li>
+        {% endfor %}
+        <li><strong>Users missing display name</strong><span>{{ report.discovery.users_missing_display_name }}</span></li>
+        <li><strong>Users without role</strong><span>{{ report.discovery.users_without_role }}</span></li>
+        <li><strong>Users without photo</strong><span>{{ report.discovery.users_without_photo }}</span></li>
+      </ul>
+    </article>
+
+    <article class="storage-panel">
+      <h2>Source Application</h2>
+      <ul class="storage-list">
+        {% for row in report.discovery.source_app_status %}
+          <li><strong>{{ row.source_app }}</strong><span>{{ row.count }}</span></li>
+        {% else %}
+          <li>No source app records yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="storage-grid">
+    <article class="storage-panel">
+      <h2>Recently Created Users</h2>
+      <ul class="storage-list">
+        {% for row in report.recent.users %}
+          <li><strong>#{{ row.id }} {{ row.display_name or row.username or "Unnamed user" }}</strong><span class="storage-meta">{{ row.role or "No role" }} · {{ row.city or "No city" }}{% if row.state %}, {{ row.state }}{% endif %} · {{ row.created_at }}</span></li>
+        {% else %}
+          <li>No users yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="storage-panel">
+      <h2>Recently Created Profiles</h2>
+      <ul class="storage-list">
+        {% for row in report.recent.profiles %}
+          <li><strong>User #{{ row.user_id }} {{ row.display_name or "Unnamed user" }}</strong><span class="storage-meta">{{ row.profile_visibility or "public" }} · {{ row.profile_completion_percentage }}% · {{ row.created_at }}</span></li>
+        {% else %}
+          <li>No profiles yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="storage-panel">
+      <h2>Recently Created Performances</h2>
+      <ul class="storage-list">
+        {% for row in report.recent.performances %}
+          <li><strong>#{{ row.id }} {{ row.title }}</strong><span class="storage-meta">Owner #{{ row.profile_id }} {{ row.display_name or "Missing owner" }} · {{ row.media_type or "media" }} · {{ row.created_at }}</span></li>
+        {% else %}
+          <li>No performances yet.</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+</section>
+{% endblock %}
