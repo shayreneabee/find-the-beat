@@ -15,6 +15,31 @@
     gap: 1rem;
   }
 
+  .map-page .app-panel,
+  .preview-panel,
+  .discovery-record {
+    color: var(--text-primary);
+  }
+
+  .map-page h1,
+  .map-page h2,
+  .map-page h3,
+  .preview-panel h2,
+  .discovery-record h2 {
+    color: var(--heading-color);
+  }
+
+  .map-page p,
+  .preview-panel p,
+  .discovery-record p,
+  .remote-panel > p:not(.hero-kicker) {
+    color: var(--text-secondary);
+  }
+
+  .map-page .hero-kicker {
+    color: var(--text-muted);
+  }
+
   .map-hero,
   .map-controls,
   .map-stage,
@@ -36,8 +61,13 @@
     margin: 0;
   }
 
+  .map-hero h1,
+  .map-hero .hero-kicker {
+    color: var(--text-inverse);
+  }
+
   .map-hero p {
-    color: rgba(255, 250, 238, 0.76);
+    color: rgba(255, 250, 238, 0.88);
   }
 
   .map-controls form {
@@ -52,8 +82,37 @@
     padding: 0 0.85rem;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: var(--cream);
-    color: var(--text);
+    background: var(--field-bg);
+    color: var(--field-text);
+  }
+
+  .map-controls input::placeholder {
+    color: var(--field-placeholder);
+    opacity: 1;
+  }
+
+  .map-controls input:focus,
+  .map-controls select:focus {
+    color: var(--field-text);
+    background: var(--field-bg);
+  }
+
+  .map-controls label,
+  .map-controls option {
+    color: var(--text-primary);
+  }
+
+  .map-page .button.secondary {
+    color: var(--text-primary);
+  }
+
+  .map-page .button.secondary:hover,
+  .map-page .button.secondary:focus-visible {
+    color: var(--text-primary);
+  }
+
+  .map-page a:not(.button) {
+    color: var(--link-color);
   }
 
   .map-actions,
@@ -131,11 +190,22 @@
 
   .leaflet-popup-content {
     min-width: 210px;
+    color: var(--text-primary);
   }
 
   .leaflet-popup-content strong {
     display: block;
     margin-bottom: 0.25rem;
+    color: var(--heading-color);
+  }
+
+  .leaflet-popup-content span {
+    color: var(--text-secondary);
+  }
+
+  .leaflet-popup-content a {
+    color: var(--link-color);
+    font-weight: 900;
   }
 
   .preview-panel {
@@ -146,6 +216,28 @@
     border: 1px solid var(--line);
     border-radius: 14px;
     background: var(--card);
+  }
+
+  .preview-panel .hero-kicker,
+  .discovery-record .hero-kicker,
+  .remote-panel .hero-kicker,
+  .activity-panel .hero-kicker {
+    color: var(--text-muted);
+  }
+
+  .preview-panel h2,
+  .discovery-record h2 {
+    color: var(--text-primary);
+  }
+
+  .preview-panel p:not(.hero-kicker),
+  .discovery-record p:not(.hero-kicker) {
+    color: var(--text-secondary);
+  }
+
+  .preview-panel .hero-kicker,
+  .discovery-record .hero-kicker {
+    color: var(--text-primary);
   }
 
   .preview-panel h2,
@@ -177,9 +269,19 @@
     padding: 0.25rem 0.55rem;
     border-radius: 999px;
     background: var(--accent-soft);
-    color: var(--accent-dark);
+    color: var(--text-primary);
     font-size: 0.78rem;
     font-weight: 900;
+  }
+
+  .remote-panel .record-list > p,
+  .record-list .discovery-record:only-child p {
+    color: var(--text-secondary);
+  }
+
+  .remote-panel .discovery-record h2,
+  .remote-panel .discovery-record p {
+    color: var(--text-primary);
   }
 
   .is-hidden {
